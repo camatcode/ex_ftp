@@ -1,4 +1,4 @@
-# Ftp2Cloud
+# FTP2Cloud
 
 **TODO: Add description**
 
