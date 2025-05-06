@@ -21,3 +21,8 @@ ftp_2_cloud-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+
+.idea/
+
+*.iml
