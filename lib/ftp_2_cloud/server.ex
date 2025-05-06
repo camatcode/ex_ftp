@@ -1,4 +1,4 @@
-defmodule StudioFtp.Server do
+defmodule FTP2Cloud.Server do
   @moduledoc false
 
   use GenServer
