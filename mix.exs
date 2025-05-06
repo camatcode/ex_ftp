@@ -74,7 +74,14 @@ defmodule Ftp2Cloud.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:faker, "~> 0.18.0", only: :test},
-      {:req, "~> 0.5.10"}
+      {:req, "~> 0.5.10"},
+      {:junit_formatter, "~> 3.1", only: [:test]},
+      {:ex_aws, "~> 2.0"},
+      {:ex_aws_s3, "~> 2.0"},
+      {:poison, "~> 5.0"},
+      {:hackney, "~> 1.9"},
+      {:sweet_xml, "~> 0.7"},
+      {:configparser_ex, "~> 4.0"}
     ]
   end
 end
