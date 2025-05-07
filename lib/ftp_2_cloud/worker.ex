@@ -32,12 +32,14 @@ defmodule FTP2Cloud.Worker do
     end
 
     connector =
-      Application.get_env(:ftp_2_cloud, :storage_connector, FTP2Cloud.Connectors.FileConnector)
+      Application.get_env(:ftp_2_cloud, :storage_connector, FTP2Cloud.Connector.FileConnector)
 
     authenticator =
       Application.get_env(:ftp_2_cloud, :authenticator, FTP2Cloud.Auth.PassthroughAuth)
 
-    send_resp(220, "Hello from FTP2Cloud.", socket)
+    server_name = Application.get_env(:ftp_2_cloud, :server_name, FTP2Cloud)
+
+    send_resp(220, "Hello from #{server_name}.", socket)
 
     {:ok,
      %{
@@ -51,7 +53,9 @@ defmodule FTP2Cloud.Worker do
        prefix: "/",
        virtual_directories: [],
        storage_connector: connector,
-       authenticator: authenticator
+       connector_state: %{},
+       authenticator: authenticator,
+       authenticator_state: %{}
      }}
   end
 
@@ -113,20 +117,37 @@ defmodule FTP2Cloud.Worker do
 
   # Auth Commands
 
-  def run(["USER", username], %{socket: _socket} = state) do
-    :ok = state.authenticator.user(username, state)
-    {:noreply, %{state | username: username}}
+  def run(["USER", username], %{socket: socket} = server_state) do
+    {:ok, authenticator_state} =
+      server_state.authenticator.user(username, socket, server_state.authenticator_state)
+
+    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+
+    {:noreply, new_state}
   end
 
-  def run(["PASS", password], %{socket: _socket} = state) do
-    :ok = state.authenticator.pass(password, state)
-    {:noreply, state}
+  def run(["PASS", password], %{socket: socket} = server_state) do
+    {:ok, authenticator_state} =
+      server_state.authenticator.pass(password, socket, server_state.authenticator_state)
+
+    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+
+    {:noreply, new_state}
   end
 
   # Storage Connector Commands
-  def run(["PWD"], %{socket: socket} = state) do
-    :ok = send_resp(257, "\"#{state.prefix}\" is the current directory", socket)
-    {:noreply, state}
+  def run(["PWD"], %{socket: socket} = server_state) do
+    {:ok, connector_state} =
+      server_state.storage_connector.pwd(
+        socket,
+        server_state.connector_state,
+        server_state.authenticator,
+        server_state.authenticator_state
+      )
+
+    new_state = server_state |> Map.put(:connector_state, connector_state)
+
+    {:noreply, new_state}
   end
 
   def run(_, %{socket: socket} = state) do
