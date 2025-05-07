@@ -86,4 +86,27 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     assert {:ok, "257 \"/\" is the current directory" <> _} =
              :gen_tcp.recv(socket, 0, 5_000)
   end
+
+  test "MKD", %{socket: socket, password: _password} do
+    # PWD
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    assert {:ok, "257 \"/\" is the current directory" <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    tmp_dir = System.tmp_dir!()
+    dir_to_make = Path.join(tmp_dir, Faker.Internet.slug())
+    refute File.exists?(dir_to_make)
+    on_exit(fn -> File.rm_rf!(dir_to_make) end)
+
+    # CWD tmp_dir
+    :ok = :gen_tcp.send(socket, "CWD #{tmp_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # MKD dir_to_make
+    :ok = :gen_tcp.send(socket, "MKD #{dir_to_make}\r\n")
+    match = "257 \"#{dir_to_make}\" directory created."
+    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
+    assert File.exists?(dir_to_make)
+  end
 end

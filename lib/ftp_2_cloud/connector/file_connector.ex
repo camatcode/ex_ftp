@@ -8,7 +8,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
       if authenticator.is_authenticated?(authenticator_state) do
         send_resp(
           257,
-          "\"#{connector_state[:current_working_directory] || "/"}\" is the current directory",
+          "\"#{connector_state[:current_working_directory]}\" is the current directory",
           socket
         )
       else
@@ -22,6 +22,18 @@ defmodule FTP2Cloud.Connector.FileConnector do
     new_state =
       if authenticator.is_authenticated?(authenticator_state) do
         authenticated_cwd(path, socket, connector_state)
+      else
+        :ok = send_resp(530, "Not logged in.", socket)
+        connector_state
+      end
+
+    {:ok, new_state}
+  end
+
+  def mkd(path, socket, %{} = connector_state, authenticator, authenticator_state = %{}) do
+    new_state =
+      if authenticator.is_authenticated?(authenticator_state) do
+        authenticated_mkd(path, socket, connector_state)
       else
         :ok = send_resp(530, "Not logged in.", socket)
         connector_state
@@ -44,6 +56,23 @@ defmodule FTP2Cloud.Connector.FileConnector do
       end
 
     new_state
+  end
+
+  defp authenticated_mkd(path, socket, %{} = connector_state) do
+    wd = connector_state[:current_working_directory]
+    new_d = change_prefix(wd, path)
+
+    if File.exists?(new_d) do
+      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
+    else
+      File.mkdir_p(new_d)
+      |> case do
+        :ok -> :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
+        _ -> :ok = send_resp(521, "Failed to make directory.", socket)
+      end
+    end
+
+    connector_state
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)
