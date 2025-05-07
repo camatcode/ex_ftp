@@ -63,7 +63,7 @@ defmodule Ftp2Cloud.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Ftp2Cloud.Application, []}
+      mod: {FTP2Cloud.Application, []}
     ]
   end
 
