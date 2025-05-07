@@ -1,4 +1,4 @@
 import Config
 
-config :studio_ftp,
+config :ftp_2_cloud,
   ftp_port: 4041
