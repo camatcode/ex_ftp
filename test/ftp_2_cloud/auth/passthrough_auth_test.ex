@@ -2,6 +2,7 @@ defmodule FTP2Cloud.Auth.PassthroughAuthTest do
   @moduledoc false
 
   use ExUnit.Case
+  doctest FTP2Cloud.Auth.PassthroughAuth
 
   setup do
     Application.put_env(:ftp_2_cloud, :authenticator, FTP2Cloud.Auth.PassthroughAuth)
