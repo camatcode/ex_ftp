@@ -23,7 +23,64 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     %{socket: socket, username: username, password: password}
   end
 
-  test "PWD", %{socket: socket} do
+  test "PWD", %{socket: socket, password: password} do
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    assert {:ok, "257 \"/\" is the current directory" <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    # root can't PWD with passthrough auth
+    :ok = :gen_tcp.send(socket, "USER root\r\n")
+    assert {:ok, "331 User name okay, need password" <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    :ok = :gen_tcp.send(socket, "PASS #{password}\r\n")
+    match = "530 Authentication failed."
+    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    {:ok, "550 Requested action not taken. File unavailable." <> _} =
+      :gen_tcp.recv(socket, 0, 5_000)
+  end
+
+  test "CWD/CDUP", %{socket: socket, password: _password} do
+    # PWD
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    assert {:ok, "257 \"/\" is the current directory" <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    tmp_dir = System.tmp_dir!()
+    # CWD tmp_dir
+    :ok = :gen_tcp.send(socket, "CWD #{tmp_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # PWD
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+    match = "257 \"#{tmp_dir}\" is the current directory"
+    {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # CDUP
+    :ok = :gen_tcp.send(socket, "CDUP\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # CDUP
+    :ok = :gen_tcp.send(socket, "CDUP\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # PWD
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    assert {:ok, "257 \"/\" is the current directory" <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    # CWD does-not-exist
+    :ok = :gen_tcp.send(socket, "CWD does-not-exist\r\n")
+
+    assert {:ok, "550 Failed to change directory. Does not exist." <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    # PWD
     :ok = :gen_tcp.send(socket, "PWD\r\n")
 
     assert {:ok, "257 \"/\" is the current directory" <> _} =
