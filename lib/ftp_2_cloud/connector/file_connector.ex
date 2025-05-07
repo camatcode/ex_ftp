@@ -19,27 +19,33 @@ defmodule FTP2Cloud.Connector.FileConnector do
   end
 
   def cwd(path, socket, %{} = connector_state, authenticator, authenticator_state = %{}) do
-    new_state =
-      if authenticator.is_authenticated?(authenticator_state) do
-        authenticated_cwd(path, socket, connector_state)
-      else
-        :ok = send_resp(530, "Not logged in.", socket)
-        connector_state
-      end
-
-    {:ok, new_state}
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_cwd(path, socket, connector_state)
+     end)}
   end
 
   def mkd(path, socket, %{} = connector_state, authenticator, authenticator_state = %{}) do
-    new_state =
-      if authenticator.is_authenticated?(authenticator_state) do
-        authenticated_mkd(path, socket, connector_state)
-      else
-        :ok = send_resp(530, "Not logged in.", socket)
-        connector_state
-      end
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_mkd(path, socket, connector_state)
+     end)}
+  end
 
-    {:ok, new_state}
+  def rmd(path, socket, %{} = connector_state, authenticator, authenticator_state = %{}) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_rmd(path, socket, connector_state)
+     end)}
+  end
+
+  defp wrap_auth(socket, %{} = connector_state, authenticator, authenticator_state = %{}, func) do
+    if authenticator.is_authenticated?(authenticator_state) do
+      func.()
+    else
+      :ok = send_resp(530, "Not logged in.", socket)
+      connector_state
+    end
   end
 
   defp authenticated_cwd(path, socket, %{} = connector_state) do
@@ -73,6 +79,31 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
 
     connector_state
+  end
+
+  defp authenticated_rmd(path, socket, %{} = connector_state) do
+    wd = connector_state[:current_working_directory]
+    rm_d = change_prefix(wd, path)
+
+    if File.exists?(rm_d) && rm_d != "/" do
+      File.rm_rf(rm_d)
+      |> case do
+        {:ok, _} ->
+          :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
+          if wd == rm_d, do: change_prefix(wd, "..")
+
+        _ ->
+          :ok = send_resp(550, "Failed to remove directory.", socket)
+      end
+    else
+      :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
+    end
+
+    # kickout if you just RM'd the dir you're in
+    new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
+
+    connector_state
+    |> Map.put(:current_working_directory, new_working_dir)
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)

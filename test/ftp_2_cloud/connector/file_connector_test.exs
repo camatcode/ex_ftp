@@ -43,7 +43,7 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
       :gen_tcp.recv(socket, 0, 5_000)
   end
 
-  test "CWD/CDUP", %{socket: socket, password: _password} do
+  test "CWD / CDUP", %{socket: socket, password: _password} do
     # PWD
     :ok = :gen_tcp.send(socket, "PWD\r\n")
 
@@ -87,7 +87,7 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
              :gen_tcp.recv(socket, 0, 5_000)
   end
 
-  test "MKD", %{socket: socket, password: _password} do
+  test "MKD / RMD", %{socket: socket, password: _password} do
     # PWD
     :ok = :gen_tcp.send(socket, "PWD\r\n")
 
@@ -108,5 +108,23 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     match = "257 \"#{dir_to_make}\" directory created."
     assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
     assert File.exists?(dir_to_make)
+
+    # CWD dir_to_make
+    :ok = :gen_tcp.send(socket, "CWD #{dir_to_make}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # RMD dir_to_make
+    :ok = :gen_tcp.send(socket, "RMD #{dir_to_make}\r\n")
+    match = "250 \"#{dir_to_make}\" directory removed."
+    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000) |> IO.inspect()
+    refute File.exists?(dir_to_make)
+
+    # verify you've been kicked out
+    # PWD
+    :ok = :gen_tcp.send(socket, "PWD\r\n")
+
+    match = "257 \"#{tmp_dir}\" is the current directory"
+    assert {:ok, ^match <> _} =
+             :gen_tcp.recv(socket, 0, 5_000)
   end
 end
