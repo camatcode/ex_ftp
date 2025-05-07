@@ -53,7 +53,7 @@ defmodule FTP2Cloud.Worker do
        prefix: "/",
        virtual_directories: [],
        storage_connector: connector,
-       connector_state: %{},
+       connector_state: %{current_working_directory: "/"},
        authenticator: authenticator,
        authenticator_state: %{}
      }}
@@ -157,6 +157,21 @@ defmodule FTP2Cloud.Worker do
   def run(["CWD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
       server_state.storage_connector.cwd(
+        path,
+        socket,
+        server_state.connector_state,
+        server_state.authenticator,
+        server_state.authenticator_state
+      )
+
+    new_state = server_state |> Map.put(:connector_state, connector_state)
+
+    {:noreply, new_state}
+  end
+
+  def run(["MKD", path], %{socket: socket} = server_state) do
+    {:ok, connector_state} =
+      server_state.storage_connector.mkd(
         path,
         socket,
         server_state.connector_state,
