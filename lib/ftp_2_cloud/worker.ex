@@ -191,9 +191,17 @@ defmodule FTP2Cloud.Worker do
     end
   end
 
-  def run(["PASS", _password], %{socket: _socket, username: _username} = state) do
+  def run(["PASS", _password], %{socket: socket, username: username} = state) do
     # TODO
-    {:noreply, state}
+    :ok = send_resp(230, "Welcome #{username}.", socket)
+
+    {:noreply,
+      %{
+        state
+      | current_user: %{name: username},
+        user_prefix: "/",
+        prefix: change_prefix("/", "/"),
+      }}
   end
 
   def run(["PASV"], %{socket: socket} = state) do
