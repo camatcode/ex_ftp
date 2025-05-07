@@ -27,5 +27,6 @@ defmodule FTP2Cloud.Auth.PassthroughAuth do
     {:ok, new_state}
   end
 
-  def is_authenticated?(%{authenticated: authenticated}), do: authenticated
+  def is_authenticated?(%{authenticated: authenticated} = _state), do: authenticated
+  def is_authenticated?(_), do: false
 end
