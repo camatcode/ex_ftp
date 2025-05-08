@@ -223,10 +223,15 @@ defmodule FTP2Cloud.Worker do
     {:noreply, new_state}
   end
 
-  def run(["LIST", "-a"], %{socket: socket} = server_state) do
+  def run(["LIST", "-a"], server_state) do
+    run(["LIST", "-a", "."], server_state)
+  end
+
+  def run(["LIST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
         server_state.storage_connector.list_a(
+          path,
           socket,
           pasv,
           server_state.connector_state,
@@ -240,10 +245,57 @@ defmodule FTP2Cloud.Worker do
     end
   end
 
-  def run(["LIST"], %{socket: socket} = server_state) do
+  def run(["LIST"], server_state) do
+    run(["LIST", "."], server_state)
+  end
+
+  def run(["LIST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
         server_state.storage_connector.list(
+          path,
+          socket,
+          pasv,
+          server_state.connector_state,
+          server_state.authenticator,
+          server_state.authenticator_state
+        )
+
+      new_state = server_state |> Map.put(:connector_state, connector_state)
+
+      {:noreply, new_state}
+    end
+  end
+
+  def run(["NLST", "-a"], server_state) do
+    run(["NLST", "-a", "."], server_state)
+  end
+
+  def run(["NLST", "-a", path], %{socket: socket} = server_state) do
+    with {:ok, pasv} <- with_pasv_socket(server_state) do
+      {:ok, connector_state} =
+        server_state.storage_connector.nlst_a(
+          path,
+          socket,
+          pasv,
+          server_state.connector_state,
+          server_state.authenticator,
+          server_state.authenticator_state
+        )
+
+      new_state = server_state |> Map.put(:connector_state, connector_state)
+
+      {:noreply, new_state}
+    end
+  end
+
+  def run(["NLST"], state), do: run(["NLST", "."], state)
+
+  def run(["NLST", path], %{socket: socket} = server_state) do
+    with {:ok, pasv} <- with_pasv_socket(server_state) do
+      {:ok, connector_state} =
+        server_state.storage_connector.nlst(
+          path,
           socket,
           pasv,
           server_state.connector_state,

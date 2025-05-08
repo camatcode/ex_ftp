@@ -163,11 +163,13 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
     assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
-    # LIST -a
+    # LIST
     :ok = :gen_tcp.send(socket, "LIST\r\n")
     assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     assert {:ok, listing} = read_fully(pasv_socket)
+
+    assert {:ok, "226 Directory send OK." <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     parts = String.split(listing, "\r\n")
     refute Enum.empty?(parts)
@@ -177,6 +179,83 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
 
     Enum.each(files_to_find, fn file_to_find ->
       assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
+    end)
+
+    # LIST path
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+    :ok = :gen_tcp.send(socket, "LIST #{w_dir}\r\n")
+    assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 5_000)
+    # :ok, "226 Directory send OK.\r\n"}
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+
+    assert {:ok, "226 Directory send OK." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find = File.ls!(w_dir) |> Enum.reject(&String.starts_with?(&1, "."))
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
+    end)
+  end
+
+  test "NLST", state do
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+    # CWD w_dir
+    w_dir = File.cwd!()
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # LIST
+    :ok = :gen_tcp.send(socket, "NLST\r\n")
+    assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+
+    assert {:ok, "226 Directory send OK." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(w_dir) |> Enum.reject(&String.starts_with?(&1, ".")) |> Enum.sort()
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
+    end)
+  end
+
+  test "NLST -a", state do
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+    # CWD w_dir
+    w_dir = File.cwd!()
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # LIST
+    :ok = :gen_tcp.send(socket, "NLST -a\r\n")
+    assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+
+    assert {:ok, "226 Directory send OK." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(w_dir) |> Enum.sort()
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found | _] =
+               Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
     end)
   end
 
