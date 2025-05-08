@@ -111,6 +111,19 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
+  def size(
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_size(path, socket, connector_state)
+     end)}
+  end
+
   defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
     if authenticator.authenticated?(authenticator_state) do
       func.()
@@ -306,6 +319,19 @@ defmodule FTP2Cloud.Connector.FileConnector do
       :ok = send_resp(226, "Transfer complete.", socket)
     else
       :ok = send_resp(451, "File not found.", socket)
+    end
+
+    connector_state
+  end
+
+  def authenticated_size(path, socket, %{} = connector_state) do
+    w_path = change_prefix(connector_state[:current_working_directory], path)
+
+    if File.exists?(w_path) do
+      %{size: size} = File.lstat!(w_path)
+      :ok = send_resp(213, "#{size}", socket)
+    else
+      :ok = send_resp(550, "Could not get file size.", socket)
     end
 
     connector_state

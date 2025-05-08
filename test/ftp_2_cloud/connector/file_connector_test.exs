@@ -282,6 +282,23 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     end)
   end
 
+  test "SIZE", %{socket: socket, password: _password} do
+    # CWD w_dir
+    w_dir = File.cwd!()
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+    files_to_size = File.ls!(w_dir)
+    refute Enum.empty?(files_to_size)
+
+    files_to_size
+    |> Enum.each(fn file ->
+      :ok = :gen_tcp.send(socket, "SIZE #{file}\r\n")
+      assert {:ok, "213 " <> size} = :gen_tcp.recv(socket, 0, 10_000)
+      size = size |> String.trim() |> String.to_integer()
+      assert %{size: ^size} = File.lstat!(Path.join(w_dir, file))
+    end)
+  end
+
   defp read_fully(socket, data \\ <<>>) do
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, resp} -> read_fully(socket, data <> resp)
