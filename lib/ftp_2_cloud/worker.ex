@@ -158,6 +158,21 @@ defmodule FTP2Cloud.Worker do
     end
   end
 
+  def run(["EPRT", _eport_info], %{socket: socket} = server_state) do
+    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
+      :ok = send_resp(200, "EPRT command successful.", socket)
+    else
+      :ok =
+        send_resp(
+          530,
+          "Authentication failed.",
+          socket
+        )
+    end
+
+    {:noreply, server_state}
+  end
+
   # Auth Commands
 
   def run(["USER", username], %{socket: socket} = server_state) do
