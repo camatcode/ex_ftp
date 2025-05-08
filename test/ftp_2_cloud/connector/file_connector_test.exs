@@ -299,6 +299,42 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     end)
   end
 
+  test "STOR", %{socket: socket, password: _password} = state do
+    # CWD w_dir
+    w_dir = System.tmp_dir!() |> Path.join("stor_test")
+    :ok = File.mkdir_p!(w_dir)
+    on_exit(fn -> File.rm_rf!(w_dir) end)
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    files_to_store =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+
+    refute Enum.empty?(files_to_store)
+
+    files_to_store
+    |> Enum.each(fn file ->
+      %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+      :ok = :gen_tcp.send(socket, "STOR #{file}\r\n")
+      assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 10_000)
+
+      File.stream!(Path.join(File.cwd!(), file), [], 5 * 1024 * 1024)
+      |> Enum.each(fn data ->
+        :ok = :gen_tcp.send(pasv_socket, data)
+      end)
+
+      :gen_tcp.close(pasv_socket)
+
+      assert {:ok, "226 Transfer Complete.\r\n"} = :gen_tcp.recv(socket, 0, 30_000)
+
+      :ok = :gen_tcp.send(socket, "SIZE #{file}\r\n")
+      assert {:ok, "213 " <> size} = :gen_tcp.recv(socket, 0, 10_000)
+      size = size |> String.trim() |> String.to_integer()
+      assert %{size: ^size} = File.lstat!(Path.join(File.cwd!(), file))
+    end)
+  end
+
   defp read_fully(socket, data \\ <<>>) do
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, resp} -> read_fully(socket, data <> resp)

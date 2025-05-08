@@ -124,6 +124,20 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
+  def stor(
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_stor(path, socket, pasv_socket, connector_state)
+     end)}
+  end
+
   defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
     if authenticator.authenticated?(authenticator_state) do
       func.()
@@ -333,6 +347,34 @@ defmodule FTP2Cloud.Connector.FileConnector do
     else
       :ok = send_resp(550, "Could not get file size.", socket)
     end
+
+    connector_state
+  end
+
+  defp authenticated_stor(path, socket, pasv_socket, %{} = connector_state) do
+    :ok = send_resp(150, "Ok to send data.", socket)
+    w_path = change_prefix(connector_state[:current_working_directory], path)
+
+    PassiveSocket.read(
+      pasv_socket,
+      fn stream, opts ->
+        fs = opts[:fs]
+
+        try do
+          _fs =
+            chunk_stream(stream, opts)
+            |> Enum.into(fs)
+
+          :ok = send_resp(226, "Transfer Complete.", socket)
+        rescue
+          _ -> :ok = send_resp(552, "Failed to transfer.", socket)
+        after
+          File.close(fs)
+        end
+      end,
+      fs: File.stream!(w_path),
+      chunk_size: 5 * 1024 * 1024
+    )
 
     connector_state
   end
