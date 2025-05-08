@@ -97,6 +97,20 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
+  def retr(
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_retr(path, socket, pasv_socket, connector_state)
+     end)}
+  end
+
   defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
     if authenticator.authenticated?(authenticator_state) do
       func.()
@@ -279,6 +293,21 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
 
     :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
+  end
+
+  defp authenticated_retr(path, socket, pasv_socket, %{} = connector_state) do
+    :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
+    w_path = change_prefix(connector_state[:current_working_directory], path)
+
+    if File.exists?(w_path) && File.regular?(w_path) do
+      bytes = File.read!(path)
+      PassiveSocket.write(pasv_socket, bytes, close_after_write: true)
+      :ok = send_resp(226, "Transfer complete.", socket)
+    else
+      :ok = send_resp(451, "File not found.", socket)
+    end
+
     connector_state
   end
 
