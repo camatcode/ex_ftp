@@ -361,8 +361,9 @@ defmodule FTP2Cloud.Connector.FileConnector do
         fs = opts[:fs]
 
         try do
-          chunk_stream(stream, opts)
-          |> Enum.into(fs)
+          _fs =
+            chunk_stream(stream, opts)
+            |> Enum.into(fs)
 
           :ok = send_resp(226, "Transfer Complete.", socket)
         rescue

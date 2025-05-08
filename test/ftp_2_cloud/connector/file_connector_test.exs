@@ -307,7 +307,10 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
     assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
-    files_to_store = File.ls!(File.cwd!()) |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+    files_to_store =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+
     refute Enum.empty?(files_to_store)
 
     files_to_store
@@ -316,10 +319,11 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
       :ok = :gen_tcp.send(socket, "STOR #{file}\r\n")
       assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 10_000)
 
-      File.stream!(Path.join(File.cwd!(), file), [], 5*1024*1024)
+      File.stream!(Path.join(File.cwd!(), file), [], 5 * 1024 * 1024)
       |> Enum.each(fn data ->
         :ok = :gen_tcp.send(pasv_socket, data)
       end)
+
       :gen_tcp.close(pasv_socket)
 
       assert {:ok, "226 Transfer Complete.\r\n"} = :gen_tcp.recv(socket, 0, 30_000)
