@@ -76,9 +76,7 @@ defmodule FTP2Cloud.Worker do
     |> run(state)
   end
 
-  def handle_info(:read_complete, %{socket: socket, pasv_socket: pasv} = state) do
-    :ok = send_resp(226, "Transfer Complete.", socket)
-
+  def handle_info(:read_complete, %{socket: _socket, pasv_socket: pasv} = state) do
     PassiveSocket.close(pasv)
     {:noreply, %{state | pasv_socket: nil}}
   end
@@ -374,6 +372,24 @@ defmodule FTP2Cloud.Worker do
     new_state = server_state |> Map.put(:connector_state, connector_state)
 
     {:noreply, new_state}
+  end
+
+  def run(["STOR", path], %{socket: socket} = server_state) do
+    with {:ok, pasv} <- with_pasv_socket(server_state) do
+      {:ok, connector_state} =
+        server_state.storage_connector.stor(
+          path,
+          socket,
+          pasv,
+          server_state.connector_state,
+          server_state.authenticator,
+          server_state.authenticator_state
+        )
+
+      new_state = server_state |> Map.put(:connector_state, connector_state)
+
+      {:noreply, new_state}
+    end
   end
 
   def run(_, %{socket: socket} = state) do
