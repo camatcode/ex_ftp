@@ -41,6 +41,13 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
+  def list(socket, pasv_socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_list(socket, pasv_socket, connector_state)
+     end)}
+  end
+
   def list_a(socket, pasv_socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
     {:ok,
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
@@ -115,10 +122,42 @@ defmodule FTP2Cloud.Connector.FileConnector do
 
   defp rmrf_dir(dir) do
     if File.exists?(dir) && File.dir?(dir) do
-      File.rm_rf(rm_d)
+      File.rm_rf(dir)
     else
       {:ok, nil}
     end
+  end
+
+  defp authenticated_list(socket, pasv_socket, %{} = connector_state) do
+    :ok = send_resp(150, "Here comes the directory listing.", socket)
+
+    wd = connector_state[:current_working_directory]
+
+    items =
+      File.ls(wd)
+      |> case do
+        {:ok, files} ->
+          files
+          |> Enum.reject(&String.starts_with?(&1, "."))
+          |> Enum.sort()
+
+        _ ->
+          []
+      end
+      |> Enum.map(&format_list_item(&1, wd))
+
+    if Enum.empty?(items) do
+      PassiveSocket.write(pasv_socket, "", close_after_write: true)
+    else
+      :ok =
+        items
+        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
+
+      PassiveSocket.close(pasv_socket)
+    end
+
+    :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
   end
 
   defp authenticated_list_a(socket, pasv_socket, %{} = connector_state) do
@@ -129,8 +168,8 @@ defmodule FTP2Cloud.Connector.FileConnector do
     items =
       File.ls(wd)
       |> case do
-        {:ok, files} -> files |> Enum.sort()
-        _ -> []
+        {:ok, files} -> ([".", ".."] ++ files) |> Enum.sort()
+        _ -> [".", ".."]
       end
       |> Enum.map(&format_list_item(&1, wd))
 
@@ -151,7 +190,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   defp format_list_item(file_name, wd) do
     Path.join(wd, file_name)
     |> File.lstat!(time: :local)
-    |> format_file_stat(file_name)
+    |> format_file_stat(file_name, wd)
   end
 
   defp format_file_stat(
@@ -161,8 +200,17 @@ defmodule FTP2Cloud.Connector.FileConnector do
            access: access,
            type: type
          },
-         file_name
+         file_name,
+         directory
        ) do
+    file_name =
+      if type == :symlink do
+        {:ok, target} = :file.read_link(Path.join(directory, file_name))
+        "#{file_name} -> #{target}"
+      else
+        file_name
+      end
+
     type =
       type
       |> case do
