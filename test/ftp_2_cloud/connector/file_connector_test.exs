@@ -1,6 +1,7 @@
 defmodule FTP2Cloud.Connector.FileConnectorTest do
   @moduledoc false
 
+  import Bitwise
   use ExUnit.Case
   doctest FTP2Cloud.Connector.FileConnector
 
@@ -116,7 +117,7 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     # RMD dir_to_make
     :ok = :gen_tcp.send(socket, "RMD #{dir_to_make}\r\n")
     match = "250 \"#{dir_to_make}\" directory removed."
-    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000) |> IO.inspect()
+    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
     refute File.exists?(dir_to_make)
 
     # verify you've been kicked out
@@ -124,7 +125,65 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     :ok = :gen_tcp.send(socket, "PWD\r\n")
 
     match = "257 \"#{tmp_dir}\" is the current directory"
+
     assert {:ok, ^match <> _} =
              :gen_tcp.recv(socket, 0, 5_000)
+  end
+
+  test "LIST -a", state do
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    # CWD w_dir
+    w_dir = File.cwd!()
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    # LIST -a
+    :ok = :gen_tcp.send(socket, "LIST -a\r\n")
+    assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find = File.ls!(w_dir)
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
+    end)
+  end
+
+  defp read_fully(socket, data \\ <<>>) do
+    case :gen_tcp.recv(socket, 0, 5_000) do
+      {:ok, resp} -> read_fully(socket, data <> resp)
+      {:error, :closed} -> {:ok, data}
+    end
+  end
+
+  defp setup_pasv_connection(%{socket: socket} = state) do
+    :ok = :gen_tcp.send(socket, "PASV\r\n")
+
+    assert {:ok, "227 Entering Passive Mode " <> ip_port_string} =
+             :gen_tcp.recv(socket, 0, 5_000)
+
+    [_, ip_port_string] = Regex.run(~r/\((.*)\)/, ip_port_string)
+
+    assert [o1, o2, o3, o4, ip1, ip2] =
+             ip_port_string
+             |> String.trim()
+             |> String.split(",")
+             |> Enum.map(&String.to_integer/1)
+
+    ip = {o1, o2, o3, o4}
+    port = (ip1 <<< 8) + (255 &&& ip2)
+
+    assert {:ok, pasv_socket} = :gen_tcp.connect(ip, port, [:binary, active: false])
+
+    on_exit(:close_pasv_socket, fn -> :gen_tcp.close(pasv_socket) end)
+
+    state
+    |> Map.put(:pasv_socket, pasv_socket)
   end
 end
