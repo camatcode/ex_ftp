@@ -139,6 +139,25 @@ defmodule FTP2Cloud.Worker do
     end
   end
 
+  def run(["EPSV"], %{socket: socket} = server_state) do
+    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
+      {:ok, pasv} = PassiveSocket.start_link()
+      {:ok, port} = PassiveSocket.get_port(pasv)
+
+      :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
+      {:noreply, %{server_state | pasv_socket: pasv}}
+    else
+      :ok =
+        send_resp(
+          530,
+          "Authentication failed.",
+          socket
+        )
+
+      {:noreply, server_state}
+    end
+  end
+
   # Auth Commands
 
   def run(["USER", username], %{socket: socket} = server_state) do
