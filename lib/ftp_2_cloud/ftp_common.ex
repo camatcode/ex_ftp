@@ -45,4 +45,26 @@ defmodule FTP2Cloud.Common do
 
     {:stop, :normal, state}
   end
+
+  def chunk_stream(stream, opts \\ []) do
+    opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
+
+    Stream.chunk_while(
+      stream,
+      <<>>,
+      fn data, chunk ->
+        chunk = chunk <> data
+
+        if byte_size(chunk) >= opts[:chunk_size] do
+          {:cont, chunk, <<>>}
+        else
+          {:cont, chunk}
+        end
+      end,
+      fn
+        <<>> -> {:cont, []}
+        chunk -> {:cont, chunk, []}
+      end
+    )
+  end
 end
