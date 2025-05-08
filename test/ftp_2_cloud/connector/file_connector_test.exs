@@ -259,6 +259,29 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     end)
   end
 
+  test "RETR", %{socket: socket, password: _password} = state do
+    # CWD w_dir
+    w_dir = File.cwd!()
+    :ok = :gen_tcp.send(socket, "CWD #{w_dir}\r\n")
+    assert {:ok, "250 Directory changed successfully." <> _} = :gen_tcp.recv(socket, 0, 5_000)
+
+    files_to_download =
+      File.ls!(w_dir) |> Enum.filter(fn file -> Path.join(w_dir, file) |> File.regular?() end)
+
+    refute Enum.empty?(files_to_download)
+
+    files_to_download
+    |> Enum.each(fn file ->
+      %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+      :ok = :gen_tcp.send(socket, "RETR #{file}\r\n")
+      assert {:ok, "150 " <> _} = :gen_tcp.recv(socket, 0, 10_000)
+      assert {:ok, bytes} = read_fully(pasv_socket)
+      refute byte_size(bytes) == 0
+      assert bytes == File.read!(Path.join(w_dir, file)) <> "\r\n"
+      assert {:ok, "226 Transfer complete." <> _} = :gen_tcp.recv(socket, 0, 10_000)
+    end)
+  end
+
   defp read_fully(socket, data \\ <<>>) do
     case :gen_tcp.recv(socket, 0, 5_000) do
       {:ok, resp} -> read_fully(socket, data <> resp)
