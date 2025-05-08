@@ -3,12 +3,31 @@ defmodule FTP2Cloud.Common do
 
   require Logger
 
+  import Bitwise
+
   alias FTP2Cloud.PassiveSocket
 
   def send_resp(code, msg, socket) do
     response = "#{code} #{msg}\r\n"
     Logger.info("Sending FTP response:\t#{inspect(response)}")
     :gen_tcp.send(socket, response)
+  end
+
+  def with_pasv_socket(%{pasv_socket: pasv} = state) do
+    if pasv && Process.alive?(pasv) do
+      {:ok, pasv}
+    else
+      :ok = send_resp(550, "LIST failed. PASV mode required.", Map.get(state, :socket))
+      {:noreply, state}
+    end
+  end
+
+  def ip_port_to_pasv(ip, port) do
+    upper_port = port >>> 8
+    lower_port = port &&& 255
+    {a, b, c, d} = ip
+    # Convert IP and port (e.g. 64943) to (192,168,1,22,253,175)
+    "#{a},#{b},#{c},#{d},#{upper_port},#{lower_port}"
   end
 
   def quit(%{socket: socket} = state) do
