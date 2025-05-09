@@ -1,44 +1,36 @@
 defmodule FTP2Cloud.Connector.FileConnector do
   @moduledoc false
+  @behaviour FTP2Cloud.StorageConnector
 
   import FTP2Cloud.Common
 
   alias FTP2Cloud.PassiveSocket
+  alias FTP2Cloud.StorageConnector
 
-  def pwd(socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    :ok =
-      if authenticator.authenticated?(authenticator_state) do
-        send_resp(
-          257,
-          "\"#{connector_state[:current_working_directory]}\" is the current directory",
-          socket
-        )
-      else
-        send_resp(550, "Requested action not taken. File unavailable.", socket)
-      end
+  @impl StorageConnector
+  def get_working_directory(%{current_working_directory: cwd}), do: cwd
 
-    {:ok, connector_state}
+  @impl StorageConnector
+  def directory_exists?(path, _connector_state) do
+    File.exists?(path) && File.dir?(path)
   end
 
-  def cwd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_cwd(path, socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def make_directory(path, connector_state) do
+    File.mkdir_p(path)
+    |> case do
+      :ok -> {:ok, connector_state}
+      err -> err
+    end
   end
 
-  def mkd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_mkd(path, socket, connector_state)
-     end)}
-  end
-
-  def rmd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_rmd(path, socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def rm_directory(path, connector_state) do
+    rmrf_dir(path)
+    |> case do
+      {:ok, _} -> {:ok, connector_state}
+      err -> err
+    end
   end
 
   def list(
@@ -138,73 +130,10 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
-  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
-    if authenticator.authenticated?(authenticator_state) do
-      func.()
-    else
-      :ok = send_resp(530, "Not logged in.", socket)
-      connector_state
-    end
-  end
-
-  defp authenticated_cwd(path, socket, %{} = connector_state) do
-    old_wd = connector_state[:current_working_directory]
-    new_wd = change_prefix(old_wd, path)
-
-    new_state =
-      if File.exists?(new_wd) do
-        :ok = send_resp(250, "Directory changed successfully.", socket)
-        connector_state |> Map.put(:current_working_directory, new_wd)
-      else
-        :ok = send_resp(550, "Failed to change directory. Does not exist.", socket)
-        connector_state
-      end
-
-    new_state
-  end
-
-  defp authenticated_mkd(path, socket, %{} = connector_state) do
-    wd = connector_state[:current_working_directory]
-    new_d = change_prefix(wd, path)
-
-    if File.exists?(new_d) do
-      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
-    else
-      File.mkdir_p(new_d)
-      |> case do
-        :ok -> :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
-        _ -> :ok = send_resp(521, "Failed to make directory.", socket)
-      end
-    end
-
-    connector_state
-  end
-
-  defp authenticated_rmd(path, socket, %{} = connector_state) do
-    wd = connector_state[:current_working_directory]
-    rm_d = change_prefix(wd, path)
-
-    rmrf_dir(rm_d)
-    |> case do
-      {:ok, _} ->
-        :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
-        if wd == rm_d, do: change_prefix(wd, "..")
-
-      _ ->
-        :ok = send_resp(550, "Failed to remove directory.", socket)
-    end
-
-    # kickout if you just RM'd the dir you're in
-    new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
-
-    connector_state
-    |> Map.put(:current_working_directory, new_working_dir)
-  end
-
   defp authenticated_list(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Here comes the directory listing.", socket)
 
-    wd = change_prefix(connector_state[:current_working_directory], path)
+    wd = change_prefix(get_working_directory(connector_state), path)
 
     items =
       File.ls(wd)
@@ -236,7 +165,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   defp authenticated_list_a(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Here comes the directory listing.", socket)
 
-    wd = change_prefix(connector_state[:current_working_directory], path)
+    wd = change_prefix(get_working_directory(connector_state), path)
 
     items =
       File.ls(wd)
@@ -263,7 +192,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   defp authenticated_nlst(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Here comes the directory listing.", socket)
 
-    wd = change_prefix(connector_state[:current_working_directory], path)
+    wd = change_prefix(get_working_directory(connector_state), path)
 
     items =
       File.ls(wd)
@@ -295,7 +224,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   defp authenticated_nlst_a(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Here comes the directory listing.", socket)
 
-    wd = change_prefix(connector_state[:current_working_directory], path)
+    wd = change_prefix(get_working_directory(connector_state), path)
 
     items =
       File.ls(wd)
@@ -325,7 +254,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
 
   defp authenticated_retr(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     if File.exists?(w_path) && File.regular?(w_path) do
       bytes = File.read!(path)
@@ -339,7 +268,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   end
 
   def authenticated_size(path, socket, %{} = connector_state) do
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     if File.exists?(w_path) do
       %{size: size} = File.lstat!(w_path)
@@ -353,7 +282,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
 
   defp authenticated_stor(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Ok to send data.", socket)
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     PassiveSocket.read(
       pasv_socket,
@@ -437,6 +366,15 @@ defmodule FTP2Cloud.Connector.FileConnector do
     permissions = "#{type}#{access}r--r--"
 
     "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
+  end
+
+  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
+    if authenticator.authenticated?(authenticator_state) do
+      func.()
+    else
+      :ok = send_resp(530, "Not logged in.", socket)
+      connector_state
+    end
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)

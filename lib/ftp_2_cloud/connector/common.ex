@@ -1,0 +1,142 @@
+defmodule FTP2Cloud.Connector.Common do
+  @moduledoc false
+  import FTP2Cloud.Common
+
+  def pwd(connector, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
+    :ok =
+      if authenticator.authenticated?(authenticator_state) do
+        send_resp(
+          257,
+          "\"#{connector.get_working_directory(connector_state)}\" is the current directory",
+          socket
+        )
+      else
+        send_resp(550, "Requested action not taken. File unavailable.", socket)
+      end
+
+    {:ok, connector_state}
+  end
+
+  def cwd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_cwd(connector, path, socket, connector_state)
+     end)}
+  end
+
+  def mkd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_mkd(connector, path, socket, connector_state)
+     end)}
+  end
+
+  def rmd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_rmd(connector, path, socket, connector_state)
+     end)}
+  end
+
+  defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
+    old_wd = connector.get_working_directory(connector_state)
+    new_wd = change_prefix(old_wd, path)
+
+    new_state =
+      if connector.directory_exists?(new_wd, connector_state) do
+        :ok = send_resp(250, "Directory changed successfully.", socket)
+        connector_state |> Map.put(:current_working_directory, new_wd)
+      else
+        :ok = send_resp(550, "Failed to change directory. Does not exist.", socket)
+        connector_state
+      end
+
+    new_state
+  end
+
+  defp authenticated_mkd(connector, path, socket, %{} = connector_state) do
+    wd = connector.get_working_directory(connector_state)
+    new_d = change_prefix(wd, path)
+
+    if connector.directory_exists?(new_d, connector_state) do
+      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
+    else
+      connector.make_directory(path, connector_state)
+      |> case do
+        {:ok, connector_state} ->
+          :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
+          connector_state
+
+        _ ->
+          :ok = send_resp(521, "Failed to make directory.", socket)
+          connector_state
+      end
+    end
+  end
+
+  defp authenticated_rmd(connector, path, socket, %{} = connector_state) do
+    wd = connector.get_working_directory(connector_state)
+    rm_d = change_prefix(wd, path)
+
+    connector.rm_directory(rm_d, connector_state)
+    |> case do
+      {:ok, connector_state} ->
+        :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
+        # kickout if you just RM'd the dir you're in
+        new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
+
+        connector_state
+        |> Map.put(:current_working_directory, new_working_dir)
+
+      _ ->
+        :ok = send_resp(550, "Failed to remove directory.", socket)
+        connector_state
+    end
+  end
+
+  defp change_prefix(nil, path), do: change_prefix("/", path)
+
+  defp change_prefix(current_prefix, path) do
+    cond do
+      String.starts_with?(path, "/") ->
+        Path.expand(path)
+
+      String.starts_with?(path, "~") ->
+        String.replace(path, "~", "/") |> Path.expand()
+
+      true ->
+        Path.join(current_prefix, path)
+        |> Path.expand()
+    end
+  end
+
+  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
+    if authenticator.authenticated?(authenticator_state) do
+      func.()
+    else
+      :ok = send_resp(530, "Not logged in.", socket)
+      connector_state
+    end
+  end
+end
