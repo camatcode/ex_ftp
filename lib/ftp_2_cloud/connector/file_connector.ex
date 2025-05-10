@@ -2,9 +2,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
   @moduledoc false
   @behaviour FTP2Cloud.StorageConnector
 
-  import FTP2Cloud.Common
-
-  alias FTP2Cloud.PassiveSocket
   alias FTP2Cloud.StorageConnector
 
   @impl StorageConnector
@@ -51,6 +48,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
   end
 
+  @impl StorageConnector
   def get_content_info(path, _connector_state) do
     File.lstat(path)
     |> case do
@@ -85,100 +83,19 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
   end
 
-  def retr(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_retr(path, socket, pasv_socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def get_content(path, _connector_state) do
+    File.read(path)
   end
 
-  def stor(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_stor(path, socket, pasv_socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def open_write_stream(path, _connector_state) do
+    {:ok, File.stream!(path)}
   end
 
-  defp authenticated_retr(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
-    w_path = change_prefix(get_working_directory(connector_state), path)
-
-    if File.exists?(w_path) && File.regular?(w_path) do
-      bytes = File.read!(path)
-      PassiveSocket.write(pasv_socket, bytes, close_after_write: true)
-      :ok = send_resp(226, "Transfer complete.", socket)
-    else
-      :ok = send_resp(451, "File not found.", socket)
-    end
-
-    connector_state
-  end
-
-  defp authenticated_stor(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Ok to send data.", socket)
-    w_path = change_prefix(get_working_directory(connector_state), path)
-
-    PassiveSocket.read(
-      pasv_socket,
-      fn stream, opts ->
-        fs = opts[:fs]
-
-        try do
-          _fs =
-            chunk_stream(stream, opts)
-            |> Enum.into(fs)
-
-          :ok = send_resp(226, "Transfer Complete.", socket)
-        rescue
-          _ -> :ok = send_resp(552, "Failed to transfer.", socket)
-        after
-          File.close(fs)
-        end
-      end,
-      fs: File.stream!(w_path),
-      chunk_size: 5 * 1024 * 1024
-    )
-
-    connector_state
-  end
-
-  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
-    if authenticator.authenticated?(authenticator_state) do
-      func.()
-    else
-      :ok = send_resp(530, "Not logged in.", socket)
-      connector_state
-    end
-  end
-
-  defp change_prefix(nil, path), do: change_prefix("/", path)
-
-  defp change_prefix(current_prefix, path) do
-    cond do
-      String.starts_with?(path, "/") ->
-        Path.expand(path)
-
-      String.starts_with?(path, "~") ->
-        String.replace(path, "~", "/") |> Path.expand()
-
-      true ->
-        Path.join(current_prefix, path)
-        |> Path.expand()
-    end
+  @impl StorageConnector
+  def close_write_stream(stream, _connector_state) do
+    File.close(stream)
   end
 
   defp rmrf_dir("/"), do: {:ok, nil}
