@@ -21,10 +21,21 @@ defmodule FTP2Cloud.Connector.Common do
     }
   ]
 
+  @directory_action_ok 257
+  @directory_action_not_taken 521
+  @file_action_ok 250
+  @file_action_not_taken 550
+  @file_status_ok 213
+  @opening_data_connection 150
+  @closing_connection_success 226
+  @action_aborted 451
+  @file_action_aborted 552
+  @not_logged_in 530
+
   def pwd(connector, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
     with :ok <- check_auth(socket, authenticator, authenticator_state) do
       send_resp(
-        257,
+        @directory_action_ok,
         "\"#{connector.get_working_directory(connector_state)}\" is the current directory",
         socket
       )
@@ -46,7 +57,7 @@ defmodule FTP2Cloud.Connector.Common do
       :ok -> cwd_impl(connector, path, socket, connector_state)
       _ -> connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def mkd(
@@ -62,7 +73,7 @@ defmodule FTP2Cloud.Connector.Common do
       :ok -> mkd_impl(connector, path, socket, connector_state)
       _ -> connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def rmd(
@@ -78,7 +89,7 @@ defmodule FTP2Cloud.Connector.Common do
       :ok -> rmd_impl(connector, path, socket, connector_state)
       _ -> connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def list(
@@ -106,7 +117,7 @@ defmodule FTP2Cloud.Connector.Common do
       _ ->
         connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def nlst(
@@ -134,7 +145,7 @@ defmodule FTP2Cloud.Connector.Common do
       _ ->
         connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def retr(
@@ -154,7 +165,7 @@ defmodule FTP2Cloud.Connector.Common do
       _ ->
         connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def size(
@@ -173,7 +184,7 @@ defmodule FTP2Cloud.Connector.Common do
       _ ->
         connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
   def stor(
@@ -193,11 +204,11 @@ defmodule FTP2Cloud.Connector.Common do
       _ ->
         connector_state
     end
-    |> wrap_OK()
+    |> wrap_ok()
   end
 
-  def wrap_OK({:ok, thing}), do: {:ok, thing}
-  def wrap_OK(thing), do: {:ok, thing}
+  def wrap_ok({:ok, thing}), do: {:ok, thing}
+  def wrap_ok(thing), do: {:ok, thing}
 
   defp cwd_impl(connector, path, socket, %{} = connector_state) do
     old_wd = connector.get_working_directory(connector_state)
@@ -205,10 +216,12 @@ defmodule FTP2Cloud.Connector.Common do
 
     new_state =
       if connector.directory_exists?(new_wd, connector_state) do
-        :ok = send_resp(250, "Directory changed successfully.", socket)
+        :ok = send_resp(@file_action_ok, "Directory changed successfully.", socket)
         connector_state |> Map.put(:current_working_directory, new_wd)
       else
-        :ok = send_resp(550, "Failed to change directory. Does not exist.", socket)
+        :ok =
+          send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
+
         connector_state
       end
 
@@ -220,16 +233,17 @@ defmodule FTP2Cloud.Connector.Common do
     new_d = change_prefix(wd, path)
 
     if connector.directory_exists?(new_d, connector_state) do
-      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
+      :ok =
+        send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
     else
       connector.make_directory(path, connector_state)
       |> case do
         {:ok, connector_state} ->
-          :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
+          :ok = send_resp(@directory_action_ok, "\"#{new_d}\" directory created.", socket)
           connector_state
 
         _ ->
-          :ok = send_resp(521, "Failed to make directory.", socket)
+          :ok = send_resp(@directory_action_not_taken, "Failed to make directory.", socket)
           connector_state
       end
     end
@@ -239,10 +253,10 @@ defmodule FTP2Cloud.Connector.Common do
     wd = connector.get_working_directory(connector_state)
     rm_d = change_prefix(wd, path)
 
-    connector.rm_directory(rm_d, connector_state)
+    connector.delete_directory(rm_d, connector_state)
     |> case do
       {:ok, connector_state} ->
-        :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
+        :ok = send_resp(@file_action_ok, "\"#{rm_d}\" directory removed.", socket)
         # kickout if you just RM'd the dir you're in
         new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
 
@@ -250,7 +264,7 @@ defmodule FTP2Cloud.Connector.Common do
         |> Map.put(:current_working_directory, new_working_dir)
 
       _ ->
-        :ok = send_resp(550, "Failed to remove directory.", socket)
+        :ok = send_resp(@file_action_not_taken, "Failed to remove directory.", socket)
         connector_state
     end
   end
@@ -263,7 +277,7 @@ defmodule FTP2Cloud.Connector.Common do
          %{} = connector_state,
          include_hidden
        ) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
+    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -294,7 +308,7 @@ defmodule FTP2Cloud.Connector.Common do
       PassiveSocket.close(pasv_socket)
     end
 
-    :ok = send_resp(226, "Directory send OK.", socket)
+    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
@@ -306,7 +320,7 @@ defmodule FTP2Cloud.Connector.Common do
          %{} = connector_state,
          include_hidden
        ) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
+    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -337,22 +351,28 @@ defmodule FTP2Cloud.Connector.Common do
       PassiveSocket.close(pasv_socket)
     end
 
-    :ok = send_resp(226, "Directory send OK.", socket)
+    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
   defp retr_impl(connector, path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
+    :ok =
+      send_resp(
+        @opening_data_connection,
+        "Opening BINARY mode data connection for #{path}",
+        socket
+      )
+
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content(w_path, connector_state)
     |> case do
       {:ok, stream} ->
         PassiveSocket.write(pasv_socket, stream, close_after_write: true)
-        :ok = send_resp(226, "Transfer complete.", socket)
+        :ok = send_resp(@closing_connection_success, "Transfer complete.", socket)
 
       _ ->
-        :ok = send_resp(451, "File not found.", socket)
+        :ok = send_resp(@action_aborted, "File not found.", socket)
         PassiveSocket.close(pasv_socket)
     end
 
@@ -364,8 +384,8 @@ defmodule FTP2Cloud.Connector.Common do
 
     connector.get_content_info(w_path, connector_state)
     |> case do
-      {:ok, %{size: size}} -> :ok = send_resp(213, "#{size}", socket)
-      _ -> :ok = send_resp(550, "Could not get file size.", socket)
+      {:ok, %{size: size}} -> :ok = send_resp(@file_status_ok, "#{size}", socket)
+      _ -> :ok = send_resp(@file_action_not_taken, "Could not get file size.", socket)
     end
 
     connector_state
@@ -377,7 +397,7 @@ defmodule FTP2Cloud.Connector.Common do
     connector.open_write_stream(w_path, connector_state)
     |> case do
       {:ok, stream} ->
-        :ok = send_resp(150, "Ok to send data.", socket)
+        :ok = send_resp(@opening_data_connection, "Ok to send data.", socket)
 
         PassiveSocket.read(
           pasv_socket,
@@ -389,9 +409,9 @@ defmodule FTP2Cloud.Connector.Common do
                 chunk_stream(stream, opts)
                 |> Enum.into(fs)
 
-              :ok = send_resp(226, "Transfer Complete.", socket)
+              :ok = send_resp(@closing_connection_success, "Transfer Complete.", socket)
             rescue
-              _ -> :ok = send_resp(552, "Failed to transfer.", socket)
+              _ -> :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
             after
               connector.close_write_stream(fs, connector_state)
             end
@@ -401,7 +421,7 @@ defmodule FTP2Cloud.Connector.Common do
         )
 
       _ ->
-        :ok = send_resp(552, "Failed to transfer.", socket)
+        :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
     end
 
     connector_state
@@ -470,7 +490,7 @@ defmodule FTP2Cloud.Connector.Common do
     if authenticator.authenticated?(authenticator_state) do
       :ok
     else
-      :ok = send_resp(530, "Not logged in.", socket)
+      :ok = send_resp(@not_logged_in, "Not logged in.", socket)
       :err
     end
   end
