@@ -174,22 +174,46 @@ defmodule FTP2Cloud.Worker do
 
   # Auth Commands
 
-  def run(["USER", username], %{socket: socket} = server_state) do
-    {:ok, authenticator_state} =
-      server_state.authenticator.user(username, socket, server_state.authenticator_state)
+  def run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
+    if authenticator.valid_user?(username) do
+      :ok = send_resp(331, "User name okay, need password.", socket)
 
-    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+      Map.put(server_state, :authenticator_state, %{username: username})
+      |> noreply()
+    else
+      :ok = send_resp(331, "User name okay, need password.", socket)
 
-    {:noreply, new_state}
+      Map.put(server_state, :authenticator_state, %{})
+      |> noreply()
+    end
   end
 
-  def run(["PASS", password], %{socket: socket} = server_state) do
-    {:ok, authenticator_state} =
-      server_state.authenticator.pass(password, socket, server_state.authenticator_state)
+  def run(
+        ["PASS", password],
+        %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} =
+          server_state
+      ) do
+    authenticator.login(password, auth_state)
+    |> case do
+      {:ok, auth_state} ->
+        auth_state = auth_state |> Map.put(:authenticated, true)
 
-    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+        :ok = send_resp(230, "Welcome.", socket)
+        Map.put(server_state, :authenticator_state, auth_state)
+        |> noreply()
 
-    {:noreply, new_state}
+      {_, %{} = auth_state} ->
+        :ok = send_resp(530, "Authentication failed.", socket)
+
+        Map.put(server_state, :authenticator_state, auth_state)
+        |> noreply()
+
+      _ ->
+        :ok = send_resp(530, "Authentication failed.", socket)
+
+        server_state
+        |> noreply()
+    end
   end
 
   # Storage Connector Commands
