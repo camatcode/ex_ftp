@@ -4,10 +4,7 @@ defmodule ExFTP.Server do
   use GenServer
   require Logger
 
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts)
-  end
-
+  @impl GenServer
   def init(opts) do
     port = Keyword.get(opts, :port, 4040)
 
@@ -22,16 +19,22 @@ defmodule ExFTP.Server do
     {:ok, %{socket: socket}, {:continue, :accept}}
   end
 
+  @impl GenServer
   def handle_continue(:accept, %{socket: socket} = state) do
     accept(socket)
 
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info(:accept, %{socket: socket} = state) do
     accept(socket)
 
     {:noreply, state}
+  end
+
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts)
   end
 
   defp accept(socket) do
