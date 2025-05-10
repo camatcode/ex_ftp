@@ -34,39 +34,51 @@ defmodule FTP2Cloud.Connector.FileConnector do
   end
 
   @impl StorageConnector
-  def get_directory_contents(path, _connector_state) do
+  def get_directory_contents(path, connector_state) do
     File.ls(path)
     |> case do
       {:ok, files} ->
         contents =
           Enum.map(files, fn file_name ->
-            %{
-              size: size,
-              mtime: {{year, month, day}, {hour, minute, second}},
-              access: access,
-              type: type
-            } = File.lstat!(Path.join(path, file_name))
-
-            file_name =
-              if type == :symlink do
-                {:ok, target} = :file.read_link(Path.join(path, file_name))
-                "#{file_name} -> #{target}"
-              else
-                file_name
-              end
-
-            date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
-
-            %{
-              file_name: file_name,
-              modified_datetime: date,
-              size: size,
-              access: access,
-              type: type
-            }
+            {:ok, content_info} = get_content_info(Path.join(path, file_name), connector_state)
+            content_info
           end)
 
         {:ok, contents}
+
+      err ->
+        err
+    end
+  end
+
+  def get_content_info(path, _connector_state) do
+    File.lstat(path)
+    |> case do
+      {:ok,
+       %{
+         size: size,
+         mtime: {{year, month, day}, {hour, minute, second}},
+         access: access,
+         type: type
+       }} ->
+        file_name =
+          if type == :symlink do
+            {:ok, target} = :file.read_link(path)
+            "#{Path.basename(path)} -> #{target}"
+          else
+            Path.basename(path)
+          end
+
+        date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
+
+        {:ok,
+         %{
+           file_name: file_name,
+           modified_datetime: date,
+           size: size,
+           access: access,
+           type: type
+         }}
 
       err ->
         err
@@ -84,19 +96,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
     {:ok,
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
        authenticated_retr(path, socket, pasv_socket, connector_state)
-     end)}
-  end
-
-  def size(
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_size(path, socket, connector_state)
      end)}
   end
 
@@ -124,19 +123,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
       :ok = send_resp(226, "Transfer complete.", socket)
     else
       :ok = send_resp(451, "File not found.", socket)
-    end
-
-    connector_state
-  end
-
-  def authenticated_size(path, socket, %{} = connector_state) do
-    w_path = change_prefix(get_working_directory(connector_state), path)
-
-    if File.exists?(w_path) do
-      %{size: size} = File.lstat!(w_path)
-      :ok = send_resp(213, "#{size}", socket)
-    else
-      :ok = send_resp(550, "Could not get file size.", socket)
     end
 
     connector_state
