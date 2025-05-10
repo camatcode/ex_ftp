@@ -1,4 +1,4 @@
-defmodule FTP2Cloud.Authenticator do
+defmodule ExFTP.Authenticator do
   @moduledoc false
 
   @type authenticator_state :: %{}

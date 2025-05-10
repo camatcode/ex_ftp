@@ -1,8 +1,8 @@
-defmodule FTP2Cloud.Connector.FileConnector do
+defmodule ExFTP.Connector.FileConnector do
   @moduledoc false
-  @behaviour FTP2Cloud.StorageConnector
+  @behaviour ExFTP.StorageConnector
 
-  alias FTP2Cloud.StorageConnector
+  alias ExFTP.StorageConnector
 
   @impl StorageConnector
   def get_working_directory(%{current_working_directory: cwd}), do: cwd

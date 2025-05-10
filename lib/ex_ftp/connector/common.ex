@@ -1,8 +1,8 @@
-defmodule FTP2Cloud.Connector.Common do
+defmodule ExFTP.Connector.Common do
   @moduledoc false
-  import FTP2Cloud.Common
+  import ExFTP.Common
 
-  alias FTP2Cloud.PassiveSocket
+  alias ExFTP.PassiveSocket
 
   @dummy_directories [
     %{

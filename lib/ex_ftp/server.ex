@@ -1,4 +1,4 @@
-defmodule FTP2Cloud.Server do
+defmodule ExFTP.Server do
   @moduledoc false
 
   use GenServer
@@ -38,7 +38,7 @@ defmodule FTP2Cloud.Server do
     {:ok, client} = :gen_tcp.accept(socket)
 
     {:ok, pid} =
-      DynamicSupervisor.start_child(FTP2Cloud.WorkerSupervisor, {FTP2Cloud.Worker, client})
+      DynamicSupervisor.start_child(ExFTP.WorkerSupervisor, {ExFTP.Worker, client})
 
     :ok = :gen_tcp.controlling_process(client, pid)
 

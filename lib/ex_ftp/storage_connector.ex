@@ -1,4 +1,4 @@
-defmodule FTP2Cloud.StorageConnector do
+defmodule ExFTP.StorageConnector do
   @moduledoc false
   @type socket :: %{}
   @type connector_state :: %{}

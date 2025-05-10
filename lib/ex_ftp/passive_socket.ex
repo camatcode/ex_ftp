@@ -1,4 +1,4 @@
-defmodule FTP2Cloud.PassiveSocket do
+defmodule ExFTP.PassiveSocket do
   @moduledoc false
 
   use GenServer
@@ -31,8 +31,8 @@ defmodule FTP2Cloud.PassiveSocket do
 
   @impl true
   def init(_opts) do
-    min_port = Application.get_env(:ftp_2_cloud, :min_passive_port)
-    max_port = Application.get_env(:ftp_2_cloud, :max_passive_port)
+    min_port = Application.get_env(:ex_ftp, :min_passive_port)
+    max_port = Application.get_env(:ex_ftp, :max_passive_port)
 
     {:ok, socket} =
       min_port..max_port

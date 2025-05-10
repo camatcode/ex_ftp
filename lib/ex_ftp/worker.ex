@@ -1,12 +1,12 @@
-defmodule FTP2Cloud.Worker do
+defmodule ExFTP.Worker do
   @moduledoc false
 
   use GenServer
 
-  import FTP2Cloud.Common
-  import FTP2Cloud.Connector.Common
+  import ExFTP.Common
+  import ExFTP.Connector.Common
 
-  alias FTP2Cloud.PassiveSocket
+  alias ExFTP.PassiveSocket
 
   require Logger
 
@@ -28,19 +28,19 @@ defmodule FTP2Cloud.Worker do
       |> to_charlist()
       |> :inet.parse_address()
 
-    unless Application.get_env(:ftp_2_cloud, :mix_env) == :test do
+    unless Application.get_env(:ex_ftp, :mix_env) == :test do
       {:ok, {ip_address, _port}} = :inet.peername(socket)
       ip_address_str = ip_address |> Tuple.to_list() |> Enum.join(".")
       Logger.info("Received FTP connection from #{ip_address_str}")
     end
 
     connector =
-      Application.get_env(:ftp_2_cloud, :storage_connector, FTP2Cloud.Connector.FileConnector)
+      Application.get_env(:ex_ftp, :storage_connector, ExFTP.Connector.FileConnector)
 
     authenticator =
-      Application.get_env(:ftp_2_cloud, :authenticator, FTP2Cloud.Auth.PassthroughAuth)
+      Application.get_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
 
-    server_name = Application.get_env(:ftp_2_cloud, :server_name, FTP2Cloud)
+    server_name = Application.get_env(:ex_ftp, :server_name, ExFTP)
 
     send_resp(220, "Hello from #{server_name}.", socket)
 

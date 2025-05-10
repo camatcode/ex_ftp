@@ -1,8 +1,8 @@
-defmodule FTP2Cloud.Auth.PassthroughAuth do
+defmodule ExFTP.Auth.PassthroughAuth do
   @moduledoc false
-  @behaviour FTP2Cloud.Authenticator
+  @behaviour ExFTP.Authenticator
 
-  alias FTP2Cloud.Authenticator
+  alias ExFTP.Authenticator
 
   @impl Authenticator
   def valid_user?("root"), do: false
