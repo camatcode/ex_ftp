@@ -4,6 +4,7 @@ defmodule FTP2Cloud.Worker do
   use GenServer
 
   import FTP2Cloud.Common
+  import FTP2Cloud.Connector.Common
 
   alias FTP2Cloud.PassiveSocket
 
@@ -194,7 +195,8 @@ defmodule FTP2Cloud.Worker do
   # Storage Connector Commands
   def run(["PWD"], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.pwd(
+      pwd(
+        server_state.storage_connector,
         socket,
         server_state.connector_state,
         server_state.authenticator,
@@ -212,7 +214,8 @@ defmodule FTP2Cloud.Worker do
 
   def run(["CWD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.cwd(
+      cwd(
+        server_state.storage_connector,
         path,
         socket,
         server_state.connector_state,
@@ -227,7 +230,8 @@ defmodule FTP2Cloud.Worker do
 
   def run(["MKD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.mkd(
+      mkd(
+        server_state.storage_connector,
         path,
         socket,
         server_state.connector_state,
@@ -242,7 +246,8 @@ defmodule FTP2Cloud.Worker do
 
   def run(["RMD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.rmd(
+      rmd(
+        server_state.storage_connector,
         path,
         socket,
         server_state.connector_state,
@@ -262,13 +267,15 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.list_a(
+        list(
+          server_state.storage_connector,
           path,
           socket,
           pasv,
           server_state.connector_state,
           server_state.authenticator,
-          server_state.authenticator_state
+          server_state.authenticator_state,
+          _include_hidden = true
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -284,7 +291,8 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.list(
+        list(
+          server_state.storage_connector,
           path,
           socket,
           pasv,
@@ -306,13 +314,15 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.nlst_a(
+        nlst(
+          server_state.storage_connector,
           path,
           socket,
           pasv,
           server_state.connector_state,
           server_state.authenticator,
-          server_state.authenticator_state
+          server_state.authenticator_state,
+          _include_hidden = true
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -326,7 +336,8 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.nlst(
+        nlst(
+          server_state.storage_connector,
           path,
           socket,
           pasv,

@@ -1,100 +1,76 @@
 defmodule FTP2Cloud.Connector.FileConnector do
   @moduledoc false
+  @behaviour FTP2Cloud.StorageConnector
 
   import FTP2Cloud.Common
 
   alias FTP2Cloud.PassiveSocket
+  alias FTP2Cloud.StorageConnector
 
-  def pwd(socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    :ok =
-      if authenticator.authenticated?(authenticator_state) do
-        send_resp(
-          257,
-          "\"#{connector_state[:current_working_directory]}\" is the current directory",
-          socket
-        )
-      else
-        send_resp(550, "Requested action not taken. File unavailable.", socket)
-      end
+  @impl StorageConnector
+  def get_working_directory(%{current_working_directory: cwd}), do: cwd
 
-    {:ok, connector_state}
+  @impl StorageConnector
+  def directory_exists?(path, _connector_state) do
+    File.exists?(path) && File.dir?(path)
   end
 
-  def cwd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_cwd(path, socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def make_directory(path, connector_state) do
+    File.mkdir_p(path)
+    |> case do
+      :ok -> {:ok, connector_state}
+      err -> err
+    end
   end
 
-  def mkd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_mkd(path, socket, connector_state)
-     end)}
+  @impl StorageConnector
+  def rm_directory(path, connector_state) do
+    rmrf_dir(path)
+    |> case do
+      {:ok, _} -> {:ok, connector_state}
+      err -> err
+    end
   end
 
-  def rmd(path, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_rmd(path, socket, connector_state)
-     end)}
-  end
+  @impl StorageConnector
+  def get_directory_contents(path, _connector_state) do
+    File.ls(path)
+    |> case do
+      {:ok, files} ->
+        contents =
+          Enum.map(files, fn file_name ->
+            %{
+              size: size,
+              mtime: {{year, month, day}, {hour, minute, second}},
+              access: access,
+              type: type
+            } = File.lstat!(Path.join(path, file_name))
 
-  def list(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list(path, socket, pasv_socket, connector_state)
-     end)}
-  end
+            file_name =
+              if type == :symlink do
+                {:ok, target} = :file.read_link(Path.join(path, file_name))
+                "#{file_name} -> #{target}"
+              else
+                file_name
+              end
 
-  def list_a(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list_a(path, socket, pasv_socket, connector_state)
-     end)}
-  end
+            date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
 
-  def nlst(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_nlst(path, socket, pasv_socket, connector_state)
-     end)}
-  end
+            %{
+              file_name: file_name,
+              modified_datetime: date,
+              size: size,
+              access: access,
+              type: type
+            }
+          end)
 
-  def nlst_a(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_nlst_a(path, socket, pasv_socket, connector_state)
-     end)}
+        {:ok, contents}
+
+      err ->
+        err
+    end
   end
 
   def retr(
@@ -138,194 +114,9 @@ defmodule FTP2Cloud.Connector.FileConnector do
      end)}
   end
 
-  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
-    if authenticator.authenticated?(authenticator_state) do
-      func.()
-    else
-      :ok = send_resp(530, "Not logged in.", socket)
-      connector_state
-    end
-  end
-
-  defp authenticated_cwd(path, socket, %{} = connector_state) do
-    old_wd = connector_state[:current_working_directory]
-    new_wd = change_prefix(old_wd, path)
-
-    new_state =
-      if File.exists?(new_wd) do
-        :ok = send_resp(250, "Directory changed successfully.", socket)
-        connector_state |> Map.put(:current_working_directory, new_wd)
-      else
-        :ok = send_resp(550, "Failed to change directory. Does not exist.", socket)
-        connector_state
-      end
-
-    new_state
-  end
-
-  defp authenticated_mkd(path, socket, %{} = connector_state) do
-    wd = connector_state[:current_working_directory]
-    new_d = change_prefix(wd, path)
-
-    if File.exists?(new_d) do
-      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
-    else
-      File.mkdir_p(new_d)
-      |> case do
-        :ok -> :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
-        _ -> :ok = send_resp(521, "Failed to make directory.", socket)
-      end
-    end
-
-    connector_state
-  end
-
-  defp authenticated_rmd(path, socket, %{} = connector_state) do
-    wd = connector_state[:current_working_directory]
-    rm_d = change_prefix(wd, path)
-
-    rmrf_dir(rm_d)
-    |> case do
-      {:ok, _} ->
-        :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
-        if wd == rm_d, do: change_prefix(wd, "..")
-
-      _ ->
-        :ok = send_resp(550, "Failed to remove directory.", socket)
-    end
-
-    # kickout if you just RM'd the dir you're in
-    new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
-
-    connector_state
-    |> Map.put(:current_working_directory, new_working_dir)
-  end
-
-  defp authenticated_list(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(connector_state[:current_working_directory], path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.reject(&String.starts_with?(&1, "."))
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_list_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
-  end
-
-  defp authenticated_list_a(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(connector_state[:current_working_directory], path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} -> ([".", ".."] ++ files) |> Enum.sort()
-        _ -> [".", ".."]
-      end
-      |> Enum.map(&format_list_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
-  end
-
-  defp authenticated_nlst(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(connector_state[:current_working_directory], path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.reject(&String.starts_with?(&1, "."))
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_name_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
-  end
-
-  defp authenticated_nlst_a(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(connector_state[:current_working_directory], path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_name_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
-  end
-
   defp authenticated_retr(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     if File.exists?(w_path) && File.regular?(w_path) do
       bytes = File.read!(path)
@@ -339,7 +130,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   end
 
   def authenticated_size(path, socket, %{} = connector_state) do
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     if File.exists?(w_path) do
       %{size: size} = File.lstat!(w_path)
@@ -353,7 +144,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
 
   defp authenticated_stor(path, socket, pasv_socket, %{} = connector_state) do
     :ok = send_resp(150, "Ok to send data.", socket)
-    w_path = change_prefix(connector_state[:current_working_directory], path)
+    w_path = change_prefix(get_working_directory(connector_state), path)
 
     PassiveSocket.read(
       pasv_socket,
@@ -379,64 +170,13 @@ defmodule FTP2Cloud.Connector.FileConnector do
     connector_state
   end
 
-  defp format_list_item(file_name, wd) do
-    Path.join(wd, file_name)
-    |> File.lstat!(time: :local)
-    |> format_file_stat(file_name, wd)
-  end
-
-  defp format_name_item(file_name, wd) do
-    path = Path.join(wd, file_name)
-    if File.dir?(path), do: Path.basename(path) <> "/", else: Path.basename(path)
-  end
-
-  defp format_file_stat(
-         %File.Stat{
-           size: size,
-           mtime: {{year, month, day}, {hour, minute, second}},
-           access: access,
-           type: type
-         },
-         file_name,
-         directory
-       ) do
-    file_name =
-      if type == :symlink do
-        {:ok, target} = :file.read_link(Path.join(directory, file_name))
-        "#{file_name} -> #{target}"
-      else
-        file_name
-      end
-
-    type =
-      type
-      |> case do
-        :directory -> "d"
-        :symlink -> "l"
-        _ -> "-"
-      end
-
-    access =
-      access
-      |> case do
-        :read -> "r--"
-        :write -> "-w-"
-        :read_write -> "rw-"
-        _ -> "---"
-      end
-
-    size = to_string(size) |> String.pad_leading(16)
-
-    date =
-      DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
-      |> Calendar.strftime("%b %d  %Y")
-
-    owner = " 0"
-    group = "        0"
-    unknown_val = "1" |> String.pad_leading(5)
-    permissions = "#{type}#{access}r--r--"
-
-    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
+  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
+    if authenticator.authenticated?(authenticator_state) do
+      func.()
+    else
+      :ok = send_resp(530, "Not logged in.", socket)
+      connector_state
+    end
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)
