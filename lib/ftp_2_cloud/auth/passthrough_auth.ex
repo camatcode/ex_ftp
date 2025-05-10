@@ -10,7 +10,7 @@ defmodule FTP2Cloud.Auth.PassthroughAuth do
 
   @impl Authenticator
   def login(_password, %{username: "root"}), do: {:error, %{}}
-  def login(_password, %{username: username} = auth_state), do: {:ok, auth_state}
+  def login(_password, %{username: _username} = auth_state), do: {:ok, auth_state}
   def login(_p, _), do: {:error, %{}}
 
   @impl Authenticator
