@@ -68,11 +68,12 @@ defmodule FTP2Cloud.Connector.Common do
         pasv_socket,
         %{} = connector_state,
         authenticator,
-        %{} = authenticator_state
+        %{} = authenticator_state,
+        include_hidden \\ false
       ) do
     {:ok,
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list(connector, path, socket, pasv_socket, connector_state)
+       authenticated_list(connector, path, socket, pasv_socket, connector_state, include_hidden)
      end)}
   end
 
@@ -132,7 +133,31 @@ defmodule FTP2Cloud.Connector.Common do
     end
   end
 
-  defp authenticated_list(connector, path, socket, pasv_socket, %{} = connector_state) do
+  @dummy_directories [
+    %{
+      file_name: ".",
+      size: 4096,
+      type: :directory,
+      access: :read_write,
+      modified_datetime: DateTime.now!("Etc/UTC")
+    },
+    %{
+      file_name: "..",
+      size: 4096,
+      type: :directory,
+      access: :read_write,
+      modified_datetime: DateTime.now!("Etc/UTC")
+    }
+  ]
+
+  defp authenticated_list(
+         connector,
+         path,
+         socket,
+         pasv_socket,
+         %{} = connector_state,
+         include_hidden
+       ) do
     :ok = send_resp(150, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
@@ -141,12 +166,16 @@ defmodule FTP2Cloud.Connector.Common do
       connector.get_directory_contents(wd, connector_state)
       |> case do
         {:ok, contents} ->
-          contents
-          |> Enum.reject(&hidden?/1)
+          if include_hidden do
+            @dummy_directories ++ contents
+          else
+            contents
+            |> Enum.reject(&hidden?/1)
+          end
           |> Enum.sort_by(& &1.file_name)
 
         _ ->
-          []
+          if include_hidden, do: @dummy_directories, else: []
       end
       |> Enum.map(&format_content(&1))
 

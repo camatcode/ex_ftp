@@ -267,13 +267,15 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.list_a(
+        list(
+          server_state.storage_connector,
           path,
           socket,
           pasv,
           server_state.connector_state,
           server_state.authenticator,
-          server_state.authenticator_state
+          server_state.authenticator_state,
+          _include_hidden = true
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
