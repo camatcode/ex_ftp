@@ -1,5 +1,7 @@
 defmodule ExFTP.Worker do
-  @moduledoc false
+  @moduledoc """
+  A module defining a `GenServer` which serves the FTP interface
+  """
 
   use GenServer
 
@@ -10,18 +12,7 @@ defmodule ExFTP.Worker do
 
   require Logger
 
-  def child_spec(arg) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [arg]},
-      restart: :temporary
-    }
-  end
-
-  def start_link(socket) do
-    GenServer.start_link(__MODULE__, socket)
-  end
-
+  @impl GenServer
   def init(socket) do
     {:ok, host} =
       System.get_env("FTP_ADDR", "127.0.0.1")
@@ -62,6 +53,7 @@ defmodule ExFTP.Worker do
      }}
   end
 
+  @impl GenServer
   def handle_info({:tcp, _socket, data}, state) do
     sanitized =
       if String.starts_with?(inspect(data), "\"PASS") do
@@ -85,22 +77,34 @@ defmodule ExFTP.Worker do
   def handle_info({:tcp_closed, _}, state), do: {:stop, :normal, state}
   def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
 
-  def parse(data) do
+  def child_spec(arg) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [arg]},
+      restart: :temporary
+    }
+  end
+
+  def start_link(socket) do
+    GenServer.start_link(__MODULE__, socket)
+  end
+
+  defp parse(data) do
     data
     |> String.trim()
     |> String.split(" ", parts: 2)
   end
 
-  def run(["QUIT"], state) do
+  defp run(["QUIT"], state) do
     quit(state)
   end
 
-  def run(["SYST"], %{socket: socket} = state) do
+  defp run(["SYST"], %{socket: socket} = state) do
     :ok = send_resp(215, "UNIX Type: L8", socket)
     {:noreply, state}
   end
 
-  def run(["TYPE", type], %{socket: socket} = state) do
+  defp run(["TYPE", type], %{socket: socket} = state) do
     case type do
       "I" ->
         send_resp(200, "Switching to binary mode.", socket)
@@ -116,7 +120,7 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["PASV"], %{socket: socket} = server_state) do
+  defp run(["PASV"], %{socket: socket} = server_state) do
     check_auth(server_state)
     |> case do
       :ok ->
@@ -134,7 +138,7 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["EPSV"], %{socket: socket} = server_state) do
+  defp run(["EPSV"], %{socket: socket} = server_state) do
     check_auth(server_state)
     |> case do
       :ok ->
@@ -149,7 +153,7 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["EPRT", _eport_info], %{socket: socket} = server_state) do
+  defp run(["EPRT", _eport_info], %{socket: socket} = server_state) do
     check_auth(server_state)
     |> case do
       :ok -> :ok = send_resp(200, "EPRT command successful.", socket)
@@ -161,7 +165,7 @@ defmodule ExFTP.Worker do
 
   # Auth Commands
 
-  def run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
+  defp run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
     if authenticator.valid_user?(username) do
       :ok = send_resp(331, "User name okay, need password.", socket)
 
@@ -176,11 +180,11 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(
-        ["PASS", password],
-        %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} =
-          server_state
-      ) do
+  defp run(
+         ["PASS", password],
+         %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} =
+           server_state
+       ) do
     authenticator.login(password, auth_state)
     |> case do
       {:ok, auth_state} ->
@@ -206,39 +210,39 @@ defmodule ExFTP.Worker do
   end
 
   # Storage Connector Commands
-  def run(["PWD"], %{socket: _socket} = server_state) do
+  defp run(["PWD"], %{socket: _socket} = server_state) do
     check_auth(server_state)
     |> with_ok(&pwd/1, server_state)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
-  def run(["CDUP"], state), do: run(["CWD", ".."], state)
+  defp run(["CDUP"], state), do: run(["CWD", ".."], state)
 
-  def run(["CWD", path], %{socket: _socket} = server_state) do
+  defp run(["CWD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
     |> with_ok(&cwd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
-  def run(["MKD", path], %{socket: _socket} = server_state) do
+  defp run(["MKD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
     |> with_ok(&mkd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
-  def run(["RMD", path], %{socket: _socket} = server_state) do
+  defp run(["RMD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
     |> with_ok(&rmd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
-  def run(["LIST", "-a"], server_state), do: run(["LIST", "-a", "."], server_state)
+  defp run(["LIST", "-a"], server_state), do: run(["LIST", "-a", "."], server_state)
 
-  def run(["LIST", "-a", path], %{socket: _socket} = server_state) do
+  defp run(["LIST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: true)
@@ -247,9 +251,9 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["LIST"], server_state), do: run(["LIST", "."], server_state)
+  defp run(["LIST"], server_state), do: run(["LIST", "."], server_state)
 
-  def run(["LIST", path], %{socket: _socket} = server_state) do
+  defp run(["LIST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: false)
@@ -258,9 +262,9 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["NLST", "-a"], server_state), do: run(["NLST", "-a", "."], server_state)
+  defp run(["NLST", "-a"], server_state), do: run(["NLST", "-a", "."], server_state)
 
-  def run(["NLST", "-a", path], %{socket: _socket} = server_state) do
+  defp run(["NLST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: true)
@@ -269,9 +273,9 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["NLST"], state), do: run(["NLST", "."], state)
+  defp run(["NLST"], state), do: run(["NLST", "."], state)
 
-  def run(["NLST", path], %{socket: _socket} = server_state) do
+  defp run(["NLST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: false)
@@ -280,7 +284,7 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["RETR", path], %{socket: _socket} = server_state) do
+  defp run(["RETR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&retr/1, server_state, pasv: pasv, path: path)
@@ -289,14 +293,14 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(["SIZE", path], %{socket: _socket} = server_state) do
+  defp run(["SIZE", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
     |> with_ok(&size/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
-  def run(["STOR", path], %{socket: _socket} = server_state) do
+  defp run(["STOR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
       |> with_ok(&stor/1, server_state, pasv: pasv, path: path)
@@ -305,21 +309,21 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def run(_, %{socket: socket} = state) do
+  defp run(_, %{socket: socket} = state) do
     :ok = send_resp(502, "Command not implemented.", socket)
     {:noreply, state}
   end
 
-  def with_ok(
-        maybe_ok,
-        fnc,
-        %{
-          socket: socket,
-          storage_connector: connector,
-          connector_state: connector_state
-        },
-        opts \\ []
-      ) do
+  defp with_ok(
+         maybe_ok,
+         fnc,
+         %{
+           socket: socket,
+           storage_connector: connector,
+           connector_state: connector_state
+         },
+         opts \\ []
+       ) do
     maybe_ok
     |> case do
       :ok ->
@@ -346,11 +350,11 @@ defmodule ExFTP.Worker do
     end
   end
 
-  def update_connector_state(connector_state, server_state) do
+  defp update_connector_state(connector_state, server_state) do
     Map.put(server_state, :connector_state, connector_state)
   end
 
-  def noreply(state) do
+  defp noreply(state) do
     {:noreply, state}
   end
 end

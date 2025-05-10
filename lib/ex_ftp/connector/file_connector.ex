@@ -1,5 +1,7 @@
 defmodule ExFTP.Connector.FileConnector do
-  @moduledoc false
+  @moduledoc """
+  An implementation of `ExFTP.StorageConnector` which serves content from local file storage.
+  """
   @behaviour ExFTP.StorageConnector
 
   alias ExFTP.StorageConnector
