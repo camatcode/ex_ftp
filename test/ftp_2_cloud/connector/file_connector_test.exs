@@ -40,7 +40,7 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
 
     :ok = :gen_tcp.send(socket, "PWD\r\n")
 
-    {:ok, "550 Requested action not taken. File unavailable." <> _} =
+    {:ok, "530 Not logged in" <> _} =
       :gen_tcp.recv(socket, 0, 5_000)
   end
 

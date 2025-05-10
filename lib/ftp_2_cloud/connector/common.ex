@@ -4,195 +4,6 @@ defmodule FTP2Cloud.Connector.Common do
 
   alias FTP2Cloud.PassiveSocket
 
-  def pwd(connector, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
-    :ok =
-      if authenticator.authenticated?(authenticator_state) do
-        send_resp(
-          257,
-          "\"#{connector.get_working_directory(connector_state)}\" is the current directory",
-          socket
-        )
-      else
-        send_resp(550, "Requested action not taken. File unavailable.", socket)
-      end
-
-    {:ok, connector_state}
-  end
-
-  def cwd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_cwd(connector, path, socket, connector_state)
-     end)}
-  end
-
-  def mkd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_mkd(connector, path, socket, connector_state)
-     end)}
-  end
-
-  def rmd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_rmd(connector, path, socket, connector_state)
-     end)}
-  end
-
-  def list(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state,
-        include_hidden \\ false
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list(connector, path, socket, pasv_socket, connector_state, include_hidden)
-     end)}
-  end
-
-  def nlst(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state,
-        include_hidden \\ false
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_nlst(connector, path, socket, pasv_socket, connector_state, include_hidden)
-     end)}
-  end
-
-  def retr(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_retr(connector, path, socket, pasv_socket, connector_state)
-     end)}
-  end
-
-  def size(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_size(connector, path, socket, connector_state)
-     end)}
-  end
-
-  def stor(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_stor(connector, path, socket, pasv_socket, connector_state)
-     end)}
-  end
-
-  defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
-    old_wd = connector.get_working_directory(connector_state)
-    new_wd = change_prefix(old_wd, path)
-
-    new_state =
-      if connector.directory_exists?(new_wd, connector_state) do
-        :ok = send_resp(250, "Directory changed successfully.", socket)
-        connector_state |> Map.put(:current_working_directory, new_wd)
-      else
-        :ok = send_resp(550, "Failed to change directory. Does not exist.", socket)
-        connector_state
-      end
-
-    new_state
-  end
-
-  defp authenticated_mkd(connector, path, socket, %{} = connector_state) do
-    wd = connector.get_working_directory(connector_state)
-    new_d = change_prefix(wd, path)
-
-    if connector.directory_exists?(new_d, connector_state) do
-      :ok = send_resp(521, "\"#{new_d}\" directory already exists", socket)
-    else
-      connector.make_directory(path, connector_state)
-      |> case do
-        {:ok, connector_state} ->
-          :ok = send_resp(257, "\"#{new_d}\" directory created.", socket)
-          connector_state
-
-        _ ->
-          :ok = send_resp(521, "Failed to make directory.", socket)
-          connector_state
-      end
-    end
-  end
-
-  defp authenticated_rmd(connector, path, socket, %{} = connector_state) do
-    wd = connector.get_working_directory(connector_state)
-    rm_d = change_prefix(wd, path)
-
-    connector.rm_directory(rm_d, connector_state)
-    |> case do
-      {:ok, connector_state} ->
-        :ok = send_resp(250, "\"#{rm_d}\" directory removed.", socket)
-        # kickout if you just RM'd the dir you're in
-        new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
-
-        connector_state
-        |> Map.put(:current_working_directory, new_working_dir)
-
-      _ ->
-        :ok = send_resp(550, "Failed to remove directory.", socket)
-        connector_state
-    end
-  end
-
   @dummy_directories [
     %{
       file_name: ".",
@@ -210,7 +21,255 @@ defmodule FTP2Cloud.Connector.Common do
     }
   ]
 
-  defp authenticated_list(
+  @directory_action_ok 257
+  @directory_action_not_taken 521
+  @file_action_ok 250
+  @file_action_not_taken 550
+  @file_status_ok 213
+  @opening_data_connection 150
+  @closing_connection_success 226
+  @action_aborted 451
+  @file_action_aborted 552
+  @not_logged_in 530
+
+  def pwd(connector, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
+    with :ok <- check_auth(socket, authenticator, authenticator_state) do
+      send_resp(
+        @directory_action_ok,
+        "\"#{connector.get_working_directory(connector_state)}\" is the current directory",
+        socket
+      )
+    end
+
+    {:ok, connector_state}
+  end
+
+  def cwd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok -> cwd_impl(connector, path, socket, connector_state)
+      _ -> connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def mkd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok -> mkd_impl(connector, path, socket, connector_state)
+      _ -> connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def rmd(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok -> rmd_impl(connector, path, socket, connector_state)
+      _ -> connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def list(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state,
+        include_hidden \\ false
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok ->
+        list_impl(
+          connector,
+          path,
+          socket,
+          pasv_socket,
+          connector_state,
+          include_hidden
+        )
+
+      _ ->
+        connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def nlst(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state,
+        include_hidden \\ false
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok ->
+        nlst_impl(
+          connector,
+          path,
+          socket,
+          pasv_socket,
+          connector_state,
+          include_hidden
+        )
+
+      _ ->
+        connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def retr(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok ->
+        retr_impl(connector, path, socket, pasv_socket, connector_state)
+
+      _ ->
+        connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def size(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok ->
+        size_impl(connector, path, socket, connector_state)
+
+      _ ->
+        connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def stor(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    check_auth(socket, authenticator, authenticator_state)
+    |> case do
+      :ok ->
+        stor_impl(connector, path, socket, pasv_socket, connector_state)
+
+      _ ->
+        connector_state
+    end
+    |> wrap_ok()
+  end
+
+  def wrap_ok({:ok, thing}), do: {:ok, thing}
+  def wrap_ok(thing), do: {:ok, thing}
+
+  defp cwd_impl(connector, path, socket, %{} = connector_state) do
+    old_wd = connector.get_working_directory(connector_state)
+    new_wd = change_prefix(old_wd, path)
+
+    new_state =
+      if connector.directory_exists?(new_wd, connector_state) do
+        :ok = send_resp(@file_action_ok, "Directory changed successfully.", socket)
+        connector_state |> Map.put(:current_working_directory, new_wd)
+      else
+        :ok =
+          send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
+
+        connector_state
+      end
+
+    new_state
+  end
+
+  defp mkd_impl(connector, path, socket, %{} = connector_state) do
+    wd = connector.get_working_directory(connector_state)
+    new_d = change_prefix(wd, path)
+
+    if connector.directory_exists?(new_d, connector_state) do
+      :ok =
+        send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
+    else
+      connector.make_directory(path, connector_state)
+      |> case do
+        {:ok, connector_state} ->
+          :ok = send_resp(@directory_action_ok, "\"#{new_d}\" directory created.", socket)
+          connector_state
+
+        _ ->
+          :ok = send_resp(@directory_action_not_taken, "Failed to make directory.", socket)
+          connector_state
+      end
+    end
+  end
+
+  defp rmd_impl(connector, path, socket, %{} = connector_state) do
+    wd = connector.get_working_directory(connector_state)
+    rm_d = change_prefix(wd, path)
+
+    connector.delete_directory(rm_d, connector_state)
+    |> case do
+      {:ok, connector_state} ->
+        :ok = send_resp(@file_action_ok, "\"#{rm_d}\" directory removed.", socket)
+        # kickout if you just RM'd the dir you're in
+        new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
+
+        connector_state
+        |> Map.put(:current_working_directory, new_working_dir)
+
+      _ ->
+        :ok = send_resp(@file_action_not_taken, "Failed to remove directory.", socket)
+        connector_state
+    end
+  end
+
+  defp list_impl(
          connector,
          path,
          socket,
@@ -218,7 +277,7 @@ defmodule FTP2Cloud.Connector.Common do
          %{} = connector_state,
          include_hidden
        ) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
+    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -249,11 +308,11 @@ defmodule FTP2Cloud.Connector.Common do
       PassiveSocket.close(pasv_socket)
     end
 
-    :ok = send_resp(226, "Directory send OK.", socket)
+    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
-  defp authenticated_nlst(
+  defp nlst_impl(
          connector,
          path,
          socket,
@@ -261,7 +320,7 @@ defmodule FTP2Cloud.Connector.Common do
          %{} = connector_state,
          include_hidden
        ) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
+    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -292,47 +351,53 @@ defmodule FTP2Cloud.Connector.Common do
       PassiveSocket.close(pasv_socket)
     end
 
-    :ok = send_resp(226, "Directory send OK.", socket)
+    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
-  defp authenticated_retr(connector, path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
+  defp retr_impl(connector, path, socket, pasv_socket, %{} = connector_state) do
+    :ok =
+      send_resp(
+        @opening_data_connection,
+        "Opening BINARY mode data connection for #{path}",
+        socket
+      )
+
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content(w_path, connector_state)
     |> case do
       {:ok, stream} ->
         PassiveSocket.write(pasv_socket, stream, close_after_write: true)
-        :ok = send_resp(226, "Transfer complete.", socket)
+        :ok = send_resp(@closing_connection_success, "Transfer complete.", socket)
 
       _ ->
-        :ok = send_resp(451, "File not found.", socket)
+        :ok = send_resp(@action_aborted, "File not found.", socket)
         PassiveSocket.close(pasv_socket)
     end
 
     connector_state
   end
 
-  def authenticated_size(connector, path, socket, %{} = connector_state) do
+  defp size_impl(connector, path, socket, %{} = connector_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content_info(w_path, connector_state)
     |> case do
-      {:ok, %{size: size}} -> :ok = send_resp(213, "#{size}", socket)
-      _ -> :ok = send_resp(550, "Could not get file size.", socket)
+      {:ok, %{size: size}} -> :ok = send_resp(@file_status_ok, "#{size}", socket)
+      _ -> :ok = send_resp(@file_action_not_taken, "Could not get file size.", socket)
     end
 
     connector_state
   end
 
-  defp authenticated_stor(connector, path, socket, pasv_socket, %{} = connector_state) do
+  defp stor_impl(connector, path, socket, pasv_socket, %{} = connector_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.open_write_stream(w_path, connector_state)
     |> case do
       {:ok, stream} ->
-        :ok = send_resp(150, "Ok to send data.", socket)
+        :ok = send_resp(@opening_data_connection, "Ok to send data.", socket)
 
         PassiveSocket.read(
           pasv_socket,
@@ -344,9 +409,9 @@ defmodule FTP2Cloud.Connector.Common do
                 chunk_stream(stream, opts)
                 |> Enum.into(fs)
 
-              :ok = send_resp(226, "Transfer Complete.", socket)
+              :ok = send_resp(@closing_connection_success, "Transfer Complete.", socket)
             rescue
-              _ -> :ok = send_resp(552, "Failed to transfer.", socket)
+              _ -> :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
             after
               connector.close_write_stream(fs, connector_state)
             end
@@ -356,7 +421,7 @@ defmodule FTP2Cloud.Connector.Common do
         )
 
       _ ->
-        :ok = send_resp(552, "Failed to transfer.", socket)
+        :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
     end
 
     connector_state
@@ -421,12 +486,12 @@ defmodule FTP2Cloud.Connector.Common do
     end
   end
 
-  defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
+  defp check_auth(socket, authenticator, %{} = authenticator_state) do
     if authenticator.authenticated?(authenticator_state) do
-      func.()
+      :ok
     else
-      :ok = send_resp(530, "Not logged in.", socket)
-      connector_state
+      :ok = send_resp(@not_logged_in, "Not logged in.", socket)
+      :err
     end
   end
 end

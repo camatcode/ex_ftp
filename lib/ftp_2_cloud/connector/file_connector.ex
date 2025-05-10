@@ -22,7 +22,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
   end
 
   @impl StorageConnector
-  def rm_directory(path, connector_state) do
+  def delete_directory(path, connector_state) do
     rmrf_dir(path)
     |> case do
       {:ok, _} -> {:ok, connector_state}
