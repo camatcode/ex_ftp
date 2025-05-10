@@ -12,7 +12,7 @@ defmodule FTP2Cloud.StorageConnector do
 
   @callback rm_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
-  @type directory_content :: %{
+  @type content_info :: %{
           file_name: String.t(),
           modified_datetime: DateTime.t(),
           size: integer,
@@ -20,5 +20,15 @@ defmodule FTP2Cloud.StorageConnector do
           type: :directory | :symlink | :file
         }
   @callback get_directory_contents(path, connector_state) ::
-              {:ok, [directory_content]} | {:error, term()}
+              {:ok, [content_info]} | {:error, term()}
+
+  @callback get_content_info(path, connector_state) :: {:ok, content_info} | {:error, term()}
+
+  @callback get_content(path, connector_state) :: {:ok, any()} | {:error, term()}
+
+  @type stream :: any()
+
+  @callback open_write_stream(path, connector_state) :: {:ok, stream} | {:error, term()}
+
+  @callback close_write_stream(stream, connector_state) :: {:ok, any()} | {:error, term()}
 end

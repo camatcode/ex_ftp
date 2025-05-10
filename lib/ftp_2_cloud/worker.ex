@@ -355,7 +355,8 @@ defmodule FTP2Cloud.Worker do
   def run(["RETR", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.retr(
+        retr(
+          server_state.storage_connector,
           path,
           socket,
           pasv,
@@ -372,7 +373,8 @@ defmodule FTP2Cloud.Worker do
 
   def run(["SIZE", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.size(
+      size(
+        server_state.storage_connector,
         path,
         socket,
         server_state.connector_state,
@@ -388,7 +390,8 @@ defmodule FTP2Cloud.Worker do
   def run(["STOR", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.stor(
+        stor(
+          server_state.storage_connector,
           path,
           socket,
           pasv,

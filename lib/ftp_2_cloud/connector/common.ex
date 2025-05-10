@@ -93,6 +93,50 @@ defmodule FTP2Cloud.Connector.Common do
      end)}
   end
 
+  def retr(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_retr(connector, path, socket, pasv_socket, connector_state)
+     end)}
+  end
+
+  def size(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_size(connector, path, socket, connector_state)
+     end)}
+  end
+
+  def stor(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_stor(connector, path, socket, pasv_socket, connector_state)
+     end)}
+  end
+
   defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
@@ -249,6 +293,72 @@ defmodule FTP2Cloud.Connector.Common do
     end
 
     :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
+  end
+
+  defp authenticated_retr(connector, path, socket, pasv_socket, %{} = connector_state) do
+    :ok = send_resp(150, "Opening BINARY mode data connection for #{path}", socket)
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    connector.get_content(w_path, connector_state)
+    |> case do
+      {:ok, stream} ->
+        PassiveSocket.write(pasv_socket, stream, close_after_write: true)
+        :ok = send_resp(226, "Transfer complete.", socket)
+
+      _ ->
+        :ok = send_resp(451, "File not found.", socket)
+        PassiveSocket.close(pasv_socket)
+    end
+
+    connector_state
+  end
+
+  def authenticated_size(connector, path, socket, %{} = connector_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    connector.get_content_info(w_path, connector_state)
+    |> case do
+      {:ok, %{size: size}} -> :ok = send_resp(213, "#{size}", socket)
+      _ -> :ok = send_resp(550, "Could not get file size.", socket)
+    end
+
+    connector_state
+  end
+
+  defp authenticated_stor(connector, path, socket, pasv_socket, %{} = connector_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    connector.open_write_stream(w_path, connector_state)
+    |> case do
+      {:ok, stream} ->
+        :ok = send_resp(150, "Ok to send data.", socket)
+
+        PassiveSocket.read(
+          pasv_socket,
+          fn stream, opts ->
+            fs = opts[:fs]
+
+            try do
+              _fs =
+                chunk_stream(stream, opts)
+                |> Enum.into(fs)
+
+              :ok = send_resp(226, "Transfer Complete.", socket)
+            rescue
+              _ -> :ok = send_resp(552, "Failed to transfer.", socket)
+            after
+              connector.close_write_stream(fs, connector_state)
+            end
+          end,
+          fs: stream,
+          chunk_size: 5 * 1024 * 1024
+        )
+
+      _ ->
+        :ok = send_resp(552, "Failed to transfer.", socket)
+    end
+
     connector_state
   end
 
