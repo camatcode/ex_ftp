@@ -44,173 +44,7 @@ defmodule FTP2Cloud.Connector.Common do
     {:ok, connector_state}
   end
 
-  def cwd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok -> cwd_impl(connector, path, socket, connector_state)
-      _ -> connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def mkd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok -> mkd_impl(connector, path, socket, connector_state)
-      _ -> connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def rmd(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok -> rmd_impl(connector, path, socket, connector_state)
-      _ -> connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def list(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state,
-        include_hidden \\ false
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok ->
-        list_impl(
-          connector,
-          path,
-          socket,
-          pasv_socket,
-          connector_state,
-          include_hidden
-        )
-
-      _ ->
-        connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def nlst(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state,
-        include_hidden \\ false
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok ->
-        nlst_impl(
-          connector,
-          path,
-          socket,
-          pasv_socket,
-          connector_state,
-          include_hidden
-        )
-
-      _ ->
-        connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def retr(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok ->
-        retr_impl(connector, path, socket, pasv_socket, connector_state)
-
-      _ ->
-        connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def size(
-        connector,
-        path,
-        socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok ->
-        size_impl(connector, path, socket, connector_state)
-
-      _ ->
-        connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def stor(
-        connector,
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    check_auth(socket, authenticator, authenticator_state)
-    |> case do
-      :ok ->
-        stor_impl(connector, path, socket, pasv_socket, connector_state)
-
-      _ ->
-        connector_state
-    end
-    |> wrap_ok()
-  end
-
-  def wrap_ok({:ok, thing}), do: {:ok, thing}
-  def wrap_ok(thing), do: {:ok, thing}
-
-  defp cwd_impl(connector, path, socket, %{} = connector_state) do
+  def cwd([connector, path, socket, connector_state]) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
 
@@ -228,7 +62,7 @@ defmodule FTP2Cloud.Connector.Common do
     new_state
   end
 
-  defp mkd_impl(connector, path, socket, %{} = connector_state) do
+  def mkd([connector, path, socket, %{} = connector_state]) do
     wd = connector.get_working_directory(connector_state)
     new_d = change_prefix(wd, path)
 
@@ -249,7 +83,7 @@ defmodule FTP2Cloud.Connector.Common do
     end
   end
 
-  defp rmd_impl(connector, path, socket, %{} = connector_state) do
+  def rmd([connector, path, socket, %{} = connector_state]) do
     wd = connector.get_working_directory(connector_state)
     rm_d = change_prefix(wd, path)
 
@@ -269,14 +103,7 @@ defmodule FTP2Cloud.Connector.Common do
     end
   end
 
-  defp list_impl(
-         connector,
-         path,
-         socket,
-         pasv_socket,
-         %{} = connector_state,
-         include_hidden
-       ) do
+  def list([connector, path, socket, pasv_socket, include_hidden, %{} = connector_state]) do
     :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
@@ -312,14 +139,7 @@ defmodule FTP2Cloud.Connector.Common do
     connector_state
   end
 
-  defp nlst_impl(
-         connector,
-         path,
-         socket,
-         pasv_socket,
-         %{} = connector_state,
-         include_hidden
-       ) do
+  def nlst([connector, path, socket, pasv_socket, include_hidden, %{} = connector_state]) do
     :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
@@ -355,7 +175,7 @@ defmodule FTP2Cloud.Connector.Common do
     connector_state
   end
 
-  defp retr_impl(connector, path, socket, pasv_socket, %{} = connector_state) do
+  def retr([connector, path, socket, pasv_socket, %{} = connector_state]) do
     :ok =
       send_resp(
         @opening_data_connection,
@@ -379,7 +199,7 @@ defmodule FTP2Cloud.Connector.Common do
     connector_state
   end
 
-  defp size_impl(connector, path, socket, %{} = connector_state) do
+  def size([connector, path, socket, %{} = connector_state]) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content_info(w_path, connector_state)
@@ -391,7 +211,7 @@ defmodule FTP2Cloud.Connector.Common do
     connector_state
   end
 
-  defp stor_impl(connector, path, socket, pasv_socket, %{} = connector_state) do
+  def stor([connector, path, socket, pasv_socket, %{} = connector_state]) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.open_write_stream(w_path, connector_state)
@@ -425,6 +245,14 @@ defmodule FTP2Cloud.Connector.Common do
     end
 
     connector_state
+  end
+
+  def with_ok(maybe_ok, fnc, args, connector_state) do
+    maybe_ok
+    |> case do
+      :ok -> {:ok, fnc.(args ++ [connector_state])}
+      _ -> {:ok, connector_state}
+    end
   end
 
   defp hidden?(%{file_name: file_name}), do: String.starts_with?(file_name, ".")
@@ -486,7 +314,7 @@ defmodule FTP2Cloud.Connector.Common do
     end
   end
 
-  defp check_auth(socket, authenticator, %{} = authenticator_state) do
+  def check_auth(socket, authenticator, %{} = authenticator_state) do
     if authenticator.authenticated?(authenticator_state) do
       :ok
     else

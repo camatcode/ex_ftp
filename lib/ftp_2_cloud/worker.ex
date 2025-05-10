@@ -214,13 +214,11 @@ defmodule FTP2Cloud.Worker do
 
   def run(["CWD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      cwd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
+      check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+      |> with_ok(
+        &cwd/1,
+        [server_state.storage_connector, path, socket],
+        server_state.connector_state
       )
 
     new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -230,13 +228,11 @@ defmodule FTP2Cloud.Worker do
 
   def run(["MKD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      mkd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
+      check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+      |> with_ok(
+        &mkd/1,
+        [server_state.storage_connector, path, socket],
+        server_state.connector_state
       )
 
     new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -246,13 +242,11 @@ defmodule FTP2Cloud.Worker do
 
   def run(["RMD", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      rmd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
+      check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+      |> with_ok(
+        &rmd/1,
+        [server_state.storage_connector, path, socket],
+        server_state.connector_state
       )
 
     new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -267,15 +261,11 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        list(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state,
-          _include_hidden = true
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &list/1,
+          [server_state.storage_connector, path, socket, pasv, true],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -291,14 +281,11 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        list(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &list/1,
+          [server_state.storage_connector, path, socket, pasv, false],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -314,15 +301,11 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", "-a", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        nlst(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state,
-          _include_hidden = true
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &nlst/1,
+          [server_state.storage_connector, path, socket, pasv, true],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -336,14 +319,11 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        nlst(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &nlst/1,
+          [server_state.storage_connector, path, socket, pasv, false],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -355,14 +335,11 @@ defmodule FTP2Cloud.Worker do
   def run(["RETR", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        retr(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &retr/1,
+          [server_state.storage_connector, path, socket, pasv],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -373,13 +350,11 @@ defmodule FTP2Cloud.Worker do
 
   def run(["SIZE", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      size(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
+      check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+      |> with_ok(
+        &size/1,
+        [server_state.storage_connector, path, socket],
+        server_state.connector_state
       )
 
     new_state = server_state |> Map.put(:connector_state, connector_state)
@@ -390,14 +365,11 @@ defmodule FTP2Cloud.Worker do
   def run(["STOR", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        stor(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
+        check_auth(socket, server_state.authenticator, server_state.authenticator_state)
+        |> with_ok(
+          &stor/1,
+          [server_state.storage_connector, path, socket, pasv],
+          server_state.connector_state
         )
 
       new_state = server_state |> Map.put(:connector_state, connector_state)
