@@ -117,56 +117,43 @@ defmodule FTP2Cloud.Worker do
   end
 
   def run(["PASV"], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      {:ok, pasv} = PassiveSocket.start_link()
+    check_auth(server_state)
+    |> case do
+      :ok ->
+        {:ok, pasv} = PassiveSocket.start_link()
 
-      host = Map.get(server_state, :host)
-      {:ok, port} = PassiveSocket.get_port(pasv)
-      pasv_string = ip_port_to_pasv(host, port)
+        host = Map.get(server_state, :host)
+        {:ok, port} = PassiveSocket.get_port(pasv)
+        pasv_string = ip_port_to_pasv(host, port)
 
-      :ok = send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
-      {:noreply, %{server_state | pasv_socket: pasv}}
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+        :ok = send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
+        {:noreply, %{server_state | pasv_socket: pasv}}
 
-      {:noreply, server_state}
+      _ ->
+        {:noreply, server_state}
     end
   end
 
   def run(["EPSV"], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      {:ok, pasv} = PassiveSocket.start_link()
-      {:ok, port} = PassiveSocket.get_port(pasv)
+    check_auth(server_state)
+    |> case do
+      :ok ->
+        {:ok, pasv} = PassiveSocket.start_link()
+        {:ok, port} = PassiveSocket.get_port(pasv)
 
-      :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
-      {:noreply, %{server_state | pasv_socket: pasv}}
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+        :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
+        {:noreply, %{server_state | pasv_socket: pasv}}
 
-      {:noreply, server_state}
+      _ ->
+        {:noreply, server_state}
     end
   end
 
   def run(["EPRT", _eport_info], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      :ok = send_resp(200, "EPRT command successful.", socket)
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+    check_auth(server_state)
+    |> case do
+      :ok -> :ok = send_resp(200, "EPRT command successful.", socket)
+      _ -> nil
     end
 
     {:noreply, server_state}
@@ -181,6 +168,7 @@ defmodule FTP2Cloud.Worker do
       Map.put(server_state, :authenticator_state, %{username: username})
       |> noreply()
     else
+      # Yes I know, its strange - but I don't want to leak that this isn't a valid user to the client
       :ok = send_resp(331, "User name okay, need password.", socket)
 
       Map.put(server_state, :authenticator_state, %{})
@@ -199,6 +187,7 @@ defmodule FTP2Cloud.Worker do
         auth_state = auth_state |> Map.put(:authenticated, true)
 
         :ok = send_resp(230, "Welcome.", socket)
+
         Map.put(server_state, :authenticator_state, auth_state)
         |> noreply()
 
@@ -228,21 +217,21 @@ defmodule FTP2Cloud.Worker do
 
   def run(["CWD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
-    |> with_ok(&cwd/1, server_state, path)
+    |> with_ok(&cwd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
   def run(["MKD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
-    |> with_ok(&mkd/1, server_state, path)
+    |> with_ok(&mkd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
   def run(["RMD", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
-    |> with_ok(&rmd/1, server_state, path)
+    |> with_ok(&rmd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
@@ -252,7 +241,7 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&list/1, server_state, pasv, path, true)
+      |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -263,7 +252,7 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&list/1, server_state, pasv, path, false)
+      |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -274,7 +263,7 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&nlst/1, server_state, pasv, path, true)
+      |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -285,7 +274,7 @@ defmodule FTP2Cloud.Worker do
   def run(["NLST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&nlst/1, server_state, pasv, path, false)
+      |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -294,7 +283,7 @@ defmodule FTP2Cloud.Worker do
   def run(["RETR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&retr/1, server_state, pasv, path)
+      |> with_ok(&retr/1, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -302,7 +291,7 @@ defmodule FTP2Cloud.Worker do
 
   def run(["SIZE", path], %{socket: _socket} = server_state) do
     check_auth(server_state)
-    |> with_ok(&size/1, server_state, path)
+    |> with_ok(&size/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
@@ -310,7 +299,7 @@ defmodule FTP2Cloud.Worker do
   def run(["STOR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       check_auth(server_state)
-      |> with_ok(&stor/1, server_state, pasv, path)
+      |> with_ok(&stor/1, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
       |> noreply()
     end
@@ -329,7 +318,7 @@ defmodule FTP2Cloud.Worker do
           storage_connector: connector,
           connector_state: connector_state
         },
-        path
+        opts \\ []
       ) do
     maybe_ok
     |> case do
@@ -338,71 +327,10 @@ defmodule FTP2Cloud.Worker do
           socket: socket,
           storage_connector: connector,
           connector_state: connector_state,
-          path: path
+          path: opts[:path],
+          pasv: opts[:pasv],
+          include_hidden: opts[:include_hidden]
         })
-
-      _ ->
-        connector_state
-    end
-  end
-
-  def with_ok(
-        maybe_ok,
-        fnc,
-        %{socket: socket, storage_connector: connector, connector_state: connector_state},
-        pasv,
-        path
-      ) do
-    maybe_ok
-    |> case do
-      :ok ->
-        fnc.(%{
-          socket: socket,
-          storage_connector: connector,
-          connector_state: connector_state,
-          pasv: pasv,
-          path: path
-        })
-
-      _ ->
-        connector_state
-    end
-  end
-
-  def with_ok(
-        maybe_ok,
-        fnc,
-        %{socket: socket, storage_connector: connector, connector_state: connector_state},
-        pasv,
-        path,
-        include_hidden
-      ) do
-    maybe_ok
-    |> case do
-      :ok ->
-        fnc.(%{
-          socket: socket,
-          storage_connector: connector,
-          connector_state: connector_state,
-          pasv: pasv,
-          path: path,
-          include_hidden: include_hidden
-        })
-
-      _ ->
-        connector_state
-    end
-  end
-
-  def with_ok(maybe_ok, fnc, %{
-        socket: socket,
-        storage_connector: connector,
-        connector_state: connector_state
-      }) do
-    maybe_ok
-    |> case do
-      :ok ->
-        fnc.(%{socket: socket, storage_connector: connector, connector_state: connector_state})
 
       _ ->
         connector_state
