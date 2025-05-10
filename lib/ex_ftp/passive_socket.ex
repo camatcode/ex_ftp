@@ -29,7 +29,7 @@ defmodule ExFTP.PassiveSocket do
 
   # Server
 
-  @impl true
+  @impl GenServer
   def init(_opts) do
     min_port = Application.get_env(:ex_ftp, :min_passive_port)
     max_port = Application.get_env(:ex_ftp, :max_passive_port)
@@ -59,12 +59,12 @@ defmodule ExFTP.PassiveSocket do
     {:ok, %{socket: socket, write_socket: nil}}
   end
 
-  @impl true
+  @impl GenServer
   def handle_call({:port}, _from, %{socket: socket} = state) do
     {:reply, :inet.port(socket), state}
   end
 
-  @impl true
+  @impl GenServer
   def handle_call({:write, data, opts}, _from, %{socket: socket} = state) do
     write_socket =
       if write_socket = Map.get(state, :write_socket) do
@@ -85,7 +85,7 @@ defmodule ExFTP.PassiveSocket do
     end
   end
 
-  @impl true
+  @impl GenServer
   def handle_call({:close}, _from, %{socket: socket, write_socket: write_socket} = state) do
     Logger.info("Closing PASV connection.")
     write_socket && :gen_tcp.close(write_socket)
@@ -93,7 +93,7 @@ defmodule ExFTP.PassiveSocket do
     {:stop, :normal, :ok, state}
   end
 
-  @impl true
+  @impl GenServer
   def handle_cast({:read, worker, consume_fun, consume_opts}, %{socket: socket} = state) do
     :ok = consume_read(socket, consume_fun, consume_opts)
 
@@ -104,7 +104,7 @@ defmodule ExFTP.PassiveSocket do
     {:noreply, state}
   end
 
-  def consume_read(socket, consume_fun, consume_opts) do
+  defp consume_read(socket, consume_fun, consume_opts) do
     Stream.resource(
       fn ->
         {:ok, read_socket} = accept(socket)
