@@ -1,12 +1,12 @@
-defmodule FTP2Cloud.Connector.FileConnectorTest do
+defmodule ExFTP.Connector.FileConnectorTest do
   @moduledoc false
 
   import Bitwise
   use ExUnit.Case
-  doctest FTP2Cloud.Connector.FileConnector
+  doctest ExFTP.Connector.FileConnector
 
   setup do
-    Application.put_env(:ftp_2_cloud, :authenticator, FTP2Cloud.Auth.PassthroughAuth)
+    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
     {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, 4041, [:binary, active: false])
     {:ok, _} = :gen_tcp.recv(socket, 0, 10_000)
 

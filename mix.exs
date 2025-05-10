@@ -1,12 +1,12 @@
 defmodule Ftp2Cloud.MixProject do
   use Mix.Project
 
-  @source_url "https://github.com/camatcode/ftp_2_cloud"
+  @source_url "https://github.com/camatcode/ex_ftp"
   @version "0.9.0"
 
   def project do
     [
-      app: :ftp_2_cloud,
+      app: :ex_ftp,
       version: @version,
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
@@ -19,11 +19,11 @@ defmodule Ftp2Cloud.MixProject do
       """,
 
       # Docs
-      name: "FTP2Cloud",
+      name: "ExFTP",
       docs: [
-        main: "FTP2Cloud",
+        main: "ExFTP",
         api_reference: false,
-        logo: "assets/ftp_2_cloud-logo.png",
+        logo: "assets/ex_ftp-logo.png",
         source_ref: "v#{@version}",
         source_url: @source_url,
         extra_section: "GUIDES",
@@ -63,7 +63,7 @@ defmodule Ftp2Cloud.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {FTP2Cloud.Application, []}
+      mod: {ExFTP.Application, []}
     ]
   end
 

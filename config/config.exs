@@ -7,7 +7,7 @@
 # General application configuration
 import Config
 
-config :ftp_2_cloud,
+config :ex_ftp,
   ftp_port: System.get_env("FTP_PORT", "4040") |> String.to_integer()
 
 # Import environment specific config. This must remain at the bottom

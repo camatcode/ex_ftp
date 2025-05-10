@@ -1,11 +1,11 @@
-defmodule FTP2Cloud.Common do
+defmodule ExFTP.Common do
   @moduledoc false
 
   require Logger
 
   import Bitwise
 
-  alias FTP2Cloud.PassiveSocket
+  alias ExFTP.PassiveSocket
 
   def send_resp(code, msg, socket) do
     response = "#{code} #{msg}\r\n"
