@@ -73,34 +73,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
   end
 
-  def nlst(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_nlst(path, socket, pasv_socket, connector_state)
-     end)}
-  end
-
-  def nlst_a(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_nlst_a(path, socket, pasv_socket, connector_state)
-     end)}
-  end
-
   def retr(
         path,
         socket,
@@ -140,69 +112,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
        authenticated_stor(path, socket, pasv_socket, connector_state)
      end)}
-  end
-
-  defp authenticated_nlst(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(get_working_directory(connector_state), path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.reject(&String.starts_with?(&1, "."))
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_name_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
-  end
-
-  defp authenticated_nlst_a(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(get_working_directory(connector_state), path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_name_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
   end
 
   defp authenticated_retr(path, socket, pasv_socket, %{} = connector_state) do
@@ -259,11 +168,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
     )
 
     connector_state
-  end
-
-  defp format_name_item(file_name, wd) do
-    path = Path.join(wd, file_name)
-    if File.dir?(path), do: Path.basename(path) <> "/", else: Path.basename(path)
   end
 
   defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
