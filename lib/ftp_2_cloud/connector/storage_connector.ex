@@ -11,4 +11,14 @@ defmodule FTP2Cloud.StorageConnector do
   @callback make_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
   @callback rm_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
+
+  @type directory_content :: %{
+          file_name: String.t(),
+          modified_datetime: DateTime.t(),
+          size: integer,
+          access: :read | :write | :read_write | :none,
+          type: :directory | :symlink | :file
+        }
+  @callback get_directory_contents(path, connector_state) ::
+              {:ok, [directory_content]} | {:error, term()}
 end

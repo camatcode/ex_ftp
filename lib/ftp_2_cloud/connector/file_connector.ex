@@ -33,6 +33,7 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
   end
 
+  @impl StorageConnector
   def get_directory_contents(path, _connector_state) do
     File.ls(path)
     |> case do
@@ -70,20 +71,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
       err ->
         err
     end
-  end
-
-  def list_a(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list_a(path, socket, pasv_socket, connector_state)
-     end)}
   end
 
   def nlst(
@@ -153,33 +140,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
        authenticated_stor(path, socket, pasv_socket, connector_state)
      end)}
-  end
-
-  defp authenticated_list_a(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(get_working_directory(connector_state), path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} -> ([".", ".."] ++ files) |> Enum.sort()
-        _ -> [".", ".."]
-      end
-      |> Enum.map(&format_list_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
   end
 
   defp authenticated_nlst(path, socket, pasv_socket, %{} = connector_state) do
@@ -301,64 +261,9 @@ defmodule FTP2Cloud.Connector.FileConnector do
     connector_state
   end
 
-  defp format_list_item(file_name, wd) do
-    Path.join(wd, file_name)
-    |> File.lstat!(time: :local)
-    |> format_file_stat(file_name, wd)
-  end
-
   defp format_name_item(file_name, wd) do
     path = Path.join(wd, file_name)
     if File.dir?(path), do: Path.basename(path) <> "/", else: Path.basename(path)
-  end
-
-  defp format_file_stat(
-         %File.Stat{
-           size: size,
-           mtime: {{year, month, day}, {hour, minute, second}},
-           access: access,
-           type: type
-         },
-         file_name,
-         directory
-       ) do
-    file_name =
-      if type == :symlink do
-        {:ok, target} = :file.read_link(Path.join(directory, file_name))
-        "#{file_name} -> #{target}"
-      else
-        file_name
-      end
-
-    type =
-      type
-      |> case do
-        :directory -> "d"
-        :symlink -> "l"
-        _ -> "-"
-      end
-
-    access =
-      access
-      |> case do
-        :read -> "r--"
-        :write -> "-w-"
-        :read_write -> "rw-"
-        _ -> "---"
-      end
-
-    size = to_string(size) |> String.pad_leading(16)
-
-    date =
-      DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
-      |> Calendar.strftime("%b %d  %Y")
-
-    owner = " 0"
-    group = "        0"
-    unknown_val = "1" |> String.pad_leading(5)
-    permissions = "#{type}#{access}r--r--"
-
-    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
   end
 
   defp wrap_auth(socket, %{} = connector_state, authenticator, %{} = authenticator_state, func) do
