@@ -289,7 +289,8 @@ defmodule FTP2Cloud.Worker do
   def run(["LIST", path], %{socket: socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
       {:ok, connector_state} =
-        server_state.storage_connector.list(
+        list(
+          server_state.storage_connector,
           path,
           socket,
           pasv,

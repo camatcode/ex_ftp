@@ -2,6 +2,8 @@ defmodule FTP2Cloud.Connector.Common do
   @moduledoc false
   import FTP2Cloud.Common
 
+  alias FTP2Cloud.PassiveSocket
+
   def pwd(connector, socket, %{} = connector_state, authenticator, %{} = authenticator_state) do
     :ok =
       if authenticator.authenticated?(authenticator_state) do
@@ -59,6 +61,21 @@ defmodule FTP2Cloud.Connector.Common do
      end)}
   end
 
+  def list(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_list(connector, path, socket, pasv_socket, connector_state)
+     end)}
+  end
+
   defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
@@ -113,6 +130,74 @@ defmodule FTP2Cloud.Connector.Common do
         :ok = send_resp(550, "Failed to remove directory.", socket)
         connector_state
     end
+  end
+
+  defp authenticated_list(connector, path, socket, pasv_socket, %{} = connector_state) do
+    :ok = send_resp(150, "Here comes the directory listing.", socket)
+
+    wd = change_prefix(connector.get_working_directory(connector_state), path)
+
+    items =
+      connector.get_directory_contents(wd, connector_state)
+      |> case do
+        {:ok, contents} ->
+          contents
+          |> Enum.reject(&hidden?/1)
+          |> Enum.sort_by(& &1.file_name)
+
+        _ ->
+          []
+      end
+      |> Enum.map(&format_content(&1))
+
+    if Enum.empty?(items) do
+      PassiveSocket.write(pasv_socket, "", close_after_write: true)
+    else
+      :ok =
+        items
+        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
+
+      PassiveSocket.close(pasv_socket)
+    end
+
+    :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
+  end
+
+  defp hidden?(%{file_name: file_name}), do: String.starts_with?(file_name, ".")
+
+  defp format_content(%{
+         file_name: file_name,
+         modified_datetime: date,
+         size: size,
+         access: access,
+         type: type
+       }) do
+    type =
+      type
+      |> case do
+        :directory -> "d"
+        :symlink -> "l"
+        _ -> "-"
+      end
+
+    access =
+      access
+      |> case do
+        :read -> "r--"
+        :write -> "-w-"
+        :read_write -> "rw-"
+        _ -> "---"
+      end
+
+    size = to_string(size) |> String.pad_leading(16)
+
+    owner = " 0"
+    group = "        0"
+    unknown_val = "1" |> String.pad_leading(5)
+    permissions = "#{type}#{access}r--r--"
+
+    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)
