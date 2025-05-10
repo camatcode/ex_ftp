@@ -1,4 +1,4 @@
 # SPDX-License-Identifier: Apache-2.0
-defmodule FTP2Cloud do
+defmodule ExFTP do
   @moduledoc false
 end

@@ -1,4 +1,4 @@
-defmodule FTP2CloudTest do
+defmodule ExFTPTest do
   use ExUnit.Case
-  doctest FTP2Cloud
+  doctest ExFTP
 end
