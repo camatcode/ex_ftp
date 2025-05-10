@@ -77,6 +77,22 @@ defmodule FTP2Cloud.Connector.Common do
      end)}
   end
 
+  def nlst(
+        connector,
+        path,
+        socket,
+        pasv_socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state,
+        include_hidden \\ false
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_nlst(connector, path, socket, pasv_socket, connector_state, include_hidden)
+     end)}
+  end
+
   defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
@@ -193,7 +209,57 @@ defmodule FTP2Cloud.Connector.Common do
     connector_state
   end
 
+  defp authenticated_nlst(
+         connector,
+         path,
+         socket,
+         pasv_socket,
+         %{} = connector_state,
+         include_hidden
+       ) do
+    :ok = send_resp(150, "Here comes the directory listing.", socket)
+
+    wd = change_prefix(connector.get_working_directory(connector_state), path)
+
+    items =
+      connector.get_directory_contents(wd, connector_state)
+      |> case do
+        {:ok, contents} ->
+          if include_hidden do
+            @dummy_directories ++ contents
+          else
+            contents
+            |> Enum.reject(&hidden?/1)
+          end
+          |> Enum.sort_by(& &1.file_name)
+
+        _ ->
+          if include_hidden, do: @dummy_directories, else: []
+      end
+      |> Enum.map(&format_name(&1))
+
+    if Enum.empty?(items) do
+      PassiveSocket.write(pasv_socket, "", close_after_write: true)
+    else
+      :ok =
+        items
+        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
+
+      PassiveSocket.close(pasv_socket)
+    end
+
+    :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
+  end
+
   defp hidden?(%{file_name: file_name}), do: String.starts_with?(file_name, ".")
+
+  defp format_name(%{
+         file_name: file_name,
+         type: type
+       }) do
+    if type == :directory, do: file_name, else: file_name <> "/"
+  end
 
   defp format_content(%{
          file_name: file_name,
