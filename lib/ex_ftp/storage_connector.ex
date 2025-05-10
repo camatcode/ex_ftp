@@ -55,13 +55,13 @@ defmodule ExFTP.StorageConnector do
         }
 
   @doc """
-  Returns a list of `content_info` representing each object in a given directory
+  Returns a list of `t:content_info/0` representing each object in a given directory
   """
   @callback get_directory_contents(path, connector_state) ::
               {:ok, [content_info]} | {:error, term()}
 
   @doc """
-  Returns `content_info/0` representing a single object in a given directory
+  Returns `t:content_info/0` representing a single object in a given directory
   """
   @callback get_content_info(path, connector_state) :: {:ok, content_info} | {:error, term()}
 
