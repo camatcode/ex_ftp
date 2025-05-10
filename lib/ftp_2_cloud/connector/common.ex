@@ -93,6 +93,20 @@ defmodule FTP2Cloud.Connector.Common do
      end)}
   end
 
+  def size(
+        connector,
+        path,
+        socket,
+        %{} = connector_state,
+        authenticator,
+        %{} = authenticator_state
+      ) do
+    {:ok,
+     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
+       authenticated_size(connector, path, socket, connector_state)
+     end)}
+  end
+
   defp authenticated_cwd(connector, path, socket, %{} = connector_state) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
@@ -249,6 +263,18 @@ defmodule FTP2Cloud.Connector.Common do
     end
 
     :ok = send_resp(226, "Directory send OK.", socket)
+    connector_state
+  end
+
+  def authenticated_size(connector, path, socket, %{} = connector_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    connector.get_content_info(w_path, connector_state)
+    |> case do
+      {:ok, %{size: size}} -> :ok = send_resp(213, "#{size}", socket)
+      _ -> :ok = send_resp(550, "Could not get file size.", socket)
+    end
+
     connector_state
   end
 

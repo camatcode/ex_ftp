@@ -372,7 +372,8 @@ defmodule FTP2Cloud.Worker do
 
   def run(["SIZE", path], %{socket: socket} = server_state) do
     {:ok, connector_state} =
-      server_state.storage_connector.size(
+      size(
+        server_state.storage_connector,
         path,
         socket,
         server_state.connector_state,
