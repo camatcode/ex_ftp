@@ -1,5 +1,12 @@
 defmodule ExFTP.StorageConnector do
-  @moduledoc false
+  @moduledoc """
+  A behaviour defining a Storage Connector.
+
+  Storage Connectors are used by the FTP interface to interact with a particular type of storage.
+
+  See `ExFTP.Connector.FileConnector` for a simple example.
+  """
+
   @type socket :: %{}
   @type connector_state :: %{}
 
