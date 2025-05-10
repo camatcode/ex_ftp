@@ -194,94 +194,65 @@ defmodule FTP2Cloud.Worker do
 
   # Storage Connector Commands
   def run(["PWD"], %{socket: _socket} = server_state) do
-    connector_state =
-      check_auth(server_state)
-      |> with_ok(&pwd/1, server_state)
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+    check_auth(server_state)
+    |> with_ok(&pwd/1, server_state)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["CDUP"], state) do
-    run(["CWD", ".."], state)
-  end
+  def run(["CDUP"], state), do: run(["CWD", ".."], state)
 
   def run(["CWD", path], %{socket: _socket} = server_state) do
-    connector_state =
-      check_auth(server_state)
-      |> with_ok(&cwd/1, server_state, path)
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+    check_auth(server_state)
+    |> with_ok(&cwd/1, server_state, path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
   def run(["MKD", path], %{socket: _socket} = server_state) do
-    connector_state =
-      check_auth(server_state)
-      |> with_ok(&mkd/1, server_state, path)
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+    check_auth(server_state)
+    |> with_ok(&mkd/1, server_state, path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
   def run(["RMD", path], %{socket: _socket} = server_state) do
-    connector_state =
-      check_auth(server_state)
-      |> with_ok(&rmd/1, server_state, path)
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+    check_auth(server_state)
+    |> with_ok(&rmd/1, server_state, path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["LIST", "-a"], server_state) do
-    run(["LIST", "-a", "."], server_state)
-  end
+  def run(["LIST", "-a"], server_state), do: run(["LIST", "-a", "."], server_state)
 
   def run(["LIST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&list/1, server_state, pasv, path, true)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&list/1, server_state, pasv, path, true)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["LIST"], server_state) do
-    run(["LIST", "."], server_state)
-  end
+  def run(["LIST"], server_state), do: run(["LIST", "."], server_state)
 
   def run(["LIST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&list/1, server_state, pasv, path, false)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&list/1, server_state, pasv, path, false)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["NLST", "-a"], server_state) do
-    run(["NLST", "-a", "."], server_state)
-  end
+  def run(["NLST", "-a"], server_state), do: run(["NLST", "-a", "."], server_state)
 
   def run(["NLST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&nlst/1, server_state, pasv, path, true)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&nlst/1, server_state, pasv, path, true)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
@@ -289,47 +260,35 @@ defmodule FTP2Cloud.Worker do
 
   def run(["NLST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&nlst/1, server_state, pasv, path, false)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&nlst/1, server_state, pasv, path, false)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
   def run(["RETR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&retr/1, server_state, pasv, path)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&retr/1, server_state, pasv, path)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
   def run(["SIZE", path], %{socket: _socket} = server_state) do
-    connector_state =
-      check_auth(server_state)
-      |> with_ok(&size/1, server_state, path)
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+    check_auth(server_state)
+    |> with_ok(&size/1, server_state, path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
   def run(["STOR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      connector_state =
-        check_auth(server_state)
-        |> with_ok(&stor/1, server_state, pasv, path)
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&stor/1, server_state, pasv, path)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
@@ -433,5 +392,13 @@ defmodule FTP2Cloud.Worker do
       :ok = send_resp(530, "Not logged in.", socket)
       :err
     end
+  end
+
+  def update_connector_state(connector_state, server_state) do
+    Map.put(server_state, :connector_state, connector_state)
+  end
+
+  def noreply(state) do
+    {:noreply, state}
   end
 end
