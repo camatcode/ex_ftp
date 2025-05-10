@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/camatcode/basenji/refs/heads/main/assets/ex_ftp-logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/camatcode/basenji/refs/heads/main/assets/ex_ftp-logo-light.png">
-    <img alt="basenji logo" src="https://raw.githubusercontent.com/camatcode/basenji/refs/heads/main/assets/ex_ftp-logo-light.png" width="320">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-light.png">
+    <img alt="basenji logo" src="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-light.png" width="320">
   </picture>
 </p>
 
