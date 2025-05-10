@@ -18,7 +18,7 @@ defmodule FTP2Cloud.Connector.FileConnectorTest do
     assert {:ok, "331 User name okay, need password" <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     :ok = :gen_tcp.send(socket, "PASS #{password}\r\n")
-    match = "230 Welcome #{username}."
+    match = "230 Welcome."
     assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     %{socket: socket, username: username, password: password}

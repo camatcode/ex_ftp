@@ -117,56 +117,43 @@ defmodule FTP2Cloud.Worker do
   end
 
   def run(["PASV"], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      {:ok, pasv} = PassiveSocket.start_link()
+    check_auth(server_state)
+    |> case do
+      :ok ->
+        {:ok, pasv} = PassiveSocket.start_link()
 
-      host = Map.get(server_state, :host)
-      {:ok, port} = PassiveSocket.get_port(pasv)
-      pasv_string = ip_port_to_pasv(host, port)
+        host = Map.get(server_state, :host)
+        {:ok, port} = PassiveSocket.get_port(pasv)
+        pasv_string = ip_port_to_pasv(host, port)
 
-      :ok = send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
-      {:noreply, %{server_state | pasv_socket: pasv}}
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+        :ok = send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
+        {:noreply, %{server_state | pasv_socket: pasv}}
 
-      {:noreply, server_state}
+      _ ->
+        {:noreply, server_state}
     end
   end
 
   def run(["EPSV"], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      {:ok, pasv} = PassiveSocket.start_link()
-      {:ok, port} = PassiveSocket.get_port(pasv)
+    check_auth(server_state)
+    |> case do
+      :ok ->
+        {:ok, pasv} = PassiveSocket.start_link()
+        {:ok, port} = PassiveSocket.get_port(pasv)
 
-      :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
-      {:noreply, %{server_state | pasv_socket: pasv}}
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+        :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
+        {:noreply, %{server_state | pasv_socket: pasv}}
 
-      {:noreply, server_state}
+      _ ->
+        {:noreply, server_state}
     end
   end
 
   def run(["EPRT", _eport_info], %{socket: socket} = server_state) do
-    if server_state.authenticator.authenticated?(server_state.authenticator_state) do
-      :ok = send_resp(200, "EPRT command successful.", socket)
-    else
-      :ok =
-        send_resp(
-          530,
-          "Authentication failed.",
-          socket
-        )
+    check_auth(server_state)
+    |> case do
+      :ok -> :ok = send_resp(200, "EPRT command successful.", socket)
+      _ -> nil
     end
 
     {:noreply, server_state}
@@ -174,240 +161,196 @@ defmodule FTP2Cloud.Worker do
 
   # Auth Commands
 
-  def run(["USER", username], %{socket: socket} = server_state) do
-    {:ok, authenticator_state} =
-      server_state.authenticator.user(username, socket, server_state.authenticator_state)
+  def run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
+    if authenticator.valid_user?(username) do
+      :ok = send_resp(331, "User name okay, need password.", socket)
 
-    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+      Map.put(server_state, :authenticator_state, %{username: username})
+      |> noreply()
+    else
+      # Yes I know, its strange - but I don't want to leak that this isn't a valid user to the client
+      :ok = send_resp(331, "User name okay, need password.", socket)
 
-    {:noreply, new_state}
+      Map.put(server_state, :authenticator_state, %{})
+      |> noreply()
+    end
   end
 
-  def run(["PASS", password], %{socket: socket} = server_state) do
-    {:ok, authenticator_state} =
-      server_state.authenticator.pass(password, socket, server_state.authenticator_state)
+  def run(
+        ["PASS", password],
+        %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} =
+          server_state
+      ) do
+    authenticator.login(password, auth_state)
+    |> case do
+      {:ok, auth_state} ->
+        auth_state = auth_state |> Map.put(:authenticated, true)
 
-    new_state = server_state |> Map.put(:authenticator_state, authenticator_state)
+        :ok = send_resp(230, "Welcome.", socket)
 
-    {:noreply, new_state}
+        Map.put(server_state, :authenticator_state, auth_state)
+        |> noreply()
+
+      {_, %{} = auth_state} ->
+        :ok = send_resp(530, "Authentication failed.", socket)
+
+        Map.put(server_state, :authenticator_state, auth_state)
+        |> noreply()
+
+      _ ->
+        :ok = send_resp(530, "Authentication failed.", socket)
+
+        server_state
+        |> noreply()
+    end
   end
 
   # Storage Connector Commands
-  def run(["PWD"], %{socket: socket} = server_state) do
-    {:ok, connector_state} =
-      pwd(
-        server_state.storage_connector,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
-      )
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+  def run(["PWD"], %{socket: _socket} = server_state) do
+    check_auth(server_state)
+    |> with_ok(&pwd/1, server_state)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["CDUP"], state) do
-    run(["CWD", ".."], state)
+  def run(["CDUP"], state), do: run(["CWD", ".."], state)
+
+  def run(["CWD", path], %{socket: _socket} = server_state) do
+    check_auth(server_state)
+    |> with_ok(&cwd/1, server_state, path: path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["CWD", path], %{socket: socket} = server_state) do
-    {:ok, connector_state} =
-      cwd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
-      )
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+  def run(["MKD", path], %{socket: _socket} = server_state) do
+    check_auth(server_state)
+    |> with_ok(&mkd/1, server_state, path: path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["MKD", path], %{socket: socket} = server_state) do
-    {:ok, connector_state} =
-      mkd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
-      )
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+  def run(["RMD", path], %{socket: _socket} = server_state) do
+    check_auth(server_state)
+    |> with_ok(&rmd/1, server_state, path: path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["RMD", path], %{socket: socket} = server_state) do
-    {:ok, connector_state} =
-      rmd(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
-      )
+  def run(["LIST", "-a"], server_state), do: run(["LIST", "-a", "."], server_state)
 
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
-  end
-
-  def run(["LIST", "-a"], server_state) do
-    run(["LIST", "-a", "."], server_state)
-  end
-
-  def run(["LIST", "-a", path], %{socket: socket} = server_state) do
+  def run(["LIST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        list(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state,
-          _include_hidden = true
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: true)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["LIST"], server_state) do
-    run(["LIST", "."], server_state)
-  end
+  def run(["LIST"], server_state), do: run(["LIST", "."], server_state)
 
-  def run(["LIST", path], %{socket: socket} = server_state) do
+  def run(["LIST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        list(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: false)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["NLST", "-a"], server_state) do
-    run(["NLST", "-a", "."], server_state)
-  end
+  def run(["NLST", "-a"], server_state), do: run(["NLST", "-a", "."], server_state)
 
-  def run(["NLST", "-a", path], %{socket: socket} = server_state) do
+  def run(["NLST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        nlst(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state,
-          _include_hidden = true
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: true)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
   def run(["NLST"], state), do: run(["NLST", "."], state)
 
-  def run(["NLST", path], %{socket: socket} = server_state) do
+  def run(["NLST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        nlst(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: false)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["RETR", path], %{socket: socket} = server_state) do
+  def run(["RETR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        retr(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&retr/1, server_state, pasv: pasv, path: path)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
-  def run(["SIZE", path], %{socket: socket} = server_state) do
-    {:ok, connector_state} =
-      size(
-        server_state.storage_connector,
-        path,
-        socket,
-        server_state.connector_state,
-        server_state.authenticator,
-        server_state.authenticator_state
-      )
-
-    new_state = server_state |> Map.put(:connector_state, connector_state)
-
-    {:noreply, new_state}
+  def run(["SIZE", path], %{socket: _socket} = server_state) do
+    check_auth(server_state)
+    |> with_ok(&size/1, server_state, path: path)
+    |> update_connector_state(server_state)
+    |> noreply()
   end
 
-  def run(["STOR", path], %{socket: socket} = server_state) do
+  def run(["STOR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      {:ok, connector_state} =
-        stor(
-          server_state.storage_connector,
-          path,
-          socket,
-          pasv,
-          server_state.connector_state,
-          server_state.authenticator,
-          server_state.authenticator_state
-        )
-
-      new_state = server_state |> Map.put(:connector_state, connector_state)
-
-      {:noreply, new_state}
+      check_auth(server_state)
+      |> with_ok(&stor/1, server_state, pasv: pasv, path: path)
+      |> update_connector_state(server_state)
+      |> noreply()
     end
   end
 
   def run(_, %{socket: socket} = state) do
     :ok = send_resp(502, "Command not implemented.", socket)
+    {:noreply, state}
+  end
+
+  def with_ok(
+        maybe_ok,
+        fnc,
+        %{
+          socket: socket,
+          storage_connector: connector,
+          connector_state: connector_state
+        },
+        opts \\ []
+      ) do
+    maybe_ok
+    |> case do
+      :ok ->
+        fnc.(%{
+          socket: socket,
+          storage_connector: connector,
+          connector_state: connector_state,
+          path: opts[:path],
+          pasv: opts[:pasv],
+          include_hidden: opts[:include_hidden]
+        })
+
+      _ ->
+        connector_state
+    end
+  end
+
+  defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: auth_state}) do
+    if auth.authenticated?(auth_state) do
+      :ok
+    else
+      :ok = send_resp(530, "Not logged in.", socket)
+      :err
+    end
+  end
+
+  def update_connector_state(connector_state, server_state) do
+    Map.put(server_state, :connector_state, connector_state)
+  end
+
+  def noreply(state) do
     {:noreply, state}
   end
 end

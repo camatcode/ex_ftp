@@ -29,7 +29,7 @@ defmodule FTP2Cloud.Auth.PassthroughAuthTest do
     assert {:ok, "331 User name okay, need password" <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     :ok = :gen_tcp.send(socket, "PASS #{password}\r\n")
-    match = "230 Welcome #{username}."
+    match = "230 Welcome."
     assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
     # test deny root
