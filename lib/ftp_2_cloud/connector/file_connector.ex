@@ -33,18 +33,43 @@ defmodule FTP2Cloud.Connector.FileConnector do
     end
   end
 
-  def list(
-        path,
-        socket,
-        pasv_socket,
-        %{} = connector_state,
-        authenticator,
-        %{} = authenticator_state
-      ) do
-    {:ok,
-     wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
-       authenticated_list(path, socket, pasv_socket, connector_state)
-     end)}
+  def get_directory_contents(path, _connector_state) do
+    File.ls(path)
+    |> case do
+      {:ok, files} ->
+        contents =
+          Enum.map(files, fn file_name ->
+            %{
+              size: size,
+              mtime: {{year, month, day}, {hour, minute, second}},
+              access: access,
+              type: type
+            } = File.lstat!(Path.join(path, file_name))
+
+            file_name =
+              if type == :symlink do
+                {:ok, target} = :file.read_link(Path.join(path, file_name))
+                "#{file_name} -> #{target}"
+              else
+                file_name
+              end
+
+            date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
+
+            %{
+              file_name: file_name,
+              modified_datetime: date,
+              size: size,
+              access: access,
+              type: type
+            }
+          end)
+
+        {:ok, contents}
+
+      err ->
+        err
+    end
   end
 
   def list_a(
@@ -128,38 +153,6 @@ defmodule FTP2Cloud.Connector.FileConnector do
      wrap_auth(socket, connector_state, authenticator, authenticator_state, fn ->
        authenticated_stor(path, socket, pasv_socket, connector_state)
      end)}
-  end
-
-  defp authenticated_list(path, socket, pasv_socket, %{} = connector_state) do
-    :ok = send_resp(150, "Here comes the directory listing.", socket)
-
-    wd = change_prefix(get_working_directory(connector_state), path)
-
-    items =
-      File.ls(wd)
-      |> case do
-        {:ok, files} ->
-          files
-          |> Enum.reject(&String.starts_with?(&1, "."))
-          |> Enum.sort()
-
-        _ ->
-          []
-      end
-      |> Enum.map(&format_list_item(&1, wd))
-
-    if Enum.empty?(items) do
-      PassiveSocket.write(pasv_socket, "", close_after_write: true)
-    else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv_socket, &1, close_after_write: false))
-
-      PassiveSocket.close(pasv_socket)
-    end
-
-    :ok = send_resp(226, "Directory send OK.", socket)
-    connector_state
   end
 
   defp authenticated_list_a(path, socket, pasv_socket, %{} = connector_state) do
