@@ -28,7 +28,11 @@ defmodule ExFTP.Authenticator do
   @type password :: String.t()
 
   @doc """
-  Whether a given username is valid. Username invalidity is not reported back to the client.
+  Whether a given username is valid.
+
+  > #### Security Consideration {: .tip}
+  >
+  > The client will never be informed that a username is invalid.
   """
   @callback valid_user?(username) :: boolean()
 
