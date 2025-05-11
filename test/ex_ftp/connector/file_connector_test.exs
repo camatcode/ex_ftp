@@ -2,6 +2,8 @@ defmodule ExFTP.Connector.FileConnectorTest do
   @moduledoc false
 
   import Bitwise
+  import ExFTP.TestHelper
+
   use ExUnit.Case
   doctest ExFTP.Connector.FileConnector
 
@@ -14,12 +16,12 @@ defmodule ExFTP.Connector.FileConnectorTest do
 
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
-    :ok = :gen_tcp.send(socket, "USER #{username}\r\n")
-    assert {:ok, "331 User name okay, need password" <> _} = :gen_tcp.recv(socket, 0, 5_000)
 
-    :ok = :gen_tcp.send(socket, "PASS #{password}\r\n")
-    match = "230 Welcome."
-    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
+    send(socket, "USER", [username])
+    expect_recv(socket, 331, "User name okay, need password")
+
+    send(socket, "PASS", [password])
+    expect_recv(socket, 230, "Welcome.")
 
     %{socket: socket, username: username, password: password}
   end
