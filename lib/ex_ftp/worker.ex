@@ -16,7 +16,7 @@ defmodule ExFTP.Worker do
   @impl GenServer
   def init(socket) do
     {:ok, host} =
-      System.get_env("FTP_ADDR", "127.0.0.1")
+      Application.get_env(:ex_ftp, :ftp_addr, "127.0.0.1")
       |> to_charlist()
       |> :inet.parse_address()
 

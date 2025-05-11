@@ -15,7 +15,7 @@ defmodule Ftp2Cloud.MixProject do
       # Hex
       package: package(),
       description: """
-      Serve an FTP interface that connects locally, to the cloud, or wherever
+      Serve an FTP interface that reads from local storage, the cloud, or wherever
       """,
 
       # Docs
