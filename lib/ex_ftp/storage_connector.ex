@@ -63,7 +63,8 @@ defmodule ExFTP.StorageConnector do
   ### 💻 Examples
 
       iex> alias ExFTP.Storage.FileConnector
-      iex> "/" == FileConnector.get_working_directory(%{current_working_directory: "/"})
+      iex> FileConnector.get_working_directory(%{current_working_directory: "/"})
+      "/"
 
   ### ⚠️ Reminders
   > #### Doesn't the connector_state already have it? {: .tip}
@@ -107,8 +108,10 @@ defmodule ExFTP.StorageConnector do
   ### 💻 Examples
 
       iex> alias ExFTP.Storage.FileConnector
-      iex> FileConnector.directory_exists?("/tmp", %{current_working_directory: "/"}) # true
-      iex> FileConnector.directory_exists?("/does-not-exist", %{current_working_directory: "/"})  # false
+      iex> FileConnector.directory_exists?("/tmp", %{current_working_directory: "/"})
+      true
+      iex> FileConnector.directory_exists?("/does-not-exist", %{current_working_directory: "/"})
+      false
 
   #{ExFTP.Doc.resources("page-32")}
 
@@ -132,7 +135,8 @@ defmodule ExFTP.StorageConnector do
       iex> connector_state = %{current_working_directory: "/"}
       iex> dir_to_make = File.cwd!() |> Path.join("new_dir")
       iex> {:ok, connector_state} = FileConnector.make_directory(dir_to_make, connector_state)
-      iex> true == FileConnector.directory_exists?(dir_to_make, connector_state)
+      iex> FileConnector.directory_exists?(dir_to_make, connector_state)
+      true
 
   #{ExFTP.Doc.resources("page-32")}
 
@@ -208,7 +212,7 @@ defmodule ExFTP.StorageConnector do
       iex> alias ExFTP.Storage.FileConnector
       iex> connector_state = %{current_working_directory: "/"}
       iex> dir = File.cwd!()
-      iex> {:ok, content_infos} = FileConnector.get_directory_contents(dir, connector_state)
+      iex> {:ok, _content_infos} = FileConnector.get_directory_contents(dir, connector_state)
 
   #{ExFTP.Doc.resources("page-32")}
 
@@ -255,9 +259,9 @@ defmodule ExFTP.StorageConnector do
 
       iex> alias ExFTP.Storage.FileConnector
       iex> connector_state = %{current_working_directory: "/"}
-      iex> file_to_get_info = "my-file.txt"
-      iex> path = Path.join(File.cwd!(), file_to_get_info)
-      iex> {:ok, data} = FileConnector.get_content(path, connector_state)
+      iex> file_to_get_content = File.cwd!() |> File.ls!() |> Enum.filter(&String.contains?(&1,".")) |> hd()
+      iex> path = Path.join(File.cwd!(), file_to_get_content)
+      iex> {:ok, _data} = FileConnector.get_content(path, connector_state)
 
   #{ExFTP.Doc.resources("page-30")}
 
@@ -295,8 +299,9 @@ defmodule ExFTP.StorageConnector do
       iex> connector_state = %{current_working_directory: "/"}
       iex> file_to_make = File.cwd!() |> Path.join("my_new_file")
       iex> {:ok, stream} = FileConnector.open_write_stream(file_to_make, connector_state)
-      iex> # writing happens...
+      iex> ["hello"] |> Enum.into(stream)
       iex> {:ok, _} = FileConnector.close_write_stream(stream, connector_state)
+      iex> _ = File.rm(file_to_make)
 
   #{ExFTP.Doc.related(["`t:stream/0`", "`c:close_write_stream/2`"])}
 
@@ -323,8 +328,9 @@ defmodule ExFTP.StorageConnector do
       iex> connector_state = %{current_working_directory: "/"}
       iex> file_to_make = File.cwd!() |> Path.join("my_new_file")
       iex> {:ok, stream} = FileConnector.open_write_stream(file_to_make, connector_state)
-      iex> # writing happens...
+      iex> ["hello"] |> Enum.into(stream)
       iex> {:ok, _} = FileConnector.close_write_stream(stream, connector_state)
+      iex> _ = File.rm(file_to_make)
 
   #{ExFTP.Doc.related(["`t:stream/0`", "`c:open_write_stream/2`"])}
 

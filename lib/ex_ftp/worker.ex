@@ -101,7 +101,7 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["SYST"], %{socket: socket} = state) do
-    :ok = send_resp(215, "UNIX Type: L8", socket)
+    send_resp(215, "UNIX Type: L8", socket)
     {:noreply, state}
   end
 
@@ -131,7 +131,7 @@ defmodule ExFTP.Worker do
         {:ok, port} = PassiveSocket.get_port(pasv)
         pasv_string = ip_port_to_pasv(host, port)
 
-        :ok = send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
+        send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
         {:noreply, %{server_state | pasv_socket: pasv}}
 
       _ ->
@@ -146,7 +146,7 @@ defmodule ExFTP.Worker do
         {:ok, pasv} = PassiveSocket.start_link()
         {:ok, port} = PassiveSocket.get_port(pasv)
 
-        :ok = send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
+        send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
         {:noreply, %{server_state | pasv_socket: pasv}}
 
       _ ->
@@ -157,7 +157,7 @@ defmodule ExFTP.Worker do
   defp run(["EPRT", _eport_info], %{socket: socket} = server_state) do
     check_auth(server_state)
     |> case do
-      :ok -> :ok = send_resp(200, "EPRT command successful.", socket)
+      :ok -> send_resp(200, "EPRT command successful.", socket)
       _ -> nil
     end
 
@@ -168,13 +168,13 @@ defmodule ExFTP.Worker do
 
   defp run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
     if authenticator.valid_user?(username) do
-      :ok = send_resp(331, "User name okay, need password.", socket)
+      send_resp(331, "User name okay, need password.", socket)
 
       Map.put(server_state, :authenticator_state, %{username: username})
       |> noreply()
     else
       # Yes I know, its strange - but I don't want to leak that this isn't a valid user to the client
-      :ok = send_resp(331, "User name okay, need password.", socket)
+      send_resp(331, "User name okay, need password.", socket)
 
       Map.put(server_state, :authenticator_state, %{})
       |> noreply()
@@ -191,19 +191,19 @@ defmodule ExFTP.Worker do
       {:ok, auth_state} ->
         auth_state = auth_state |> Map.put(:authenticated, true)
 
-        :ok = send_resp(230, "Welcome.", socket)
+        send_resp(230, "Welcome.", socket)
 
         Map.put(server_state, :authenticator_state, auth_state)
         |> noreply()
 
       {_, %{} = auth_state} ->
-        :ok = send_resp(530, "Authentication failed.", socket)
+        send_resp(530, "Authentication failed.", socket)
 
         Map.put(server_state, :authenticator_state, auth_state)
         |> noreply()
 
       _ ->
-        :ok = send_resp(530, "Authentication failed.", socket)
+        send_resp(530, "Authentication failed.", socket)
 
         server_state
         |> noreply()
@@ -311,7 +311,7 @@ defmodule ExFTP.Worker do
   end
 
   defp run(_, %{socket: socket} = state) do
-    :ok = send_resp(502, "Command not implemented.", socket)
+    send_resp(502, "Command not implemented.", socket)
     {:noreply, state}
   end
 
@@ -346,7 +346,7 @@ defmodule ExFTP.Worker do
     if auth.authenticated?(auth_state) do
       :ok
     else
-      :ok = send_resp(530, "Not logged in.", socket)
+      send_resp(530, "Not logged in.", socket)
       :err
     end
   end
@@ -371,7 +371,7 @@ defmodule ExFTP.Worker do
     if pasv && Process.alive?(pasv) do
       {:ok, pasv}
     else
-      :ok = send_resp(550, "LIST failed. PASV mode required.", Map.get(state, :socket))
+      send_resp(550, "LIST failed. PASV mode required.", Map.get(state, :socket))
       {:noreply, state}
     end
   end
@@ -379,7 +379,7 @@ defmodule ExFTP.Worker do
   defp quit(%{socket: socket} = state) do
     Logger.info("Shutting down. Client closed connection.")
 
-    :ok = send_resp(221, "Closing connection.", socket)
+    send_resp(221, "Closing connection.", socket)
 
     :gen_tcp.close(socket)
 
