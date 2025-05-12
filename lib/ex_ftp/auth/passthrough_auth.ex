@@ -1,38 +1,133 @@
 defmodule ExFTP.Auth.PassthroughAuth do
   @moduledoc """
   An implementation of `ExFTP.Authenticator` which permits any user except `"root"`
+
+  <!-- tabs-open -->
+
+  ### ⚠️ Reminders
+  > #### Authenticator State {: .tip}
+  >
+  >   * `authenticated:` `true` will exist if the current user has successfully called `login/2`
+  >      during this session
+  >   * `username:` `t:ExFTP.Authenticator.username/0` will exist if the current session has defined the user
+  >      (but hasn't necessarily supplied a password)
+
+  > #### 🔒 Security {: .tip}
+  >
+  > `PassThroughAuth` is not recommended for publicly facing deployment servers; as it's only
+  > one step better than no auth at all.
+
+  #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
   """
   alias ExFTP.Authenticator
   @behaviour Authenticator
 
   @impl Authenticator
   @doc """
-  If the username is `"root"`, this function will return `false`, otherwise `true`
+  Returns `true` if **username** is anything except `"root"`
 
-  See: `c:ExFTP.Authenticator.valid_user?/1`
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **username** :: `t:ExFTP.Authenticator.username/0`
+
+  #{ExFTP.Doc.returns(success: "`true` or `false`")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.PassthroughAuth
+      iex> PassthroughAuth.valid_user?("jsmith") # true
+      iex> PassthroughAuth.valid_user?("root") # false
+
+  ### ⚠️ Reminders
+  > #### 🔒 Security {: .tip}
+  >
+  > The client will never be informed that a username is invalid.
+  >
+  > The server uses this method to short-circuit auth calls.
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
   """
-  def valid_user?("root"), do: false
-  def valid_user?(_username), do: true
+  @spec valid_user?(username :: ExFTP.Authenticator.username()) :: boolean
+  def valid_user?(username), do: not_root?(username)
 
   @impl Authenticator
   @doc """
   Login will respond `{:ok, unmodified_auth_state}` to anyone but `username: "root"`
 
-  See: `c:ExFTP.Authenticator.login/2`
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **password** :: `t:ExFTP.Authenticator.password/0`
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.PassthroughAuth
+      iex> {:ok, _auth_state} = PassthroughAuth.login("password", %{username: "jsmith"})
+      iex> {:error, _} = PassthroughAuth.login("password", %{})
+      iex> # "root" is a disallowed user in PassthroughAuth
+      iex> {:error, _} = PassthroughAuth.login("password", %{username: "root"})
+
+  ### ⚠️ Reminders
+  > #### Authenticator State {: .tip}
+  >
+  > The `t:ExFTP.Authenticator.authenticator_state/0` will contain a `:username` key, if one was provided.
+  >
+  > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
+  > See `authenticated?/1` for more information.
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
   """
-  def login(_password, %{username: "root"}), do: {:error, %{}}
-  def login(_password, %{username: _username} = auth_state), do: {:ok, auth_state}
-  def login(_p, _), do: {:error, %{}}
+  @spec login(
+          password :: ExFTP.Authenticator.password(),
+          authenticator_state :: ExFTP.Authenticator.authenticator_state()
+        ) :: {:ok, ExFTP.Authenticator.authenticator_state()} | {:error, term()}
+  def login(_password, %{username: "root"} = _authenticator_state), do: {:error, %{}}
+
+  def login(_password, %{username: _username} = authenticator_state),
+    do: {:ok, authenticator_state}
+
+  def login(_password, _), do: {:error, %{}}
 
   @impl Authenticator
   @doc """
-  This function assumes the user is still authenticated as long as `authenticated: true`
-    still exists in its `authenticator_state`.
+  Assumes the user is still authenticated as long as `authenticated: true`
+    still exists in the **authenticator_state**.
 
-  That key is placed or removed by `ExFTP.Worker` on login attempts.
+  <!-- tabs-open -->
 
-  See: `c:ExFTP.Authenticator.authenticated?/1`
+  ### 🏷️ Params
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  #{ExFTP.Doc.returns(success: "`true` or `false`")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.PassthroughAuth
+      iex> PassthroughAuth.authenticated?(%{authenticated: true}) # true
+      iex> PassthroughAuth.authenticated?(%{}) # false
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
   """
-  def authenticated?(%{authenticated: authenticated} = _state), do: authenticated
-  def authenticated?(_), do: false
+  def authenticated?(%{authenticated: authenticated} = _authenticator_state), do: authenticated
+  def authenticated?(_authenticator_state), do: false
+
+  defp not_root?(username) when is_bitstring(username) do
+    "root" !=
+      String.downcase(username)
+      |> String.trim()
+  end
 end

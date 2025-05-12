@@ -30,7 +30,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:login/2`", "`c:authenticated?/1`"])}
 
-  #{ExFTP.Doc.resources()}
+  c:#{ExFTP.Doc.resources("section-4")}
   <!-- tabs-close -->
 
   """
@@ -43,7 +43,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:valid_user?/1`"])}
 
-  #{ExFTP.Doc.resources()}
+  c:#{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -62,7 +62,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:login/2`"])}
 
-  #{ExFTP.Doc.resources()}
+  c:#{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -91,7 +91,7 @@ defmodule ExFTP.Authenticator do
   >
   > The server uses this method to short-circuit auth calls.
 
-  #{ExFTP.Doc.resources()}
+  c:#{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -106,15 +106,15 @@ defmodule ExFTP.Authenticator do
     * **password** :: `t:password/0`
     * **authenticator_state** :: `t:authenticator_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login_err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> {:ok, auth_state} == PassthroughAuth.login("password", %{username: "jsmith"})
-      iex> {:err, _} == PassthroughAuth.login("password", %{})
+      iex> {:ok, _auth_state} = PassthroughAuth.login("password", %{username: "jsmith"})
+      iex> {:error, _} = PassthroughAuth.login("password", %{})
       iex> # "root" is a disallowed user in PassthroughAuth
-      iex> {:err, _} == PassthroughAuth.login("password", %{username: "root"})
+      iex> {:error, _} = PassthroughAuth.login("password", %{username: "root"})
 
   ### ⚠️ Reminders
   > #### Authenticator State {: .tip}
@@ -124,7 +124,7 @@ defmodule ExFTP.Authenticator do
   > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
   > See `c:authenticated?/1` for more information.
 
-  #{ExFTP.Doc.resources()}
+  c:#{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -144,9 +144,8 @@ defmodule ExFTP.Authenticator do
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> {:ok, %{authenticated: true} = auth_state} == PassthroughAuth.login("password", %{username: "jsmith"})
-      iex> true == PassthroughAuth.authenticated?(auth_state)
-      iex> false == PassthroughAuth.authenticated?(%{})
+      iex> PassthroughAuth.authenticated?(%{authenticated: true}) # true
+      iex> PassthroughAuth.authenticated?(%{}) # false
 
   ### ⚠️ Reminders
   > #### Authenticator State {: .tip}
@@ -156,7 +155,7 @@ defmodule ExFTP.Authenticator do
   >
   > Authenticators may choose to drop that key for their own use cases (e.g if a TTL expires)
 
-  #{ExFTP.Doc.resources()}
+  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
