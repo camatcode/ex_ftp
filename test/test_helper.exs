@@ -27,6 +27,11 @@ defmodule ExFTP.TestHelper do
     socket
   end
 
+  def flush_recv(socket) do
+    :gen_tcp.recv(socket, 0, 5_000)
+    socket
+  end
+
   def send_and_expect(socket, cmd, args, code, msg_start \\ "") do
     send(socket, cmd, args)
     expect_recv(socket, code, msg_start)
@@ -66,4 +71,13 @@ defmodule ExFTP.TestHelper do
   end
 
   def close_pasv(pasv), do: :gen_tcp.close(pasv)
+
+  def get_socket do
+    port = Application.get_env(:ex_ftp, :ftp_port)
+    {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, port, [:binary, active: false])
+    {:ok, _} = :gen_tcp.recv(socket, 0, 10_000)
+
+    on_exit(:close_socket, fn -> :gen_tcp.close(socket) end)
+    socket
+  end
 end

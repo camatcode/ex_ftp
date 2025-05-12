@@ -105,6 +105,7 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
+
   def cwd(
         %{
           storage_connector: connector,
@@ -116,18 +117,15 @@ defmodule ExFTP.Storage.Common do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
 
-    new_state =
-      if connector.directory_exists?(new_wd, connector_state) do
-        send_resp(@file_action_ok, "Directory changed successfully.", socket)
-        connector_state |> Map.put(:current_working_directory, new_wd)
-      else
-        :ok =
-          send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
+    if connector.directory_exists?(new_wd, connector_state) do
+      send_resp(@file_action_ok, "Directory changed successfully.", socket)
+      connector_state |> Map.put(:current_working_directory, new_wd)
+    else
+      :ok =
+        send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
 
-        connector_state
-      end
-
-    new_state
+      connector_state
+    end
   end
 
   @doc """
@@ -232,7 +230,7 @@ defmodule ExFTP.Storage.Common do
   end
 
   @typedoc """
-  A map representing a temporary, negotiated passive socket to communicate with an FTP client.
+  A Port representing a temporary, negotiated passive socket to communicate with an FTP client.
 
   <!-- tabs-open -->
 
@@ -246,7 +244,7 @@ defmodule ExFTP.Storage.Common do
   #{ExFTP.Doc.resources("page-28")}
   <!-- tabs-close -->
   """
-  @type pasv_socket :: %{}
+  @type pasv_socket :: port()
 
   @doc """
   Responds to FTP's `LIST` command

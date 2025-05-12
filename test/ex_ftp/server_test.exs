@@ -4,8 +4,8 @@ defmodule ExFTP.ServerTest do
 
   test "accepts tcp connections" do
     %{active: active_children} = DynamicSupervisor.count_children(ExFTP.WorkerSupervisor)
-
-    assert {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, 4041, [:inet, :binary])
+    port = Application.get_env(:ex_ftp, :ftp_port)
+    assert {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, port, [:inet, :binary])
 
     # give worker time to start up
     Process.sleep(100)

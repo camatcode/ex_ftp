@@ -4,22 +4,25 @@ defmodule ExFTP.Storage.FileConnectorTest do
   import ExFTP.TestHelper
 
   use ExUnit.Case
+  doctest ExFTP.Storage.Common
   doctest ExFTP.Storage.FileConnector
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
-    {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, 4041, [:binary, active: false])
-    {:ok, _} = :gen_tcp.recv(socket, 0, 10_000)
 
-    on_exit(:close_socket, fn -> :gen_tcp.close(socket) end)
-
+    socket = get_socket()
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
 
     send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
     |> send_and_expect("PASS", [password], 230, "Welcome.")
 
-    %{socket: socket, username: username, password: password}
+    %{
+      socket: socket,
+      password: password,
+      storage_connector: ExFTP.Storage.FileConnector,
+      connector_state: %{current_working_directory: "/"}
+    }
   end
 
   test "PWD", %{socket: socket, password: password} do
@@ -32,13 +35,8 @@ defmodule ExFTP.Storage.FileConnectorTest do
   end
 
   test "CWD / CDUP", %{socket: socket, password: _password} do
-    # PWD
     send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
 
-    # CWD tmp_dir
-    # PWD
-    # CDUP
-    # CDUP
     tmp_dir = System.tmp_dir!()
 
     socket
@@ -48,8 +46,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
     |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
     |> send_and_expect("PWD", [], 257, "\"/\" is the current directory")
 
-    # CWD does-not-exist
-    # PWD
     socket
     |> send_and_expect(
       "CWD",

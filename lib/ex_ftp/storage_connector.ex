@@ -15,7 +15,7 @@ defmodule ExFTP.StorageConnector do
   """
 
   @typedoc """
-  A map representing a socket to communicate with an FTP client.
+  A Port representing a socket to communicate with an FTP client.
 
   <!-- tabs-open -->
 
@@ -30,7 +30,7 @@ defmodule ExFTP.StorageConnector do
   #{ExFTP.Doc.resources()}
   <!-- tabs-close -->
   """
-  @type socket :: %{}
+  @type socket :: port()
 
   @typedoc """
   State held onto by the server and modified by the `StorageConnector`.
