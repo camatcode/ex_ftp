@@ -18,9 +18,6 @@ defmodule ExFTP.Authenticator do
 
   It may be used by the authenticator to keep stateful values.
 
-  * `authenticated: true` - Will exist if the current user has successfully called `login/2` during this session
-  * `username: String` - Will exist if the current session has defined the user (but has not supplied a password)
-
   <!-- tabs-open -->
 
   ### ⚠️ Reminders
@@ -35,6 +32,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.resources()}
   <!-- tabs-close -->
+
   """
   @type authenticator_state :: %{}
 
