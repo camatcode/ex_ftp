@@ -41,8 +41,10 @@ defmodule ExFTP.Auth.PassthroughAuth do
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> PassthroughAuth.valid_user?("jsmith") # true
-      iex> PassthroughAuth.valid_user?("root") # false
+      iex> PassthroughAuth.valid_user?("jsmith")
+      true
+      iex> PassthroughAuth.valid_user?("root")
+      false
 
   ### ⚠️ Reminders
   > #### 🔒 Security {: .tip}
@@ -94,10 +96,9 @@ defmodule ExFTP.Auth.PassthroughAuth do
           password :: ExFTP.Authenticator.password(),
           authenticator_state :: ExFTP.Authenticator.authenticator_state()
         ) :: {:ok, ExFTP.Authenticator.authenticator_state()} | {:error, term()}
-  def login(_password, %{username: "root"} = _authenticator_state), do: {:error, %{}}
-
-  def login(_password, %{username: _username} = authenticator_state),
-    do: {:ok, authenticator_state}
+  def login(_password, %{username: username} = authenticator_state) do
+    if not_root?(username), do: {:ok, authenticator_state}, else: {:error, %{}}
+  end
 
   def login(_password, _), do: {:error, %{}}
 
@@ -116,8 +117,10 @@ defmodule ExFTP.Auth.PassthroughAuth do
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> PassthroughAuth.authenticated?(%{authenticated: true}) # true
-      iex> PassthroughAuth.authenticated?(%{}) # false
+      iex> PassthroughAuth.authenticated?(%{authenticated: true})
+      true
+      iex> PassthroughAuth.authenticated?(%{})
+      false
 
   #{ExFTP.Doc.resources("section-4")}
 
