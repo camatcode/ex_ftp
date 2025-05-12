@@ -2,37 +2,27 @@ defmodule ExFTP.Auth.PassthroughAuthTest do
   @moduledoc false
 
   use ExUnit.Case
+
+  alias ExFTP.Auth.PassthroughAuth
+
   doctest ExFTP.Auth.PassthroughAuth
+  doctest ExFTP.Authenticator
 
-  import ExFTP.TestHelper
-
-  setup do
-    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
-    {:ok, socket} = :gen_tcp.connect({127, 0, 0, 1}, 4041, [:binary, active: false])
-    {:ok, _} = :gen_tcp.recv(socket, 0, 10_000)
-
-    on_exit(:close_socket, fn -> :gen_tcp.close(socket) end)
-
-    %{socket: socket}
+  test "valid_user?/1" do
+    assert PassthroughAuth.valid_user?(Faker.Internet.slug())
+    refute PassthroughAuth.valid_user?("rOoT")
   end
 
-  test "USER", %{socket: socket} do
-    username = Faker.Internet.user_name()
-    send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+  test "login/2" do
+    assert {:ok, _} =
+             PassthroughAuth.login(Faker.Internet.slug(), %{username: Faker.Internet.slug()})
+
+    assert {:error, _} = PassthroughAuth.login(Faker.Internet.slug(), %{})
+    assert {:error, _} = PassthroughAuth.login(Faker.Internet.slug(), %{username: "RooT"})
   end
 
-  test "PASS", %{socket: socket} do
-    username = Faker.Internet.user_name()
-    password = Faker.Internet.slug()
-
-    # test deny root
-    socket
-    |> send_and_expect("USER", ["root"], 331, "User name okay, need password")
-    |> send_and_expect("PASS", [password], 530, "Authentication failed.")
-
-    # passthrough auth allows any user (except "root") and blindly accepts any password
-    socket
-    |> send_and_expect("USER", [username], 331, "User name okay, need password")
-    |> send_and_expect("PASS", [password], 230, "Welcome.")
+  test "authenticated?/1" do
+    assert PassthroughAuth.authenticated?(%{authenticated: true})
+    refute PassthroughAuth.authenticated?(%{})
   end
 end

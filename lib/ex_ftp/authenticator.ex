@@ -82,8 +82,10 @@ defmodule ExFTP.Authenticator do
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> true == PassthroughAuth.valid_user?("jsmith")
-      iex> false == PassthroughAuth.valid_user?("root")
+      iex> PassthroughAuth.valid_user?("jsmith")
+      true
+      iex> PassthroughAuth.valid_user?("root")
+      false
 
   ### ⚠️ Reminders
   > #### 🔒 Security {: .tip}
@@ -145,8 +147,10 @@ defmodule ExFTP.Authenticator do
   ### 💻 Examples
 
       iex> alias ExFTP.Auth.PassthroughAuth
-      iex> PassthroughAuth.authenticated?(%{authenticated: true}) # true
-      iex> PassthroughAuth.authenticated?(%{}) # false
+      iex> PassthroughAuth.authenticated?(%{authenticated: true})
+      true
+      iex> PassthroughAuth.authenticated?(%{})
+      false
 
   ### ⚠️ Reminders
   > #### Authenticator State {: .tip}

@@ -33,7 +33,7 @@ defmodule ExFTP.Worker do
     authenticator =
       Application.get_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
 
-    server_name = Application.get_env(:ex_ftp, :server_name, ExFTP)
+    server_name = Application.get_env(:ex_ftp, :server_name, :ExFTP)
 
     send_resp(220, "Hello from #{server_name}.", socket)
 

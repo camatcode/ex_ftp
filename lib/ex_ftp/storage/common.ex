@@ -16,23 +16,6 @@ defmodule ExFTP.Storage.Common do
 
   alias ExFTP.PassiveSocket
 
-  @dummy_directories [
-    %{
-      file_name: ".",
-      size: 4096,
-      type: :directory,
-      access: :read_write,
-      modified_datetime: DateTime.now!("Etc/UTC")
-    },
-    %{
-      file_name: "..",
-      size: 4096,
-      type: :directory,
-      access: :read_write,
-      modified_datetime: DateTime.now!("Etc/UTC")
-    }
-  ]
-
   @directory_action_ok 257
   @directory_action_not_taken 521
   @file_action_ok 250
@@ -105,6 +88,7 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
+
   def cwd(
         %{
           storage_connector: connector,
@@ -116,18 +100,15 @@ defmodule ExFTP.Storage.Common do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
 
-    new_state =
-      if connector.directory_exists?(new_wd, connector_state) do
-        send_resp(@file_action_ok, "Directory changed successfully.", socket)
-        connector_state |> Map.put(:current_working_directory, new_wd)
-      else
-        :ok =
-          send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
+    if connector.directory_exists?(new_wd, connector_state) do
+      send_resp(@file_action_ok, "Directory changed successfully.", socket)
+      connector_state |> Map.put(:current_working_directory, new_wd)
+    else
+      :ok =
+        send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
 
-        connector_state
-      end
-
-    new_state
+      connector_state
+    end
   end
 
   @doc """
@@ -232,7 +213,7 @@ defmodule ExFTP.Storage.Common do
   end
 
   @typedoc """
-  A map representing a temporary, negotiated passive socket to communicate with an FTP client.
+  A Port representing a temporary, negotiated passive socket to communicate with an FTP client.
 
   <!-- tabs-open -->
 
@@ -246,7 +227,7 @@ defmodule ExFTP.Storage.Common do
   #{ExFTP.Doc.resources("page-28")}
   <!-- tabs-close -->
   """
-  @type pasv_socket :: %{}
+  @type pasv_socket :: port()
 
   @doc """
   Responds to FTP's `LIST` command
@@ -294,13 +275,14 @@ defmodule ExFTP.Storage.Common do
     send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
+    hidden_dirs = if include_hidden, do: get_hidden_roots(connector, connector_state), else: []
 
     items =
       connector.get_directory_contents(wd, connector_state)
       |> case do
         {:ok, contents} ->
           if include_hidden do
-            @dummy_directories ++ contents
+            hidden_dirs ++ contents
           else
             contents
             |> Enum.reject(&hidden?/1)
@@ -308,7 +290,7 @@ defmodule ExFTP.Storage.Common do
           |> Enum.sort_by(& &1.file_name)
 
         _ ->
-          if include_hidden, do: @dummy_directories, else: []
+          if include_hidden, do: hidden_dirs, else: []
       end
       |> Enum.map(&format_content(&1))
 
@@ -373,12 +355,14 @@ defmodule ExFTP.Storage.Common do
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
+    hidden_dirs = if include_hidden, do: get_hidden_roots(connector, connector_state), else: []
+
     items =
       connector.get_directory_contents(wd, connector_state)
       |> case do
         {:ok, contents} ->
           if include_hidden do
-            @dummy_directories ++ contents
+            hidden_dirs ++ contents
           else
             contents
             |> Enum.reject(&hidden?/1)
@@ -386,7 +370,7 @@ defmodule ExFTP.Storage.Common do
           |> Enum.sort_by(& &1.file_name)
 
         _ ->
-          if include_hidden, do: @dummy_directories, else: []
+          if include_hidden, do: hidden_dirs, else: []
       end
       |> Enum.map(&format_name(&1))
 
@@ -667,5 +651,14 @@ defmodule ExFTP.Storage.Common do
         chunk -> {:cont, chunk, []}
       end
     )
+  end
+
+  defp get_hidden_roots(connector, connector_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), ".")
+
+    {:ok, first} = connector.get_content_info(w_path, connector_state)
+    w_path = change_prefix(connector.get_working_directory(connector_state), "..")
+    {:ok, second} = connector.get_content_info(w_path, connector_state)
+    [first, second]
   end
 end
