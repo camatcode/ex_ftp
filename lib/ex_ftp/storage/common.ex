@@ -1,4 +1,4 @@
-defmodule ExFTP.Connector.Common do
+defmodule ExFTP.Storage.Common do
   @moduledoc false
   import ExFTP.Common
 

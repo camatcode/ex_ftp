@@ -25,14 +25,14 @@ defmodule ExFTP.Auth.PassthroughAuthTest do
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
 
-    # passthrough auth allows any user (except "root") and blindly accepts any password
-    socket
-    |> send_and_expect("USER", [username], 331, "User name okay, need password")
-    |> send_and_expect("PASS", [password], 230, "Welcome.")
-
     # test deny root
     socket
     |> send_and_expect("USER", ["root"], 331, "User name okay, need password")
     |> send_and_expect("PASS", [password], 530, "Authentication failed.")
+
+    # passthrough auth allows any user (except "root") and blindly accepts any password
+    socket
+    |> send_and_expect("USER", [username], 331, "User name okay, need password")
+    |> send_and_expect("PASS", [password], 230, "Welcome.")
   end
 end
