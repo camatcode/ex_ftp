@@ -1,6 +1,6 @@
 defmodule ExFTP.Common do
   @moduledoc """
-  This module contains shared functions between `ExFTP.Worker` and `ExFTP.Connector.Common`
+  This module contains shared functions between `ExFTP.Worker` and `ExFTP.Storage.Common`
   """
 
   require Logger

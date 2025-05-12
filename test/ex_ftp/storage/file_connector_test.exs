@@ -1,10 +1,10 @@
-defmodule ExFTP.Connector.FileConnectorTest do
+defmodule ExFTP.Storage.FileConnectorTest do
   @moduledoc false
 
   import ExFTP.TestHelper
 
   use ExUnit.Case
-  doctest ExFTP.Connector.FileConnector
+  doctest ExFTP.Storage.FileConnector
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)

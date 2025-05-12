@@ -7,7 +7,7 @@ defmodule ExFTP.Worker do
 
   import Bitwise
   import ExFTP.Common
-  import ExFTP.Connector.Common
+  import ExFTP.Storage.Common
 
   alias ExFTP.PassiveSocket
 
@@ -27,7 +27,7 @@ defmodule ExFTP.Worker do
     end
 
     connector =
-      Application.get_env(:ex_ftp, :storage_connector, ExFTP.Connector.FileConnector)
+      Application.get_env(:ex_ftp, :storage_connector, ExFTP.Storage.FileConnector)
 
     authenticator =
       Application.get_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
