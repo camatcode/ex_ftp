@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.PassthroughAuth do
   @moduledoc """
   An implementation of `ExFTP.Authenticator` which permits any user except `"root"`

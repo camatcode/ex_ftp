@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Authenticator do
   @moduledoc """
   A behaviour defining an Authenticator.

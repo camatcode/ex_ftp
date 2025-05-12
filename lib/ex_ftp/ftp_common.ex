@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Common do
   @moduledoc """
   This module contains shared functions between `ExFTP.Worker` and `ExFTP.Storage.Common`
