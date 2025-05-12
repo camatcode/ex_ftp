@@ -28,7 +28,8 @@ defmodule ExFTP.Storage.FileConnector do
   ### 💻 Examples
 
       iex> alias ExFTP.Storage.FileConnector
-      iex> FileConnector.get_working_directory(%{current_working_directory: "/"}) # "/"
+      iex> FileConnector.get_working_directory(%{current_working_directory: "/"})
+      "/"
 
 
   #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_working_directory/1`"])}
