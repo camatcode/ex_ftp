@@ -10,9 +10,10 @@ defmodule ExFTP.Doc do
 
   def contact_maintainer, do: "💬 Contact the maintainer (he's happy to help!)"
 
-  def resources(doc_reference \\ nil) do
+  def resources(rfc_959_ref \\ nil, rfc_3659_ref \\ nil) do
     "### 📖 Resources
-  * #{see_rfc(doc_reference)}
+  * #{see_rfc_959(rfc_959_ref)}
+  * #{see_rfc_3659(rfc_3659_ref)}
   * #{contact_maintainer()}
     * #{maintainer_github()}
     * #{maintainer_fediverse()}
@@ -60,17 +61,31 @@ defmodule ExFTP.Doc do
   "
   end
 
-  def see_rfc(nil) do
+  def see_rfc_959(nil) do
     see_link(
       "RFC 959",
       "https://www.rfc-editor.org/rfc/rfc959"
     )
   end
 
-  def see_rfc(doc_reference) do
+  def see_rfc_959(doc_reference) do
     see_link(
       "RFC 959 (#{doc_reference})",
       "https://www.rfc-editor.org/rfc/rfc959##{doc_reference}"
+    )
+  end
+
+  def see_rfc_3659(nil) do
+    see_link(
+      "RFC 3659",
+      "https://www.rfc-editor.org/rfc/rfc3659"
+    )
+  end
+
+  def see_rfc_3659(doc_reference) do
+    see_link(
+      "RFC 3659 (#{doc_reference})",
+      "https://www.rfc-editor.org/rfc/3659##{doc_reference}"
     )
   end
 

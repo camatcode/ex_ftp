@@ -1,5 +1,16 @@
 defmodule ExFTP.Storage.Common do
-  @moduledoc false
+  @moduledoc """
+  A module covering the low-level FTP responses
+
+  <!-- tabs-open -->
+
+  #{ExFTP.Doc.related(["`ExFTP.Worker`"])}
+
+  #{ExFTP.Doc.resources()}
+
+  <!-- tabs-close -->
+  """
+
   import ExFTP.Common
 
   alias ExFTP.PassiveSocket
@@ -31,11 +42,33 @@ defmodule ExFTP.Storage.Common do
   @action_aborted 451
   @file_action_aborted 552
 
-  def pwd(%{
-        storage_connector: connector,
-        socket: socket,
-        connector_state: connector_state
-      }) do
+  @doc """
+  Responds to FTP's `PWD` command
+
+  > #### RFC 959: PRINT WORKING DIRECTORY (PWD) {: .tip}
+  > This command causes the name of the current working
+  > directory to be returned in the reply.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_working_directory/1`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  def pwd(
+        %{
+          storage_connector: connector,
+          socket: socket,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     :ok =
       send_resp(
         @directory_action_ok,
@@ -46,18 +79,45 @@ defmodule ExFTP.Storage.Common do
     connector_state
   end
 
-  def cwd(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        connector_state: connector_state
-      }) do
+  @doc """
+  Responds to FTP's `CWD` command
+
+  > #### RFC 959: CHANGE WORKING DIRECTORY (CWD) {: .tip}
+  > This command allows the user to work with a different
+  > directory or dataset for file storage or retrieval without
+  > altering their login or accounting information.  Transfer
+  > parameters are similarly unchanged.  The argument is a
+  > pathname specifying a directory or other system dependent
+  > file group designator.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_working_directory/1`"])}
+
+  #{ExFTP.Doc.resources("page-26")}
+
+  <!-- tabs-close -->
+  """
+  def cwd(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
 
     new_state =
       if connector.directory_exists?(new_wd, connector_state) do
-        :ok = send_resp(@file_action_ok, "Directory changed successfully.", socket)
+        send_resp(@file_action_ok, "Directory changed successfully.", socket)
         connector_state |> Map.put(:current_working_directory, new_wd)
       else
         :ok =
@@ -69,12 +129,37 @@ defmodule ExFTP.Storage.Common do
     new_state
   end
 
-  def mkd(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        connector_state: connector_state
-      }) do
+  @doc """
+  Responds to FTP's `MKD` command
+
+  > #### RFC 959: MAKE DIRECTORY (MKD) {: .tip}
+  > This command causes the directory specified in the pathname
+  > to be created as a directory (if the pathname is absolute)
+  > or as a subdirectory of the current working directory (if
+  > the pathname is relative).
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.make_directory/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  def mkd(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     wd = connector.get_working_directory(connector_state)
     new_d = change_prefix(wd, path)
 
@@ -85,16 +170,39 @@ defmodule ExFTP.Storage.Common do
       connector.make_directory(path, connector_state)
       |> case do
         {:ok, connector_state} ->
-          :ok = send_resp(@directory_action_ok, "\"#{new_d}\" directory created.", socket)
+          send_resp(@directory_action_ok, "\"#{new_d}\" directory created.", socket)
           connector_state
 
         _ ->
-          :ok = send_resp(@directory_action_not_taken, "Failed to make directory.", socket)
+          send_resp(@directory_action_not_taken, "Failed to make directory.", socket)
           connector_state
       end
     end
   end
 
+  @doc """
+  Responds to FTP's `RMD` command
+
+  > #### RFC 959: REMOVE DIRECTORY (RMD) {: .tip}
+  > This command causes the directory specified in the pathname
+  > to be removed as a directory (if the pathname is absolute)
+  > or as a subdirectory of the current working directory (if
+  > the pathname is relative).
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_directory/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   def rmd(%{
         storage_connector: connector,
         path: path,
@@ -107,7 +215,7 @@ defmodule ExFTP.Storage.Common do
     connector.delete_directory(rm_d, connector_state)
     |> case do
       {:ok, connector_state} ->
-        :ok = send_resp(@file_action_ok, "\"#{rm_d}\" directory removed.", socket)
+        send_resp(@file_action_ok, "\"#{rm_d}\" directory removed.", socket)
         # kickout if you just RM'd the dir you're in
         new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
 
@@ -115,20 +223,72 @@ defmodule ExFTP.Storage.Common do
         |> Map.put(:current_working_directory, new_working_dir)
 
       _ ->
-        :ok = send_resp(@file_action_not_taken, "Failed to remove directory.", socket)
+        send_resp(@file_action_not_taken, "Failed to remove directory.", socket)
         connector_state
     end
   end
 
-  def list(%{
-        socket: socket,
-        storage_connector: connector,
-        connector_state: connector_state,
-        pasv: pasv,
-        path: path,
-        include_hidden: include_hidden
-      }) do
-    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
+  @typedoc """
+  A map representing a temporary, negotiated passive socket to communicate with an FTP client.
+
+  <!-- tabs-open -->
+
+  ### ⚠️ Reminders
+  > #### Sockets are everywhere {: .tip}
+  >
+  > This socket represents a temporary TCP connection between the FTP Server and the client
+  >
+  > While related, this passive socket is not the normal socket, which is often on port 21.
+
+  #{ExFTP.Doc.resources("page-28")}
+  <!-- tabs-close -->
+  """
+  @type pasv_socket :: %{}
+
+  @doc """
+  Responds to FTP's `LIST` command
+
+  > #### RFC 959: LIST (LIST) {: .tip}
+  > This command causes a list to be sent from the server to the
+  > passive DTP.  If the pathname specifies a directory or other
+  > group of files, the server should transfer a list of files
+  > in the specified directory.  If the pathname specifies a
+  > file then the server should send current information on the
+  > file.  A null argument implies the user's current working or
+  > default directory.  The data transfer is over the data
+  > connection in type ASCII or type EBCDIC.  (The user must
+  > ensure that the TYPE is appropriately ASCII or EBCDIC).
+  > Since the information on a file may vary widely from system
+  > to system, this information may be hard to use automatically
+  > in a program, but may be quite useful to a human user.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **pasv** :: `t:pasv_socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+    * **include_hidden** :: `t:boolean/0` - Whether to include hidden files/dirs
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_directory_contents/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  def list(
+        %{
+          socket: socket,
+          storage_connector: connector,
+          connector_state: connector_state,
+          pasv: pasv,
+          path: path,
+          include_hidden: include_hidden
+        } = _server_state
+      ) do
+    send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -159,19 +319,54 @@ defmodule ExFTP.Storage.Common do
       PassiveSocket.close(pasv)
     end
 
-    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
+    send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
-  def nlst(%{
-        socket: socket,
-        storage_connector: connector,
-        connector_state: connector_state,
-        pasv: pasv,
-        path: path,
-        include_hidden: include_hidden
-      }) do
-    :ok = send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
+  @doc """
+  Responds to FTP's `NLST` command
+
+  > #### RFC 959: NAME LIST (NLST) {: .tip}
+  > This command causes a directory listing to be sent from
+  > server to user site.  The pathname should specify a
+  > directory or other system-specific file group descriptor; a
+  > null argument implies the current directory.  The server
+  > will return a stream of names of files and no other
+  > information.  The data will be transferred in ASCII or
+  > EBCDIC type over the data connection as valid pathname
+  > strings separated by <CRLF> or <NL>.  (Again the user must
+  > ensure that the TYPE is correct.)  This command is intended
+  > to return information that can be used by a program to
+  > further process the files automatically.  For example, in
+  > the implementation of a "multiple get" function.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **pasv** :: `t:pasv_socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+    * **include_hidden** :: `t:boolean/0` - Whether to include hidden files/dirs
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_directory_contents/2`"])}
+
+  #{ExFTP.Doc.resources("page-33")}
+
+  <!-- tabs-close -->
+  """
+  def nlst(
+        %{
+          socket: socket,
+          storage_connector: connector,
+          connector_state: connector_state,
+          pasv: pasv,
+          path: path,
+          include_hidden: include_hidden
+        } = _server_state
+      ) do
+    send_resp(@opening_data_connection, "Here comes the directory listing.", socket)
 
     wd = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -202,17 +397,43 @@ defmodule ExFTP.Storage.Common do
       PassiveSocket.close(pasv)
     end
 
-    :ok = send_resp(@closing_connection_success, "Directory send OK.", socket)
+    send_resp(@closing_connection_success, "Directory send OK.", socket)
     connector_state
   end
 
-  def retr(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        pasv: pasv,
-        connector_state: connector_state
-      }) do
+  @doc """
+  Responds to FTP's `RETR` command
+
+  > #### RFC 959: RETRIEVE (RETR) {: .tip}
+  > This command causes the server-DTP to transfer a copy of the
+  > file, specified in the pathname, to the server- or user-DTP
+  > at the other end of the data connection.  The status and
+  > contents of the file at the server site shall be unaffected.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **pasv** :: `t:pasv_socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_content/2`"])}
+
+  #{ExFTP.Doc.resources("page-30")}
+
+  <!-- tabs-close -->
+  """
+  def retr(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          pasv: pasv,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     :ok =
       send_resp(
         @opening_data_connection,
@@ -226,46 +447,111 @@ defmodule ExFTP.Storage.Common do
     |> case do
       {:ok, stream} ->
         PassiveSocket.write(pasv, stream, close_after_write: true)
-        :ok = send_resp(@closing_connection_success, "Transfer complete.", socket)
+        send_resp(@closing_connection_success, "Transfer complete.", socket)
 
       _ ->
-        :ok = send_resp(@action_aborted, "File not found.", socket)
+        send_resp(@action_aborted, "File not found.", socket)
         PassiveSocket.close(pasv)
     end
 
     connector_state
   end
 
+  @doc """
+  Responds to FTP's `SIZE` command
+
+  > #### RFC 3659: SIZE OF FILE (SIZE) {: .tip}
+  > The FTP command, SIZE OF FILE (SIZE), is used to obtain the transfer
+  > size of a file from the server-FTP process.  This is the exact number
+  > of octets (8 bit bytes) that would be transmitted over the data
+  > connection should that file be transmitted.  This value will change
+  > depending on the current STRUcture, MODE, and TYPE of the data
+  > connection or of a data connection that would be created were one
+  > created now.  Thus, the result of the SIZE command is dependent on
+  > the currently established STRU, MODE, and TYPE parameters.
+  >
+  > The SIZE command returns how many octets would be transferred if the
+  > file were to be transferred using the current transfer structure,
+  > mode, and type.  This command is normally used in conjunction with
+  > the RESTART (REST) command when STORing a file to a remote server in
+  > STREAM mode, to determine the restart point.  The server-PI might
+  > need to read the partially transferred file, do any appropriate
+  > conversion, and count the number of octets that would be generated
+  > when sending the file in order to correctly respond to this command.
+  > Estimates of the file transfer size MUST NOT be returned; only
+  > precise information is acceptable.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_content_info/2`"])}
+
+  #{ExFTP.Doc.resources(nil, "section-4")}
+
+  <!-- tabs-close -->
+  """
   def size(%{
         storage_connector: connector,
         path: path,
         socket: socket,
         connector_state: connector_state
-      }) do
+      } = _server_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content_info(w_path, connector_state)
     |> case do
-      {:ok, %{size: size}} -> :ok = send_resp(@file_status_ok, "#{size}", socket)
-      _ -> :ok = send_resp(@file_action_not_taken, "Could not get file size.", socket)
+      {:ok, %{size: size}} -> send_resp(@file_status_ok, "#{size}", socket)
+      _ -> send_resp(@file_action_not_taken, "Could not get file size.", socket)
     end
 
     connector_state
   end
 
+  @doc """
+  Responds to FTP's `STOR` command
+
+  > #### RFC 959: STORE (STOR) {: .tip}
+  > This command causes the server-DTP to accept the data
+  > transferred via the data connection and to store the data as
+  > a file at the server site.  If the file specified in the
+  > pathname exists at the server site, then its contents shall
+  > be replaced by the data being transferred.  A new file is
+  > created at the server site if the file specified in the
+  > pathname does not already exist.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **pasv** :: `t:pasv_socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_content/2`"])}
+
+  #{ExFTP.Doc.resources("page-30")}
+
+  <!-- tabs-close -->
+  """
   def stor(%{
         storage_connector: connector,
         path: path,
         socket: socket,
         pasv: pasv,
         connector_state: connector_state
-      }) do
+      } = _server_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.open_write_stream(w_path, connector_state)
     |> case do
       {:ok, stream} ->
-        :ok = send_resp(@opening_data_connection, "Ok to send data.", socket)
+        send_resp(@opening_data_connection, "Ok to send data.", socket)
 
         PassiveSocket.read(
           pasv,
@@ -277,9 +563,9 @@ defmodule ExFTP.Storage.Common do
                 chunk_stream(stream, opts)
                 |> Enum.into(fs)
 
-              :ok = send_resp(@closing_connection_success, "Transfer Complete.", socket)
+              send_resp(@closing_connection_success, "Transfer Complete.", socket)
             rescue
-              _ -> :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
+              _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
             after
               connector.close_write_stream(fs, connector_state)
             end
@@ -289,7 +575,7 @@ defmodule ExFTP.Storage.Common do
         )
 
       _ ->
-        :ok = send_resp(@file_action_aborted, "Failed to transfer.", socket)
+        send_resp(@file_action_aborted, "Failed to transfer.", socket)
     end
 
     connector_state
@@ -354,7 +640,7 @@ defmodule ExFTP.Storage.Common do
     end
   end
 
-  def chunk_stream(stream, opts \\ []) do
+  defp chunk_stream(stream, opts) do
     opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
 
     Stream.chunk_while(
