@@ -124,7 +124,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -148,7 +148,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -200,7 +200,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, [%{...}, ...]}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, [%{...}, ...]}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -224,7 +224,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, %{...}}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, %{...}}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -248,7 +248,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, data}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, data}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -286,7 +286,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, stream}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, stream}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
@@ -314,7 +314,7 @@ defmodule ExFTP.StorageConnector do
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, _}", failure: "{:err, err}")}
+  #{ExFTP.Doc.returns(success: "{:ok, _}", failure: "{:error, err}")}
 
   ### 💻 Examples
 
