@@ -37,7 +37,11 @@ defmodule Ftp2Cloud.MixProject do
   end
 
   defp groups_for_modules do
-    []
+    [
+      Auth: [ExFTP.Authenticator, ExFTP.Auth.PassthroughAuth],
+      Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
+      Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
+    ]
   end
 
   def package do

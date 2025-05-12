@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Storage.FileConnector do
   @moduledoc """
   An implementation of `ExFTP.StorageConnector` which serves content from local file storage.

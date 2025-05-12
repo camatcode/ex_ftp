@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Storage.Common do
   @moduledoc """
   A module covering the low-level FTP responses
@@ -203,12 +204,14 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def rmd(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        connector_state: connector_state
-      }) do
+  def rmd(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     wd = connector.get_working_directory(connector_state)
     rm_d = change_prefix(wd, path)
 
@@ -495,12 +498,14 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def size(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        connector_state: connector_state
-      } = _server_state) do
+  def size(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.get_content_info(w_path, connector_state)
@@ -539,13 +544,15 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def stor(%{
-        storage_connector: connector,
-        path: path,
-        socket: socket,
-        pasv: pasv,
-        connector_state: connector_state
-      } = _server_state) do
+  def stor(
+        %{
+          storage_connector: connector,
+          path: path,
+          socket: socket,
+          pasv: pasv,
+          connector_state: connector_state
+        } = _server_state
+      ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     connector.open_write_stream(w_path, connector_state)

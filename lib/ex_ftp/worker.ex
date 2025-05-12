@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Worker do
   @moduledoc """
   A module defining a `GenServer` which serves the FTP interface
