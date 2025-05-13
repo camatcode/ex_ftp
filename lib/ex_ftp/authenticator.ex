@@ -7,7 +7,7 @@ defmodule ExFTP.Authenticator do
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.PassthroughAuth`", "`ExFTP.Auth.NoAuth`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth`", "`ExFTP.Auth.PassthroughAuth`", "`ExFTP.Auth.NoAuth`"])}
 
   #{ExFTP.Doc.resources("section-4")}
 
