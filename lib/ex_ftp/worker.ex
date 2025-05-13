@@ -343,8 +343,46 @@ defmodule ExFTP.Worker do
     end
   end
 
-  defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: auth_state}) do
+  defp authenticate(auth, auth_state) do
     if auth.authenticated?(auth_state) do
+      :ok
+    end
+  end
+
+  defp get_auth_ttl do
+    Application.get_env(:ex_ftp, :authenticator_config, %{})[:authenticated_ttl_ms] ||
+      24 * 60 * 60 * 60 * 1000
+  end
+
+  defp check_auth(%{
+         socket: socket,
+         authenticator: auth,
+         authenticator_state: %{username: username} = auth_state
+       })
+       when not is_nil(username) do
+    Cachex.get_and_update(:auth_cache, username, fn
+      nil ->
+        authenticate(auth, auth_state)
+        |> case do
+          :ok -> {:commit, :ok, expire: get_auth_ttl()}
+          _ -> {:ignore, nil}
+        end
+
+      val ->
+        {:ignore, val}
+    end)
+    |> case do
+      {_, nil} ->
+        send_resp(530, "Not logged in.", socket)
+        :err
+
+      {_, _} ->
+        :ok
+    end
+  end
+
+  defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: auth_state}) do
+    if :ok == authenticate(auth, auth_state) do
       :ok
     else
       send_resp(530, "Not logged in.", socket)

@@ -1,4 +1,4 @@
-defmodule ExFTP.Auth.PassthroughAuthTest do
+defmodule ExFTP.Auth.NoAuthTest do
   @moduledoc false
 
   use ExUnit.Case

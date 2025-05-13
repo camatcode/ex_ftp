@@ -86,7 +86,8 @@ defmodule Ftp2Cloud.MixProject do
       {:poison, "~> 5.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.7"},
-      {:configparser_ex, "~> 4.0"}
+      {:configparser_ex, "~> 4.0"},
+      {:cachex, "~> 4.0"}
     ]
   end
 end
