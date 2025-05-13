@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-defmodule ExFTP.Auth.WebhookAuth do
+defmodule ExFTP.Auth.BearerAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which will call out to an HTTP endpoint to determine access
+  An implementation of `ExFTP.Authenticator` which will call out to an endpoint with a Bearer token to determine access
 
-  This route at minimum, assumes there exists an HTTP endpoint that when called with `username` and `password_hash`
-  as query parameters will respond status *200* on a valid parameters and any other status on an invalid login.
+  This route at minimum, assumes there exists an HTTP endpoint that when called with "authorization" : "Bearer {provided_bearer}"
+    in the headers that it will respond HTTP *200* if successful; any other response is considered a bad login.
 
-  Additionally, this authenticator can be set up to reach out to another endpoint that when called with a `username`
-  query parameter will respond status *200* if the user is still considered authenticated, and any other status if
-  the user should not be considered authenticated.
+  Additionally, this authenticator can be set up to reach out to another endpoint that when called with a Bearer token
+   in the headers will respond status *200* if the user is still considered authenticated, and any other status if
+   the user should not be considered authenticated.
 
   Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
   a user.
@@ -19,19 +19,18 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   *Keys*
 
-  * **authenticator**  == `ExFTP.Auth.WebhookAuth`
-  * **authenticator_config** :: `t:ExFTP.Auth.WebhookAuthConfig.t/0`
+  * **authenticator**  == `ExFTP.Auth.BearerAuth`
+  * **authenticator_config** :: `t:ExFTP.Auth.BearerAuthConfig.t/0`
 
   *Example*
 
   ```elixir
     %{
-      authenticator: ExFTP.Auth.WebhookAuth,
+      authenticator: ExFTP.Auth.BearerAuth,
       authenticator_config: %{
-        login_url: "https://httpbin.dev/status/200",
+        login_url: "https://httpbin.dev/bearer",
         login_method: :post,
-        password_hash_type: :sha256,
-        authenticated_url: "https://httpbin.dev/status/200",
+        authenticated_url: "https://httpbin.dev/bearer",
         authenticated_method: :post,
         authenticated_ttl_ms: 1000 * 60
       }
@@ -47,8 +46,9 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   import ExFTP.Auth.Common
 
+  alias ExFTP.Auth.BearerAuthConfig
+  alias ExFTP.Auth.WebhookAuth
   alias ExFTP.Authenticator
-  alias ExFTP.Auth.WebhookAuthConfig
   @behaviour Authenticator
 
   @doc """
@@ -56,11 +56,11 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   > #### No performance benefit {: .tip}
   > This method is normally used to short-circuit login requests.
-  > The performance gain in that short-circuit is negligible for webhooks, so it's not used.
+  > The performance gain in that short-circuit is negligible for this authenticator, so it's not used.
   """
   @impl Authenticator
-  @spec valid_user?(username :: Authenticator.username()) :: boolean
-  def valid_user?(_username), do: true
+  @spec valid_user?(username :: ExFTP.Authenticator.username()) :: boolean
+  def valid_user?(username), do: WebhookAuth.valid_user?(username)
 
   @doc """
   Requests a login using a callback.
@@ -74,23 +74,21 @@ defmodule ExFTP.Auth.WebhookAuth do
   ### 🧑‍🍳 Workflow
 
    * Reads the `authenticator_config`.
-   * Receives a password from the client (a `:username` key might exist in the **authenticator_state**)
-   * Hashes the password
-   * Calls the `login_url` (e.g `http://httpbin.dev/get?username={username}&password_hash={password_hash}`)
+   * Receives a bearer token from the client
+   * Calls the `login_url` with the proper bearer token headers (e.g `http://httpbin.dev/bearer`)
    * If the response is HTTP 200, success. Otherwise, bad login.
 
   #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
   ### 💻 Examples
 
-      iex> alias ExFTP.Auth.WebhookAuth
-      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      iex> alias ExFTP.Auth.BearerAuth
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
       iex> Application.put_env(:ex_ftp, :authenticator_config, %{
-      iex>  login_url: "https://httpbin.dev/status/200",
-      iex>  login_method: :post,
-      iex>  password_hash_type: :sha256
+      iex>  login_url: "https://httpbin.dev/bearer",
+      iex>  login_method: :post
       iex> })
-      iex> {:ok, _} = WebhookAuth.login("password123", %{username: "jsmith"})
+      iex> {:ok, _} = BearerAuth.login("my.bearer.token" , %{})
 
 
   ### ⚠️ Reminders
@@ -109,12 +107,12 @@ defmodule ExFTP.Auth.WebhookAuth do
   """
   @impl Authenticator
   @spec login(
-          password :: Authenticator.password(),
+          provided_token :: Authenticator.password(),
           authenticator_state :: Authenticator.authenticator_state()
         ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
-  def login(password, authenticator_state) do
-    with {:ok, config} <- validate_config(WebhookAuthConfig) do
-      check_login(password, config, authenticator_state)
+  def login(provided_token, authenticator_state) do
+    with {:ok, config} <- validate_config(BearerAuthConfig) do
+      check_login(provided_token, config, authenticator_state)
     end
   end
 
@@ -130,7 +128,7 @@ defmodule ExFTP.Auth.WebhookAuth do
 
    * Reads the `authenticator_config`.
    * If the config has `authenticated_url`,
-     * Calls it (e.g `http://httpbin.dev/get?username={username}`)
+     * Calls it with a bearer token provided by the user in the headers (e.g `http://httpbin.dev/bearer`)
      * If the response is HTTP 200, success. Otherwise, no longer authenticated.
    * If the config does not have `authenticated_url`,
      * investigate the **authenticator_state** for `authenticated: true`
@@ -139,25 +137,26 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   ### 💻 Examples
 
-      iex> alias ExFTP.Auth.WebhookAuth
-      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      iex> alias ExFTP.Auth.BearerAuth
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
       iex> Application.put_env(:ex_ftp, :authenticator_config, %{
-      iex>  login_url: "https://httpbin.dev/status/200",
-      iex>  authenticated_url: "https://httpbin.dev/get",
+      iex>  login_url: "https://httpbin.dev/bearer",
+      iex>  authenticated_url: "https://httpbin.dev/bearer",
       iex>  authenticated_method: :get,
       iex> })
-      iex> WebhookAuth.authenticated?(%{username: "jsmith"})
+      iex> BearerAuth.authenticated?(%{bearer_token: "my.bearer.token"})
       true
 
-  #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.WebhookAuthConfig.authenticated_url/0`", "`t:ExFTP.Auth.WebhookAuthConfig.authenticated_method/0`"])}
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.BearerAuthConfig.authenticated_url/0`", "`t:ExFTP.Auth.BearerAuthConfig.authenticated_method/0`"])}
 
   #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
   @impl Authenticator
+  @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
-    with {:ok, config} <- validate_config(WebhookAuthConfig) do
+    with {:ok, config} <- validate_config(BearerAuthConfig) do
       check_authentication(config, authenticator_state)
     end
     |> case do
@@ -167,19 +166,16 @@ defmodule ExFTP.Auth.WebhookAuth do
   end
 
   defp check_login(
-         password,
-         %{login_url: url, login_method: http_method} = config,
+         provided_token,
+         %{login_url: url, login_method: http_method} = _config,
          authenticator_state
        ) do
-    params =
-      if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
+    headers = [{"authorization", "Bearer #{provided_token}"}]
 
-    params = params ++ [password_hash: hash_password(password, config)]
-
-    Req.request(url: url, method: http_method, redirect: true, params: params)
+    Req.request(url: url, method: http_method, redirect: true, headers: headers)
     |> case do
       {:ok, %{status: 200}} ->
-        {:ok, authenticator_state}
+        {:ok, Map.put(authenticator_state, :bearer_token, provided_token)}
 
       _ ->
         {:error, "Did not get a 200 response"}
@@ -193,18 +189,14 @@ defmodule ExFTP.Auth.WebhookAuth do
     {:ok, authenticator_state}
   end
 
-  defp check_authentication(%{authenticated_url: nil} = _config, _authenticator_state) do
-    {:error, "Not Authenticated"}
-  end
-
   defp check_authentication(
          %{authenticated_url: url, authenticated_method: http_method} = _config,
-         authenticator_state
-       ) do
-    params =
-      if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
+         %{bearer_token: bearer_token} = authenticator_state
+       )
+       when not is_nil(url) and not is_nil(bearer_token) do
+    headers = [{"authorization", "Bearer #{bearer_token}"}]
 
-    Req.request(url: url, method: http_method, redirect: true, params: params)
+    Req.request(url: url, method: http_method, redirect: true, headers: headers)
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, authenticator_state}
@@ -214,8 +206,8 @@ defmodule ExFTP.Auth.WebhookAuth do
     end
   end
 
-  defp hash_password(password, %{password_hash_type: password_hash_type}) do
-    :crypto.hash(password_hash_type, password)
-    |> Base.encode16(case: :lower)
+  defp check_authentication(_config, authenticator_state) do
+    IO.inspect(authenticator_state, label: :state)
+    {:error, "Not Authenticated"}
   end
 end

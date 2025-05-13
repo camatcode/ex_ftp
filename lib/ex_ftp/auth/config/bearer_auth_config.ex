@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-defmodule ExFTP.Auth.WebhookAuthConfig do
+defmodule ExFTP.Auth.BearerAuthConfig do
   @moduledoc """
-  A module describing the **authenticator_config** value for `ExFTP.Auth.WebhookAuth`
+  A module describing the **authenticator_config** value for `ExFTP.Auth.BearerAuth`
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth`", "`ExFTP.Authenticator`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth`", "`ExFTP.Authenticator`"])}
 
   #{ExFTP.Doc.resources()}
 
@@ -13,7 +13,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
   """
   import ExFTP.Auth.Common
 
-  alias ExFTP.Auth.WebhookAuthConfig
+  alias ExFTP.Auth.BearerAuthConfig
 
   @typedoc """
   The **authenticator_config** value for `ExFTP.Auth.WebhookAuth`
@@ -31,21 +31,20 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
   """
-  @type t() :: %WebhookAuthConfig{
+  @type t() :: %BearerAuthConfig{
           authenticated_ttl_ms: authenticated_ttl_ms(),
           login_url: login_url(),
           login_method: login_method(),
           authenticated_url: authenticated_url() | nil,
-          authenticated_method: authenticated_method(),
-          password_hash_type: password_hash_type()
+          authenticated_method: authenticated_method()
         }
 
   @typedoc """
-  A URL used by `ExFTP.Auth.WebhookAuth.authenticated?/1` to check if a user should still be considered authenticated
+  A URL used by `ExFTP.Auth.BearerAuth.authenticated?/1` to check if a user should still be considered authenticated
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.authenticated?/1`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.authenticated?/1`"])}
 
   <!-- tabs-close -->
   """
@@ -56,7 +55,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.authenticated?/1`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.authenticated?/1`"])}
 
   <!-- tabs-close -->
   """
@@ -67,31 +66,18 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.authenticated?/1`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.authenticated?/1`"])}
 
   <!-- tabs-close -->
   """
   @type authenticated_ttl_ms :: integer()
 
   @typedoc """
-  A hash algorithm to use on the password supplied by the client.
-
-  Used by `ExFTP.Auth.WebhookAuth.login/2`
+  A URL used by `ExFTP.Auth.BearerAuth.login/2` to log in a user
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.login/2`"])}
-
-  <!-- tabs-close -->
-  """
-  @type password_hash_type :: :crypto.hash_algorithm()
-
-  @typedoc """
-  A URL used by `ExFTP.Auth.WebhookAuth.login/2` to log in a user
-
-  <!-- tabs-open -->
-
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.login/2`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.login/2`"])}
 
   <!-- tabs-close -->
   """
@@ -102,7 +88,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.login/2`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.login/2`"])}
 
   <!-- tabs-close -->
   """
@@ -113,7 +99,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.authenticated?/1`", "`ExFTP.Auth.WebhookAuth.login/2`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BearerAuth.authenticated?/1`", "`ExFTP.Auth.BearerAuth.login/2`"])}
 
   <!-- tabs-close -->
   """
@@ -127,8 +113,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
     :authenticated_url,
     :authenticated_ttl_ms,
     login_method: :get,
-    authenticated_method: :get,
-    password_hash_type: :sha256
+    authenticated_method: :get
   ]
 
   def build(m) do
@@ -136,6 +121,6 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
       m
       |> prepare()
 
-    struct(ExFTP.Auth.WebhookAuthConfig, fields)
+    struct(ExFTP.Auth.BearerAuthConfig, fields)
   end
 end

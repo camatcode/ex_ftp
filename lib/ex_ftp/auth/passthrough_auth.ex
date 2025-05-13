@@ -39,7 +39,6 @@ defmodule ExFTP.Auth.PassthroughAuth do
   alias ExFTP.Authenticator
   @behaviour Authenticator
 
-  @impl Authenticator
   @doc """
   Returns `true` if **username** is anything except `"root"`
 
@@ -69,10 +68,10 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   <!-- tabs-close -->
   """
+  @impl Authenticator
   @spec valid_user?(username :: ExFTP.Authenticator.username()) :: boolean
   def valid_user?(username), do: not_root?(username)
 
-  @impl Authenticator
   @doc """
   Login will respond `{:ok, unmodified_auth_state}` to anyone but `username: "root"`
 
@@ -104,6 +103,7 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   <!-- tabs-close -->
   """
+  @impl Authenticator
   @spec login(
           password :: ExFTP.Authenticator.password(),
           authenticator_state :: ExFTP.Authenticator.authenticator_state()
@@ -114,7 +114,6 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   def login(_password, _), do: {:error, %{}}
 
-  @impl Authenticator
   @doc """
   Assumes the user is still authenticated as long as `authenticated: true`
     still exists in the **authenticator_state**.
@@ -138,6 +137,8 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   <!-- tabs-close -->
   """
+  @impl Authenticator
+  @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(%{authenticated: authenticated} = _authenticator_state), do: authenticated
   def authenticated?(_authenticator_state), do: false
 
