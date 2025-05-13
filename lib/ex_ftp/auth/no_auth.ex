@@ -32,7 +32,6 @@ defmodule ExFTP.Auth.NoAuth do
   alias ExFTP.Authenticator
   @behaviour Authenticator
 
-  @impl Authenticator
   @doc """
   Always returns true
 
@@ -55,10 +54,10 @@ defmodule ExFTP.Auth.NoAuth do
 
   <!-- tabs-close -->
   """
-  @spec valid_user?(username :: ExFTP.Authenticator.username()) :: boolean
+  @impl Authenticator
+  @spec valid_user?(username :: Authenticator.username()) :: boolean
   def valid_user?(_username), do: true
 
-  @impl Authenticator
   @doc """
   Login will always succeed.
 
@@ -81,14 +80,14 @@ defmodule ExFTP.Auth.NoAuth do
 
   <!-- tabs-close -->
   """
+  @impl Authenticator
   @spec login(
-          password :: ExFTP.Authenticator.password(),
-          authenticator_state :: ExFTP.Authenticator.authenticator_state()
-        ) :: {:ok, ExFTP.Authenticator.authenticator_state()} | {:error, term()}
+          password :: Authenticator.password(),
+          authenticator_state :: Authenticator.authenticator_state()
+        ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
   def login(_password, authenticator_state),
     do: {:ok, authenticator_state}
 
-  @impl Authenticator
   @doc """
   Assumes the user is always authenticated
 
@@ -111,5 +110,7 @@ defmodule ExFTP.Auth.NoAuth do
 
   <!-- tabs-close -->
   """
+  @impl Authenticator
+  @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(_authenticator_state), do: true
 end

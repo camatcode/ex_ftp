@@ -51,7 +51,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
         authenticated_method: :get
       })
 
-      assert  WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
+      assert WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
@@ -69,7 +69,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
         login_method: :get
       })
 
-      assert  WebhookAuth.authenticated?(%{authenticated: true})
+      assert WebhookAuth.authenticated?(%{authenticated: true})
     end
 
     test "enforcing ttl" do

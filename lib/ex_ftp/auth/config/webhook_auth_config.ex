@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.WebhookAuthConfig do
   @moduledoc """
   A module describing the **authenticator_config** value for `ExFTP.Auth.WebhookAuth`

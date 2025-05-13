@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.WebhookAuth do
   @moduledoc """
   An implementation of `ExFTP.Authenticator` which will call out to an HTTP endpoint to determine access
@@ -15,8 +16,27 @@ defmodule ExFTP.Auth.WebhookAuth do
   <!-- tabs-open -->
 
   ### ⚙️ Configuration
+
+  *Keys*
+
   * **authenticator**  == `ExFTP.Auth.WebhookAuth`
   * **authenticator_config** :: `t:ExFTP.Auth.WebhookAuthConfig.t/0`
+
+  *Example*
+
+  ```elixir
+    %{
+      authenticator: ExFTP.Auth.WebhookAuth,
+      authenticator_config: %{
+        login_url: "https://httpbin.dev/status/200",
+        login_method: :post,
+        password_hash_type: :sha256,
+        authenticated_url: "https://httpbin.dev/status/200",
+        authenticated_method: :post,
+        authenticated_ttl_ms: 1000 * 60
+      }
+    }
+  ```
 
   #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
 
