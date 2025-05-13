@@ -38,7 +38,12 @@ defmodule Ftp2Cloud.MixProject do
 
   defp groups_for_modules do
     [
-      Auth: [ExFTP.Authenticator, ExFTP.Auth.PassthroughAuth],
+      Auth: [
+        ExFTP.Authenticator,
+        ExFTP.Auth.PassthroughAuth,
+        ExFTP.Auth.NoAuth,
+        ExFTP.Auth.WebhookAuth
+      ],
       Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
     ]
@@ -86,7 +91,8 @@ defmodule Ftp2Cloud.MixProject do
       {:poison, "~> 5.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.7"},
-      {:configparser_ex, "~> 4.0"}
+      {:configparser_ex, "~> 4.0"},
+      {:cachex, "~> 4.0"}
     ]
   end
 end

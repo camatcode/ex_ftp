@@ -3,11 +3,24 @@ defmodule ExFTP.Auth.NoAuth do
   @moduledoc """
   An implementation of `ExFTP.Authenticator` which allows anyone, with or without a username or password
 
+  <!-- tabs-open -->
+
+  ### ⚙️ Configuration
+
+  > #### Elixir {: .info}
+  > `NoAuth` only requires `authenticator` to be set to `ExFTP.Auth.NoAuth`
+  >
+  > ```elixir
+  >     config :ex_ftp,
+  >       ....
+  >       authenticator: ExFTP.Auth.NoAuth,
+  >       ....
+  > ```
+
+  ### ⚠️ Reminders
   > #### 🔒 Security {: .tip}
   >
   > `NoAuth` is not recommended for publicly facing deployment servers
-
-  <!-- tabs-open -->
 
   #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
 
@@ -15,6 +28,7 @@ defmodule ExFTP.Auth.NoAuth do
 
   <!-- tabs-close -->
   """
+
   alias ExFTP.Authenticator
   @behaviour Authenticator
 

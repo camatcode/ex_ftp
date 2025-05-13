@@ -9,6 +9,7 @@ defmodule ExFTP.Application do
     port = Application.get_env(:ex_ftp, :ftp_port)
 
     children = [
+      {Cachex, [:auth_cache]},
       {DynamicSupervisor, name: ExFTP.WorkerSupervisor, strategy: :one_for_one},
       {ExFTP.Server, port: port}
     ]

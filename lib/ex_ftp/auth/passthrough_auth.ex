@@ -5,6 +5,18 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   <!-- tabs-open -->
 
+  ### ⚙️ Configuration
+
+  > #### Elixir {: .info}
+  > `NoAuth` only requires `authenticator` to be set to `ExFTP.Auth.PassthroughAuth`
+  >
+  > ```elixir
+  >     config :ex_ftp,
+  >       ....
+  >       authenticator: ExFTP.Auth.PassthroughAuth,
+  >       ....
+  > ```
+
   ### ⚠️ Reminders
   > #### Authenticator State {: .tip}
   >
