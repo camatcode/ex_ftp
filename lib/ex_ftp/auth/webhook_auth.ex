@@ -6,45 +6,17 @@ defmodule ExFTP.Auth.WebhookAuth do
   as query parameters will respond status *200* on a valid parameters and any other status on an invalid login.
 
   Additionally, this authenticator can be set up to reach out to another endpoint that when called with a `username`
-  as query parameters will respond status *200* if the user is still considered authenticated, and any other status if
+  query parameter will respond status *200* if the user is still considered authenticated, and any other status if
   the user should not be considered authenticated.
 
-  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth from a user.
+  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
+  a user.
 
   <!-- tabs-open -->
 
   ### ⚙️ Configuration
-
-  > #### Elixir {: .info}
-  > This authenticator has several options to consider.
-  >
-  > ```elixir
-  >     config :ex_ftp,
-  >       ....
-  >       authenticator: ExFTP.Auth.WebhookAuth,
-  >       authenticator_config: %{
-  >         login_url: "https://httpbin.org/get",
-  >         login_method: :get,
-  >         authenticated_url: "https://httpbin.org/post",
-  >         authenticated_method: :post,
-  >         authenticated_ttl_ms: 24 * 60 * 60 * 1000
-  >       },
-  >       ....
-  > ```
-  > ##### Required
-  > * **authenticator** set to `ExFTP.Auth.WebhookAuth`.
-  > * **authenticator_config** to exist.
-  > * authenticator_config**.login_url** - the HTTP endpoint that will get called on a login attempt.
-  > ##### Optional
-  > * authenticator_config**.login_method** - the HTTP method that gets paired with the `login_url`
-  > (e.g `:get` (default) or `:post`, etc.)
-  > * authenticator_config**.authenticated_url** - the HTTP endpoint that will get called when the server
-  > wants to ensure the session is still authenticated. If not defined, this authenticator tracks `authenticated: true` in
-  > the **authenticator_state**
-  > * authenticator_config**.authenticated_method** - the HTTP method that gets paired with the `authenticated_url`
-  > (e.g `:get` (default) or `:post`, etc.)
-  > * authenticator_config**.authenticated_ttl_ms** - How many milliseconds pass before the server will recheck that
-  > a user is still authenticated within a single session (default: 1 day)
+  * **authenticator**  == `ExFTP.Auth.WebhookAuth`
+  * **authenticator_config** :: `t:ExFTP.Auth.WebhookAuthConfig.t/0`
 
   #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
 
@@ -56,49 +28,174 @@ defmodule ExFTP.Auth.WebhookAuth do
   import ExFTP.Auth.Common
 
   alias ExFTP.Authenticator
+  alias ExFTP.Auth.WebhookAuthConfig
   @behaviour Authenticator
 
+  @doc """
+  Always returns `true`.
+
+  > #### No performance benefit {: .tip}
+  > This method is normally used to short-circuit login requests.
+  > The performance gain in that short-circuit is negligible for webhooks, so it's not used.
+  """
   @impl Authenticator
   @spec valid_user?(username :: Authenticator.username()) :: boolean
   def valid_user?(_username), do: true
 
+  @doc """
+  Requests a login using a callback.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **password** :: `t:ExFTP.Authenticator.password/0`
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  ### 🧑‍🍳 Workflow
+
+   * Reads the `authenticator_config`.
+   * Receives a password from the client (a `:username` key might exist in the **authenticator_state**)
+   * Hashes the password
+   * Calls the `login_url` (e.g `http://httpbin.dev/get?username={username}&password_hash={password_hash}`)
+   * If the response is HTTP 200, success. Otherwise, bad login.
+
+  #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.WebhookAuth
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      iex> Application.put_env(:ex_ftp, :authenticator_config, %{
+      iex>  login_url: "https://httpbin.dev/status/200",
+      iex>  login_method: :post,
+      iex>  password_hash_type: :sha256
+      iex> })
+      iex> {:ok, _} = WebhookAuth.login("password123", %{username: "jsmith"})
+
+
+  ### ⚠️ Reminders
+  > #### Authenticator State {: .tip}
+  >
+  > The `t:ExFTP.Authenticator.authenticator_state/0` will contain a `:username` key, if one was provided.
+  >
+  > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
+  > See `authenticated?/1` for more information.
+
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.WebhookAuthConfig.login_url/0`", "`t:ExFTP.Auth.WebhookAuthConfig.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
+  """
   @impl Authenticator
   @spec login(
           password :: Authenticator.password(),
           authenticator_state :: Authenticator.authenticator_state()
         ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
-  def login(_password, authenticator_state) do
-    with {:ok, config} <- get_authenticator_config(),
-         {:ok, url} <- get_key(config, :login_url) do
-      http_method = config[:login_method] || :get
-
-      Req.request(url: url, method: http_method, redirect: true)
-      |> case do
-        {:ok, %{status: 200}} -> {:ok, authenticator_state}
-        _ -> {:error, "Did not get a 200 response"}
-      end
+  def login(password, authenticator_state) do
+    with {:ok, config} <- validate_config(WebhookAuthConfig) do
+      check_login(password, config, authenticator_state)
     end
   end
 
+  @doc """
+  Determines whether this session is still considered authenticated
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  ### 🧑‍🍳 Workflow
+
+   * Reads the `authenticator_config`.
+   * If the config has `authenticated_url`,
+     * Calls it (e.g `http://httpbin.dev/get?username={username}`)
+     * If the response is HTTP 200, success. Otherwise, no longer authenticated.
+   * If the config does not have `authenticated_url`,
+     * investigate the **authenticator_state** for `authenticated: true`
+
+  #{ExFTP.Doc.returns(success: "`true` or `false`")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.WebhookAuth
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      iex> Application.put_env(:ex_ftp, :authenticator_config, %{
+      iex>  login_url: "https://httpbin.dev/status/200",
+      iex>  authenticated_url: "https://httpbin.dev/get",
+      iex>  authenticated_method: :get,
+      iex> })
+      iex> WebhookAuth.authenticated?(%{username: "jsmith"})
+      true
+
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.WebhookAuthConfig.authenticated_url/0`", "`t:ExFTP.Auth.WebhookAuthConfig.authenticated_method/0`"])}
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
+  """
   @impl Authenticator
   def authenticated?(authenticator_state) do
-    with {:ok, config} <- get_authenticator_config() do
-      url = config[:authenticated_url]
-      http_method = config[:authenticated_method] || :get
-
-      if url do
-        Req.request(url: url, method: http_method, redirect: true)
-        |> case do
-          {:ok, %{status: 200}} -> {:ok, authenticator_state}
-          _ -> {:error, "Did not get a 200 response"}
-        end
-      else
-        if authenticator_state[:authenticated] do
-          {:ok, authenticator_state}
-        else
-          {:error, "Not authenticated"}
-        end
-      end
+    with {:ok, config} <- validate_config(WebhookAuthConfig) do
+      check_authentication(config, authenticator_state)
     end
+    |> case do
+      {:ok, _} -> true
+      _ -> false
+    end
+  end
+
+  defp check_login(
+         password,
+         %{login_url: url, login_method: http_method} = config,
+         authenticator_state
+       ) do
+    params =
+      if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
+
+    params = params ++ [password_hash: hash_password(password, config)]
+
+    Req.request(url: url, method: http_method, redirect: true, params: params)
+    |> case do
+      {:ok, %{status: 200}} ->
+        {:ok, authenticator_state}
+
+      _ ->
+        {:error, "Did not get a 200 response"}
+    end
+  end
+
+  defp check_authentication(
+         %{authenticated_url: nil} = _config,
+         %{authenticated: true} = authenticator_state
+       ) do
+    {:ok, authenticator_state}
+  end
+
+  defp check_authentication(%{authenticated_url: nil} = _config, _authenticator_state) do
+    {:error, "Not Authenticated"}
+  end
+
+  defp check_authentication(
+         %{authenticated_url: url, authenticated_method: http_method} = _config,
+         authenticator_state
+       ) do
+    params =
+      if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
+
+    Req.request(url: url, method: http_method, redirect: true, params: params)
+    |> case do
+      {:ok, %{status: 200}} ->
+        {:ok, authenticator_state}
+
+      _ ->
+        {:error, "Did not get a 200 response"}
+    end
+  end
+
+  defp hash_password(password, %{password_hash_type: password_hash_type}) do
+    :crypto.hash(password_hash_type, password)
+    |> Base.encode16(case: :lower)
   end
 end

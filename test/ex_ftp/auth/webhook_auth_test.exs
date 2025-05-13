@@ -17,7 +17,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
   describe "login/2" do
     test "with config defined" do
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get
       })
 
@@ -25,8 +25,9 @@ defmodule ExFTP.Auth.WebhookAuthTest do
                WebhookAuth.login(Faker.Internet.slug(), %{username: Faker.Internet.slug()})
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/status/401",
-        login_method: :post
+        login_url: "https://httpbin.dev/status/401",
+        login_method: :post,
+        password_hash_type: :sha256
       })
 
       assert {:error, _} =
@@ -44,38 +45,38 @@ defmodule ExFTP.Auth.WebhookAuthTest do
   describe "authenticated/1" do
     test "with custom authenticated route" do
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get,
-        authenticated_url: "https://httpbin.org/get",
+        authenticated_url: "https://httpbin.dev/get",
         authenticated_method: :get
       })
 
-      assert {:ok, _} = WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
+      assert  WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get,
-        authenticated_url: "https://httpbin.org/post",
+        authenticated_url: "https://httpbin.dev/post",
         authenticated_method: :get
       })
 
-      assert {:error, _} = WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
+      refute WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
     end
 
     test "without custom authenticated route" do
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get
       })
 
-      assert {:ok, _} = WebhookAuth.authenticated?(%{authenticated: true})
+      assert  WebhookAuth.authenticated?(%{authenticated: true})
     end
 
     test "enforcing ttl" do
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get,
-        authenticated_url: "https://httpbin.org/get",
+        authenticated_url: "https://httpbin.dev/get",
         authenticated_method: :get,
         authenticated_ttl_ms: 1
       })
@@ -93,9 +94,9 @@ defmodule ExFTP.Auth.WebhookAuthTest do
       assert {:ok, false} = Cachex.exists?(:auth_cache, username)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
-        login_url: "https://httpbin.org/get",
+        login_url: "https://httpbin.dev/get",
         login_method: :get,
-        authenticated_url: "https://httpbin.org/get",
+        authenticated_url: "https://httpbin.dev/get",
         authenticated_method: :get,
         authenticated_ttl_ms: 5000
       })
