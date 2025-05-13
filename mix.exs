@@ -43,7 +43,9 @@ defmodule Ftp2Cloud.MixProject do
         ExFTP.Auth.PassthroughAuth,
         ExFTP.Auth.NoAuth,
         ExFTP.Auth.WebhookAuth,
-        ExFTP.Auth.WebhookAuthConfig
+        ExFTP.Auth.WebhookAuthConfig,
+        ExFTP.Auth.BearerAuth,
+        ExFTP.Auth.BearerAuthConfig
       ],
       Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
