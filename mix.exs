@@ -42,7 +42,8 @@ defmodule Ftp2Cloud.MixProject do
         ExFTP.Authenticator,
         ExFTP.Auth.PassthroughAuth,
         ExFTP.Auth.NoAuth,
-        ExFTP.Auth.WebhookAuth
+        ExFTP.Auth.WebhookAuth,
+        ExFTP.Auth.WebhookAuthConfig
       ],
       Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
@@ -92,7 +93,8 @@ defmodule Ftp2Cloud.MixProject do
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.7"},
       {:configparser_ex, "~> 4.0"},
-      {:cachex, "~> 4.0"}
+      {:cachex, "~> 4.0"},
+      {:proper_case, "~> 1.3"}
     ]
   end
 end

@@ -31,7 +31,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:login/2`", "`c:authenticated?/1`"])}
 
-  c:#{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.resources("section-4")}
   <!-- tabs-close -->
 
   """
@@ -44,7 +44,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:valid_user?/1`"])}
 
-  c:#{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -63,7 +63,7 @@ defmodule ExFTP.Authenticator do
 
   #{ExFTP.Doc.related(["`c:login/2`"])}
 
-  c:#{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -94,7 +94,7 @@ defmodule ExFTP.Authenticator do
   >
   > The server uses this method to short-circuit auth calls.
 
-  c:#{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -127,7 +127,7 @@ defmodule ExFTP.Authenticator do
   > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
   > See `c:authenticated?/1` for more information.
 
-  c:#{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
