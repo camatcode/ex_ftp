@@ -38,15 +38,19 @@ defmodule Ftp2Cloud.MixProject do
 
   defp groups_for_modules do
     [
-      Auth: [
+      Authenticator: [
         ExFTP.Authenticator,
         ExFTP.Auth.PassthroughAuth,
         ExFTP.Auth.NoAuth,
         ExFTP.Auth.WebhookAuth,
-        ExFTP.Auth.WebhookAuthConfig,
         ExFTP.Auth.BearerAuth,
-        ExFTP.Auth.BearerAuthConfig,
         ExFTP.Auth.BasicAuth,
+        ExFTP.Auth.BasicAuthConfig
+      ],
+      "Authenticator Config": [
+        ExFTP.Auth.Common,
+        ExFTP.Auth.WebhookAuthConfig,
+        ExFTP.Auth.BearerAuthConfig,
         ExFTP.Auth.BasicAuthConfig
       ],
       Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
