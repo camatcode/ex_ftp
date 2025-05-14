@@ -63,7 +63,7 @@ defmodule ExFTP.Auth.BearerAuth do
   def valid_user?(username), do: WebhookAuth.valid_user?(username)
 
   @doc """
-  Requests a login using a callback.
+  Requests a login using a Bearer token.
 
   <!-- tabs-open -->
 
@@ -99,7 +99,7 @@ defmodule ExFTP.Auth.BearerAuth do
   > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
   > See `authenticated?/1` for more information.
 
-  #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.WebhookAuthConfig.login_url/0`", "`t:ExFTP.Auth.WebhookAuthConfig.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
 
   #{ExFTP.Doc.resources("section-4")}
 
@@ -147,7 +147,7 @@ defmodule ExFTP.Auth.BearerAuth do
       iex> BearerAuth.authenticated?(%{bearer_token: "my.bearer.token"})
       true
 
-  #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.BearerAuthConfig.authenticated_url/0`", "`t:ExFTP.Auth.BearerAuthConfig.authenticated_method/0`"])}
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
 
   #{ExFTP.Doc.resources("section-4")}
 
