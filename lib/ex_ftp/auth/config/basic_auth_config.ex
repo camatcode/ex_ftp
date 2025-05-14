@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-defmodule ExFTP.Auth.WebhookAuthConfig do
+defmodule ExFTP.Auth.BasicAuthConfig do
   @moduledoc """
-  A module describing the **authenticator_config** value for `ExFTP.Auth.WebhookAuth`
+  A module describing the **authenticator_config** value for `ExFTP.Auth.BasicAuth`
 
   <!-- tabs-open -->
 
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth`", "`ExFTP.Authenticator`"])}
+  #{ExFTP.Doc.related(["`ExFTP.Auth.BasicAuth`", "`ExFTP.Authenticator`"])}
 
   #{ExFTP.Doc.resources()}
 
@@ -13,8 +13,8 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
   """
   import ExFTP.Auth.Common
 
+  alias ExFTP.Auth.BasicAuthConfig
   alias ExFTP.Auth.Common
-  alias ExFTP.Auth.WebhookAuthConfig
 
   @typedoc """
   The **authenticator_config** value for `ExFTP.Auth.WebhookAuth`
@@ -32,27 +32,13 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-open -->
   """
-  @type t() :: %WebhookAuthConfig{
+  @type t() :: %BasicAuthConfig{
           authenticated_ttl_ms: Common.authenticated_ttl_ms(),
           login_url: Common.login_url(),
           login_method: Common.login_method(),
           authenticated_url: Common.authenticated_url() | nil,
-          authenticated_method: Common.authenticated_method(),
-          password_hash_type: password_hash_type()
+          authenticated_method: Common.authenticated_method()
         }
-
-  @typedoc """
-  A hash algorithm to use on the password supplied by the client.
-
-  Used by `ExFTP.Auth.WebhookAuth.login/2`
-
-  <!-- tabs-open -->
-
-  #{ExFTP.Doc.related(["`ExFTP.Auth.WebhookAuth.login/2`"])}
-
-  <!-- tabs-close -->
-  """
-  @type password_hash_type :: :crypto.hash_algorithm()
 
   @enforce_keys [:login_url]
 
@@ -61,8 +47,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
     :authenticated_url,
     :authenticated_ttl_ms,
     login_method: :get,
-    authenticated_method: :get,
-    password_hash_type: :sha256
+    authenticated_method: :get
   ]
 
   def build(m) do
@@ -70,6 +55,6 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
       m
       |> prepare()
 
-    struct(ExFTP.Auth.WebhookAuthConfig, fields)
+    struct(ExFTP.Auth.BearerAuthConfig, fields)
   end
 end
