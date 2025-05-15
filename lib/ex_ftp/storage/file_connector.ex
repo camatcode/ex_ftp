@@ -13,6 +13,9 @@ defmodule ExFTP.Storage.FileConnector do
   """
   @behaviour ExFTP.StorageConnector
 
+  import ExFTP.Storage.Common
+  import ExFTP.Common
+
   alias ExFTP.StorageConnector
 
   @doc """
@@ -269,70 +272,25 @@ defmodule ExFTP.Storage.FileConnector do
     File.read(path)
   end
 
-  @impl StorageConnector
-  @doc """
-  Returns a writable stream that can be sent bytes that will be written to a given path
-
-  <!-- tabs-open -->
-
-  ### 🏷️ Params
-    * **path** :: `t:ExFTP.StorageConnector.path/0`
-    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
-
-  #{ExFTP.Doc.returns(success: "{:ok, stream}", failure: "{:error, err}")}
-
-  ### 💻 Examples
-
-      iex> alias ExFTP.Storage.FileConnector
-      iex> connector_state = %{current_working_directory: "/"}
-      iex> file_to_make = File.cwd!() |> Path.join("my_new_file")
-      iex> {:ok, stream} = FileConnector.open_write_stream(file_to_make, connector_state)
-      iex> ["hello"] |> Enum.into(stream)
-      iex> {:ok, _} = FileConnector.close_write_stream(stream, connector_state)
-      iex> _ = File.rm(file_to_make)
-
-  #{ExFTP.Doc.related(["`t:ExFTP.StorageConnector.stream/0`", "`c:ExFTP.StorageConnector.open_write_stream/2`", "`close_write_stream/2`"])}
-
-  #{ExFTP.Doc.resources()}
-
-  <!-- tabs-close -->
-  """
-  def open_write_stream(path, _connector_state) do
-    {:ok, File.stream!(path)}
-  end
+  @file_action_aborted 552
+  @closing_connection_success 226
 
   @impl StorageConnector
-  @doc """
-  Notification that the stream is finished writing and may be released and closed.
+  def get_write_func(path, socket, _connector_state, _opts \\ []) do
+    fn stream, opts ->
+      fs = File.stream!(path)
 
-  <!-- tabs-open -->
+      try do
+        chunk_stream(stream, opts)
+        |> Enum.into(fs)
 
-  ### 🏷️ Params
-    * **path** :: `t:ExFTP.StorageConnector.path/0`
-    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
-
-  #{ExFTP.Doc.returns(success: "{:ok, _anything}", failure: "{:error, err}")}
-
-  ### 💻 Examples
-
-  ### 💻 Examples
-
-      iex> alias ExFTP.Storage.FileConnector
-      iex> connector_state = %{current_working_directory: "/"}
-      iex> file_to_make = File.cwd!() |> Path.join("my_new_file")
-      iex> {:ok, stream} = FileConnector.open_write_stream(file_to_make, connector_state)
-      iex> ["hello"] |> Enum.into(stream)
-      iex> {:ok, _} = FileConnector.close_write_stream(stream, connector_state)
-      iex> _ = File.rm(file_to_make)
-
-  #{ExFTP.Doc.related(["`t:ExFTP.StorageConnector.stream/0`", "`c:ExFTP.StorageConnector.close_write_stream/2`", "`open_write_stream/2`"])}
-
-  #{ExFTP.Doc.resources()}
-
-  <!-- tabs-close -->
-  """
-  def close_write_stream(_stream, _connector_state) do
-    {:ok, nil}
+        send_resp(@closing_connection_success, "Transfer Complete.", socket)
+      rescue
+        _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
+      after
+        nil
+      end
+    end
   end
 
   defp rmrf_dir("/"), do: {:ok, nil}

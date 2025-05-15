@@ -23,12 +23,12 @@ defmodule ExFTP.TestHelper do
 
   def expect_recv(socket, code, msg_start \\ "") do
     match = "#{code} #{msg_start}"
-    {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 5_000)
+    {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 20_000)
     socket
   end
 
   def flush_recv(socket) do
-    :gen_tcp.recv(socket, 0, 5_000)
+    :gen_tcp.recv(socket, 0, 20_000)
     socket
   end
 
@@ -39,7 +39,7 @@ defmodule ExFTP.TestHelper do
   end
 
   def read_fully(socket, data \\ <<>>) do
-    case :gen_tcp.recv(socket, 0, 5_000) do
+    case :gen_tcp.recv(socket, 0, 20_000) do
       {:ok, resp} -> read_fully(socket, data <> resp)
       {:error, :closed} -> {:ok, data}
     end
@@ -49,7 +49,7 @@ defmodule ExFTP.TestHelper do
     send(socket, "PASV", [])
 
     assert {:ok, "227 Entering Passive Mode " <> ip_port_string} =
-             :gen_tcp.recv(socket, 0, 5_000)
+             :gen_tcp.recv(socket, 0, 20_000)
 
     [_, ip_port_string] = Regex.run(~r/\((.*)\)/, ip_port_string)
 

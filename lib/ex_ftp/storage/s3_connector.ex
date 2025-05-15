@@ -1,18 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Storage.S3Connector do
   @moduledoc false
-  import ExFTP.Storage.Common
 
+  @behaviour ExFTP.StorageConnector
+
+  import ExFTP.Storage.Common
+  import ExFTP.Common
+
+  alias ExFTP.StorageConnector
   alias ExFTP.Storage.S3ConnectorConfig
 
+  @impl StorageConnector
   def get_working_directory(%{current_working_directory: cwd} = _connector_state), do: cwd
 
-  def directory_exists?(path, _connector_state) do
-    with {:ok, config} <- validate_config(S3ConnectorConfig) do
-      s3_prefix_exists?(config, path)
+  @impl StorageConnector
+  def directory_exists?(path, connector_state) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) |> IO.inspect(label: :config) do
+      virtual_directory?(path, connector_state) || s3_prefix_exists?(config, path)
     end
   end
 
+  defp virtual_directory?(path, connector_state) do
+    current_v_dirs = Map.get(connector_state, :virtual_directories, ["/"])
+    Enum.member?(current_v_dirs, path)
+  end
+
+  @impl StorageConnector
   def make_directory(path, connector_state) do
     parent_dirs =
       path
@@ -31,6 +44,7 @@ defmodule ExFTP.Storage.S3Connector do
     {:ok, connector_state}
   end
 
+  @impl StorageConnector
   def delete_directory(path, connector_state) do
     if directory_exists?(path, connector_state) do
       with {:ok, config} <- validate_config(S3ConnectorConfig) do
@@ -49,9 +63,62 @@ defmodule ExFTP.Storage.S3Connector do
     {:ok, connector_state}
   end
 
+  @impl StorageConnector
   def get_directory_contents(path, %{} = connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      contents = s3_get_prefix_contents(config, path, connector_state)
+      {:ok, contents}
+    end
+  end
+
+  @impl StorageConnector
+  def get_content(path, _connector_state) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      bucket = get_bucket(config, path)
+      prefix = get_prefix(config, bucket, path)
+
+      stream =
+        bucket
+        |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
+        |> ExAws.stream!()
+
+      {:ok, stream}
+    end
+  end
+
+  @file_action_aborted 552
+  @closing_connection_success 226
+
+  @impl StorageConnector
+  def get_write_func(path, socket, _connector_state, _opts \\ []) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      bucket = get_bucket(config, path)
+      prefix = get_prefix(config, bucket, path)
+
+      fn stream, opts ->
+        try do
+          chunk_stream(stream, opts)
+          |> ExAws.S3.upload(bucket, prefix)
+          |> ExAws.request!()
+
+          send_resp(@closing_connection_success, "Transfer Complete.", socket)
+        rescue
+          _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
+        after
+          nil
+        end
+      end
+    end
+  end
+
+  @impl StorageConnector
+  def get_content_info(path, connector_state) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
       s3_get_prefix_contents(config, path, connector_state)
+      |> case do
+        [content | _] -> {:ok, content}
+        _ -> {:error, "Could not get content info"}
+      end
     end
   end
 
@@ -127,8 +194,8 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   defp s3_prefix_exists?(config, path) do
-    bucket = get_bucket(config, path)
-    prefix = get_prefix(config, bucket, path)
+    bucket = get_bucket(config, path) |> IO.inspect(label: :bucket)
+    prefix = get_prefix(config, bucket, path) |> IO.inspect(label: :prefix)
 
     if bucket do
       bucket_exists?(bucket) && prefix_exists?(bucket, prefix)

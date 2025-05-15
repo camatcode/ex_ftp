@@ -24,7 +24,7 @@ defmodule ExFTP.Storage.Common do
   @opening_data_connection 150
   @closing_connection_success 226
   @action_aborted 451
-  @file_action_aborted 552
+  # @file_action_aborted 552
 
   @doc """
   Responds to FTP's `PWD` command
@@ -539,35 +539,12 @@ defmodule ExFTP.Storage.Common do
       ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
-    connector.open_write_stream(w_path, connector_state)
-    |> case do
-      {:ok, stream} ->
-        send_resp(@opening_data_connection, "Ok to send data.", socket)
+    send_resp(@opening_data_connection, "Ok to send data.", socket)
 
-        PassiveSocket.read(
-          pasv,
-          fn stream, opts ->
-            fs = opts[:fs]
-
-            try do
-              _fs =
-                chunk_stream(stream, opts)
-                |> Enum.into(fs)
-
-              send_resp(@closing_connection_success, "Transfer Complete.", socket)
-            rescue
-              _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
-            after
-              connector.close_write_stream(fs, connector_state)
-            end
-          end,
-          fs: stream,
-          chunk_size: 5 * 1024 * 1024
-        )
-
-      _ ->
-        send_resp(@file_action_aborted, "Failed to transfer.", socket)
-    end
+    PassiveSocket.read(
+      pasv,
+      connector.get_write_func(w_path, socket, connector_state, chunk_size: 5 * 1024 * 1024)
+    )
 
     connector_state
   end
@@ -608,6 +585,28 @@ defmodule ExFTP.Storage.Common do
       validated = mod.build(config)
       {:ok, validated}
     end
+  end
+
+  def chunk_stream(stream, opts) do
+    opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
+
+    Stream.chunk_while(
+      stream,
+      <<>>,
+      fn data, chunk ->
+        chunk = chunk <> data
+
+        if byte_size(chunk) >= opts[:chunk_size] do
+          {:cont, chunk, <<>>}
+        else
+          {:cont, chunk}
+        end
+      end,
+      fn
+        <<>> -> {:cont, []}
+        chunk -> {:cont, chunk, []}
+      end
+    )
   end
 
   defp get_storage_config do
@@ -675,28 +674,6 @@ defmodule ExFTP.Storage.Common do
         Path.join(current_prefix, path)
         |> Path.expand()
     end
-  end
-
-  defp chunk_stream(stream, opts) do
-    opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
-
-    Stream.chunk_while(
-      stream,
-      <<>>,
-      fn data, chunk ->
-        chunk = chunk <> data
-
-        if byte_size(chunk) >= opts[:chunk_size] do
-          {:cont, chunk, <<>>}
-        else
-          {:cont, chunk}
-        end
-      end,
-      fn
-        <<>> -> {:cont, []}
-        chunk -> {:cont, chunk, []}
-      end
-    )
   end
 
   defp get_hidden_roots(connector, connector_state) do
