@@ -4,10 +4,10 @@ defmodule ExFTP.Auth.DigestAuth do
   An implementation of `ExFTP.Authenticator` which will call out to an endpoint with HTTP auth digest to determine access
 
   This route at minimum, assumes there exists an HTTP endpoint that when called with HTTP auth digest
-    that it will respond HTTP *200* if successful; any other response is considered a bad login.
+    that it will respond first with an HTTP 401 with Digest Auth headers, then HTTP *200* if successful auth digest; any other response is considered a bad login.
 
   Additionally, this authenticator can be set up to reach out to another endpoint that when called with HTTP auth digest
-   will respond status *200* if the user is still considered authenticated, and any other status if
+   will  respond first with an HTTP 401 with Digest Auth headers, then status *200* if the user is still considered authenticated, and any other status if
    the user should not be considered authenticated.
 
   Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
@@ -28,9 +28,9 @@ defmodule ExFTP.Auth.DigestAuth do
     %{
       authenticator: ExFTP.Auth.DigestAuth,
       authenticator_config: %{
-        login_url: "https://httpbin.dev/digest-auth/",
+        login_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
         login_method: :get,
-        authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
+        authenticated_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
         authenticated_method: :get,
         authenticated_ttl_ms: 1000 * 60
       }
@@ -61,6 +61,43 @@ defmodule ExFTP.Auth.DigestAuth do
   @spec valid_user?(username :: Authenticator.username()) :: boolean
   def valid_user?(_username), do: true
 
+  @doc """
+  Requests a login using HTTP Digest.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **password** :: `t:ExFTP.Authenticator.password/0`
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  ### 🧑‍🍳 Workflow
+
+   * Reads the `authenticator_config`.
+   * Receives a password from the client
+   * Calls the `login_url` - receives HTTP 401 with digest headers
+   * Performs calculation, calls `login_url` with proper headers
+   * If the response is HTTP 200, success. Otherwise, bad login.
+
+  #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.DigestAuth
+      iex> username = "alice"
+      iex> password = "password1234"
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      iex> Application.put_env(:ex_ftp, :authenticator_config, %{
+      iex>  login_url: "https://httpbin.dev/digest-auth/auth/" <> username <> "/" <> password <> "/MD5",
+      iex>  login_method: :get
+      iex> })
+      iex> {:ok, _} = DigestAuth.login(password , %{username: username})
+
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.DigestAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
+  """
   @impl Authenticator
   @spec login(
           password :: Authenticator.password(),
@@ -72,6 +109,46 @@ defmodule ExFTP.Auth.DigestAuth do
     end
   end
 
+  @doc """
+  Determines whether this session is still considered authenticated
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **authenticator_state** :: `t:ExFTP.Authenticator.authenticator_state/0`
+
+  ### 🧑‍🍳 Workflow
+
+   * Reads the `authenticator_config`.
+   * If the config has `authenticated_url`,
+     * Calls it
+     * First, if the response is HTTP 401, perform digest calculation, then call again with the result
+     * Next, if the response is HTTP 200, success. Otherwise, no longer authenticated.
+   * If the config does not have `authenticated_url`,
+     * investigate the **authenticator_state** for `authenticated: true`
+
+  #{ExFTP.Doc.returns(success: "`true` or `false`")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Auth.DigestAuth
+      iex> username = "alice"
+      iex> password = "password1234"
+      iex> Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      iex> Application.put_env(:ex_ftp, :authenticator_config, %{
+      iex>  login_url: "https://httpbin.dev/digest-auth/auth/" <> username <> "/" <> password <> "/MD5",
+      iex>  authenticated_url: "https://httpbin.dev/digest-auth/auth/" <> username <> "/" <> password <> "/MD5",
+      iex>  authenticated_method: :get,
+      iex> })
+      iex> DigestAuth.authenticated?(%{username: username, password: password})
+      true
+
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.DigestAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
+
+  #{ExFTP.Doc.resources("section-4")}
+
+  <!-- tabs-close -->
+  """
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
