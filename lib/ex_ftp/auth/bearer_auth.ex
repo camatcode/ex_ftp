@@ -206,8 +206,7 @@ defmodule ExFTP.Auth.BearerAuth do
     end
   end
 
-  defp check_authentication(_config, authenticator_state) do
-    IO.inspect(authenticator_state, label: :state)
+  defp check_authentication(_config, _authenticator_state) do
     {:error, "Not Authenticated"}
   end
 end

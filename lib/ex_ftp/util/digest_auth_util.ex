@@ -6,11 +6,11 @@ defmodule ExFTP.DigestAuthUtil do
   def request(url, http_method, username, password) do
     %{path: path} = URI.parse(url)
 
-    with {:ok, digest_info} <- init_digest(url, http_method) |> IO.inspect(label: :init_digest) do
+    with {:ok, digest_info} <- init_digest(url, http_method) do
       response = create_response(http_method, username, password, digest_info, path)
 
       auth_header_value =
-        create_auth_header_value(path, username, response, digest_info) |> IO.inspect()
+        create_auth_header_value(path, username, response, digest_info)
 
       make_auth_call(url, http_method, auth_header_value)
     end
@@ -21,11 +21,12 @@ defmodule ExFTP.DigestAuthUtil do
         nonce: nonce,
         use_auth_int: use_auth_int?,
         cnonce: cnonce,
-        opaque: opaque
+        opaque: opaque,
+        algorithm: algorithm
       }) do
     qop = if use_auth_int?, do: "auth-int", else: "auth"
 
-    "Digest username=\"#{username}\",realm=\"#{realm}\",nonce=\"#{nonce}\",uri=\"#{path}\",qop=#{qop},nc=#{@nc},cnonce=\"#{cnonce}\", response=\"#{response}\", opaque=\"#{opaque}\""
+    "Digest algorithm=\"#{algorithm}\",username=\"#{username}\",realm=\"#{realm}\",nonce=\"#{nonce}\",uri=\"#{path}\",qop=#{qop},nc=#{@nc},cnonce=\"#{cnonce}\", response=\"#{response}\", opaque=\"#{opaque}\""
   end
 
   defp init_digest(url, http_method) do
@@ -62,8 +63,8 @@ defmodule ExFTP.DigestAuthUtil do
         digest_info,
         path
       ) do
-    hash_1 = make_hash_1(username, password, digest_info) |> IO.inspect(label: :hash_1)
-    hash_2 = make_hash_2(http_method, path, digest_info) |> IO.inspect(label: :hash_2)
+    hash_1 = make_hash_1(username, password, digest_info)
+    hash_2 = make_hash_2(http_method, path, digest_info)
 
     make_response(hash_1, hash_2, digest_info)
   end
@@ -92,8 +93,7 @@ defmodule ExFTP.DigestAuthUtil do
            use_auth_int: use_auth_int?
          }
        ) do
-    http_method_str = Atom.to_string(http_method) |> String.upcase() |> IO.inspect(label: :METHOD)
-    IO.inspect(path, label: :PATH)
+    http_method_str = Atom.to_string(http_method) |> String.upcase()
 
     hash_elements =
       if use_auth_int?,
@@ -124,7 +124,7 @@ defmodule ExFTP.DigestAuthUtil do
          hash_2,
          %{use_auth_int: false, crypto_algo: algo, nonce: nonce, cnonce: cnonce}
        ) do
-    hash(algo, [hash_1, nonce, @nc, cnonce, "auth", hash_2]) |> IO.inspect(label: "HERE")
+    hash(algo, [hash_1, nonce, @nc, cnonce, "auth", hash_2])
   end
 
   def parse_digest(digest_info) do
@@ -135,9 +135,10 @@ defmodule ExFTP.DigestAuthUtil do
         [k, v] =
           part
           |> String.trim()
-          |> String.replace("Digest ", "")
+          |> String.replace("Digest", "")
           |> String.replace("\"", "")
           |> String.split("=", parts: 2)
+          |> Enum.map(&String.trim/1)
 
         {String.to_atom(k), v}
       end)
@@ -158,11 +159,11 @@ defmodule ExFTP.DigestAuthUtil do
      parsed
      |> Map.put(:cnonce, cnonce)
      |> Map.put(:crypto_algo, algo)
-     |> Map.put(:is_sess, is_sess?(algo_str))
+     |> Map.put(:is_sess, sess?(algo_str))
      |> Map.put(:use_auth_int, use_auth_int?)}
   end
 
-  def is_sess?(algo_str), do: algo_str |> String.downcase() |> String.contains?("sess")
+  def sess?(algo_str), do: algo_str |> String.downcase() |> String.contains?("sess")
 
   defp algo_from_string(algo_str) do
     algo_str
@@ -183,6 +184,7 @@ defmodule ExFTP.DigestAuthUtil do
     v =
       v
       |> String.split(",")
+      |> Enum.map(&String.trim/1)
 
     {:qop, v}
   end

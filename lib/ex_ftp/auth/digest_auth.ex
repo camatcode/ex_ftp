@@ -45,8 +45,8 @@ defmodule ExFTP.Auth.DigestAuth do
   """
 
   import ExFTP.Auth.Common
-  alias ExFTP.Authenticator
   alias ExFTP.Auth.DigestAuthConfig
+  alias ExFTP.Authenticator
 
   @behaviour Authenticator
 
@@ -89,51 +89,15 @@ defmodule ExFTP.Auth.DigestAuth do
          %{login_url: url, login_method: http_method} = _config,
          %{username: username} = authenticator_state
        ) do
-    Req.request(
-      url: url,
-      method: http_method,
-      redirect: true
-    )
+    ExFTP.DigestAuthUtil.request(url, http_method, username, password)
     |> case do
-      {:ok, %{headers: %{"www-authenticate" => [digest_info]}}} ->
-        with {:ok,
-              %{
-                opaque: opaque,
-                nonce: nonce,
-                realm: realm
-              }} <- parse_digest(digest_info) do
-          # Hash1=MD5(username:realm:password)
-          hash_1 =
-            :crypto.hash(:md5, "#{username}:#{realm}:#{password}")
-            |> Base.encode16(case: :lower)
-
-          # Hash2=MD5(method:digestURI)
-          hash_2 =
-            :crypto.hash(:md5, "#{http_method |> Atom.to_string() |> String.upcase()}:#{"/"}")
-            |> Base.encode16(case: :lower)
-
-          response =
-            :md5
-            |> :crypto.hash(Enum.join([hash_1, nonce, hash_2], ":"))
-            |> Base.encode16(case: :lower)
-            |> IO.inspect(label: :response)
-
-          # "Digest username=\"#{username}\", realm=\"#{realm}\", uri=\"#{uri}\", qop=\"auth\", nc=00000001, "
-
-          Req.request(
-            url: url,
-            method: http_method,
-            redirect: true,
-            auth: response
-          )
-          |> IO.inspect(label: :req_2)
-        end
+      {:ok, %{status: 200}} ->
+        authenticator_state = Map.put(authenticator_state, :password, password)
+        {:ok, authenticator_state}
 
       _ ->
-        {:error, "No digest info returned from url"}
+        {:error, "Did not get a 200 response"}
     end
-
-    {:ok, authenticator_state}
   end
 
   defp check_authentication(
@@ -148,89 +112,15 @@ defmodule ExFTP.Auth.DigestAuth do
          %{username: username, password: password} = authenticator_state
        )
        when not is_nil(url) do
-    Req.request(
-      url: url,
-      method: http_method,
-      redirect: true
-    )
+    ExFTP.DigestAuthUtil.request(url, http_method, username, password)
     |> case do
-      {:ok, %{headers: %{"www-authenticate" => [digest_info]}}} ->
-        with {:ok,
-              %{
-                opaque: opaque,
-                nonce: nonce,
-                realm: realm
-              }} <- parse_digest(digest_info) do
-          # Hash1=MD5(username:realm:password)
-          hash_1 =
-            :crypto.hash(:md5, "#{username}:#{realm}:#{password}")
-            |> Base.encode16(case: :lower)
-
-          # Hash2=MD5(method:digestURI)
-          hash_2 =
-            :crypto.hash(:md5, "#{http_method |> Atom.to_string() |> String.upcase()}:#{"/"}")
-            |> Base.encode16(case: :lower)
-
-          response =
-            :md5
-            |> :crypto.hash(Enum.join([hash_1, nonce, hash_2], ":"))
-            |> Base.encode16(case: :lower)
-            |> IO.inspect(label: :response)
-
-          Req.request(
-            url: url,
-            method: http_method,
-            redirect: true,
-            auth: response
-          )
-          |> IO.inspect(label: :req_2)
-        end
-        |> IO.inspect(label: :after_with)
+      {:ok, %{status: 200}} ->
+        {:ok, authenticator_state}
 
       _ ->
-        {:error, "No digest info returned from url"}
-    end
-
-    {:ok, authenticator_state}
-  end
-
-  def parse_digest(digest_info, opts \\ []) do
-    opts = Keyword.merge([algorithm: :md5, qop: :auth], opts)
-
-    try do
-      parsed =
-        digest_info
-        |> String.split(", ")
-        |> Enum.map(fn part ->
-          [k, v] =
-            String.replace(part, "Digest ", "")
-            |> String.replace("\"", "")
-            |> String.split("=", parts: 2)
-
-          {String.to_atom(k), v}
-        end)
-        |> Enum.map(&serialize/1)
-        |> Map.new()
-
-      qop = opts[:qop]
-      algo = opts[:algorithm]
-
-      parsed
-      |> case do
-        %{qop: ^qop, algorithm: ^algo} ->
-          {:ok, parsed}
-
-        _ ->
-          {:error, "Does not match requirements"}
-      end
-    rescue
-      e -> {:error, e |> IO.inspect(label: :e)}
+        {:error, "Did not get a 200 response"}
     end
   end
-
-  defp serialize({:algorithm, v}), do: {:algorithm, v |> String.downcase() |> String.to_atom()}
-  defp serialize({:qop, v}), do: {:qop, String.to_atom(v)}
-  defp serialize({k, v}), do: {k, v}
 
   defp check_authentication(_config, _authenticator_state) do
     {:error, "Not Authenticated"}

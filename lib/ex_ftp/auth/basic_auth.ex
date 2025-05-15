@@ -45,8 +45,9 @@ defmodule ExFTP.Auth.BasicAuth do
   """
 
   import ExFTP.Auth.Common
-  alias ExFTP.Authenticator
+
   alias ExFTP.Auth.BasicAuthConfig
+  alias ExFTP.Authenticator
 
   @behaviour Authenticator
 

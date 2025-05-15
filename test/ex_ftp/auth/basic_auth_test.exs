@@ -1,4 +1,4 @@
-defmodule ExFTP.Auth.BearerAuthTest do
+defmodule ExFTP.Auth.BasicAuthTest do
   @moduledoc false
 
   use ExUnit.Case

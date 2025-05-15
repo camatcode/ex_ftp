@@ -47,8 +47,9 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   import ExFTP.Auth.Common
 
-  alias ExFTP.Authenticator
   alias ExFTP.Auth.WebhookAuthConfig
+  alias ExFTP.Authenticator
+
   @behaviour Authenticator
 
   @doc """
