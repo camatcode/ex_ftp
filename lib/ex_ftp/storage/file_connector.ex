@@ -15,7 +15,6 @@ defmodule ExFTP.Storage.FileConnector do
 
   alias ExFTP.StorageConnector
 
-  @impl StorageConnector
   @doc """
   Returns the current working directory
 
@@ -39,6 +38,7 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
   def get_working_directory(%{current_working_directory: cwd} = _connector_state), do: cwd
 
   @impl StorageConnector
