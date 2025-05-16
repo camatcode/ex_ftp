@@ -345,7 +345,7 @@ Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured 
 
 #### Using Minio
 
-Minio is a popular open-source, self-hosted alternative to S3. The only difference in config will be how you configure
+Minio is a popular open-source, self-hosted alternative to AWS S3. The only difference in config will be how you configure
 `ExAws`.
 
 ```elixir
