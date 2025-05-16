@@ -78,6 +78,8 @@ Additionally, many require a map under `authenticator_config`.
 
 <summary>Authenticator: No Auth</summary>
 
+### Authenticator: No Auth
+
 > [!WARNING]  
 > This is not recommended for any production server.
 
@@ -93,7 +95,7 @@ everything is authenticated.
  ```
 
 </details>
--------
+
 
 <details>
 
