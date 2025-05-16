@@ -65,7 +65,7 @@ TODO
 
 ## Configuration
 
-### Choosing an Authenticator
+##### Choosing an Authenticator
 
 An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASSWORD` command.
 
@@ -73,7 +73,7 @@ Each authenticator is referenced in the `ex_ftp` config under the `authenticator
 
 Additionally, many require a map under `authenticator_config`.
 
-### Choosing a Storage Connector
+##### Choosing a Storage Connector
 
 An `ExFTP.StorageConnector` provides access to your chosen storage provider - with the FTP business abstracted away.
 
