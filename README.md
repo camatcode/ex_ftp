@@ -30,8 +30,8 @@
 - [Installation](#installation)
 - [Reckless Quick Start](#reckless-quick-start)
 - [Configuration](#configuration)
-  - [Choosing an Authenticator](#choosing-an-authenticator)
-  - [Choosing a Storage Connector](#choosing-a-storage-connector)
+  - [Choosing an Authenticator](#choose-an-authenticator)
+  - [Choosing a Storage Connector](#choose-a-storage-connector)
 - [Authenticators](#authenticators)
   - [No Auth](#authenticator-no-auth)
   - [Passthrough Auth](#authenticator-passthrough-auth)
@@ -65,7 +65,38 @@ TODO
 
 ## Configuration
 
-##### Choosing an Authenticator
+A detailed, example configuration.
+
+```elixir
+
+config :ex_ftp,
+  # port to run on
+  ftp_port: 21,
+  # FTP uses temporary, negotiated ports for certain commands called passive ports
+  # Choose the min and max range for these ports
+  # This range would represent how many of these certain commands can run at the same time.
+  # Be aware, too few options could create bottlenecks
+  min_passive_port: System.get_env("MIN_PASSIVE_PORT", "40002") |> String.to_integer(),
+  max_passive_port: System.get_env("MAX_PASSIVE_PORT", "40007") |> String.to_integer(),
+  # See "Choose an Authenticator"
+  authenticator: ExFTP.Auth.BasicAuth,
+  authenticator_config: %{
+    # used to login
+    login_url: "https://httpbin.dev/basic-auth/",
+    login_method: :get,
+    # used to verify the user is still considered valid (optional)
+    authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
+    authenticated_method: :get,
+    authenticated_ttl_ms: 1000 * 60 * 60
+  },
+  # See "Choose a Storage Connector"
+  storage_connector: ExFTP.Storage.FileConnector,
+  storage_config: %{}
+
+```
+
+
+##### 2. Choose an Authenticator
 
 An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASSWORD` command.
 
@@ -73,7 +104,7 @@ Each authenticator is referenced in the `ex_ftp` config under the `authenticator
 
 Additionally, many require a map under `authenticator_config`.
 
-##### Choosing a Storage Connector
+##### 3. Choose a Storage Connector
 
 An `ExFTP.StorageConnector` provides access to your chosen storage provider - with the FTP business abstracted away.
 
@@ -142,7 +173,7 @@ When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpo
           # used to verify the user is still considered valid (optional)
           authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
           authenticated_method: :get,
-          authenticated_ttl_ms: 1000 * 60 * 30
+          authenticated_ttl_ms: 1000 * 60 * 60
       }
  ```
 
@@ -175,7 +206,7 @@ credentials.
           # used to verify the user is still considered valid (optional)
           authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
           authenticated_method: :get,
-          authenticated_ttl_ms: 1000 * 60 * 30
+          authenticated_ttl_ms: 1000 * 60 * 60
       }
  ```
 
@@ -208,7 +239,7 @@ supplied credentials.
           # used to verify the user is still considered valid (optional)
           authenticated_url: "https://httpbin.dev/bearer",
           authenticated_method: :post,
-          authenticated_ttl_ms: 1000 * 60
+          authenticated_ttl_ms: 1000 * 60 * 60
       }
  ```
 
@@ -243,7 +274,7 @@ two query parameters: `username` and `password_hash`.
             # used to verify the user is still considered valid (optional)
             authenticated_url: "https://httpbin.dev/status/200",
             authenticated_method: :post,
-            authenticated_ttl_ms: 1000 * 60
+            authenticated_ttl_ms: 1000 * 60 * 60
       }
  ```
 
