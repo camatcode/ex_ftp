@@ -53,7 +53,7 @@
       - [Supabase Storage Connector](#supabase-storage-connector)
       - [Custom Storage Connector](#custom-storage-connector)
 
-### Installation
+## Installation
 
 Add `:ex_ftp` to your list of deps in `mix.exs`:
 
@@ -64,16 +64,13 @@ Add `:ex_ftp` to your list of deps in `mix.exs`:
 Then run `mix deps.get` to install ExFTP and its dependencies.
 
 
-
-
-
-### Reckless Quick Start
+## Reckless Quick Start
 
 TODO
 
-### Configuration
+## Configuration
 
-#### Choosing an Authenticator
+### Choosing an Authenticator
 
 An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASSWORD` command.
 
@@ -81,7 +78,9 @@ Each authenticator is referenced in the `ex_ftp` config under the `authenticator
 
 Additionally, many require an additional map under `authenticator_config`.
 
-##### No Auth
+-------
+
+### No Auth
 
 When `authenticator` is `ExFTP.Auth.NoAuth`, ex_ftp will completely ignore any supplied credentials and assume
 everything is authenticated.
@@ -95,7 +94,9 @@ This is not recommended for any production server.
        authenticator_config: %{}
  ```
 
-##### Passthrough Auth
+-------
+
+### Passthrough Auth
 
 When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
 but accept any user and password combination who isn't `root`.
@@ -109,7 +110,9 @@ This is not recommended for any production server.
        authenticator_config: %{}
  ```
 
-##### HTTP Basic Auth
+-------
+
+### HTTP Basic Auth
 
 When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
 [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication). 
@@ -136,7 +139,9 @@ This is not recommended for situations not protected by SSL.
       }
  ```
 
-##### HTTP Digest Access Auth
+-------
+
+### HTTP Digest Access Auth
 
 When `authenticator` is `ExFTP.Auth.DigestAuth`, ex_ftp call out to an HTTP endpoint that implements
 [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication).
@@ -163,7 +168,9 @@ This can be used in situations where SSL is not available, though be warned, it 
       }
  ```
 
-##### Bearer Token Auth
+-------
+
+### Bearer Token Auth
 
 When `authenticator` is `ExFTP.Auth.BearerAuth`, ex_ftp call out to an HTTP endpoint that implements
 [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/). 
@@ -192,7 +199,9 @@ This is helpful when the "user" is actually a system or process.
       }
  ```
 
-##### Webhook Auth
+-------
+
+### Webhook Auth
 
 When `authenticator` is `ExFTP.Auth.WebhookAuth`, ex_ftp call out to an HTTP endpoint that accepts
 two query parameters: `username` and `password_hash`.
@@ -222,7 +231,9 @@ is still considered valid.
       }
  ```
 
-##### Custom Auth
+-------
+
+### Custom Auth
 
 Creating your own Authenticator is simple - just implement the `ExFTP.Authenticator` behaviour.
 
@@ -266,19 +277,20 @@ defmodule MyCustomAuth do
   end
 end
 ```
+-------
 
-#### Choosing a Storage Connector
+## Choosing a Storage Connector
 
-##### File Storage Connector
+### File Storage Connector
 
-##### S3 Storage Connector
+### S3 Storage Connector
 
-###### Using Minio
+#### Using Minio
 
-##### Google Cloud Storage Connector
+### Google Cloud Storage Connector
 
-##### Azure Storage Connector
+### Azure Storage Connector
 
-##### Supabase Storage Connector
+### Supabase Storage Connector
 
-##### Custom Storage Connector
+### Custom Storage Connector
