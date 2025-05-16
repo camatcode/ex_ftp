@@ -148,13 +148,14 @@ is still considered valid.
 
 ### Authenticator: HTTP Digest Access Auth
 
+> [!NOTE]  
+> This can be used in situations where SSL is not available, though be warned, Digest Access is considered
+> an obsolete protocol.
+
 When `authenticator` is `ExFTP.Auth.DigestAuth`, ex_ftp call out to an HTTP endpoint that implements
 [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication) with the user's supplied 
 credentials.
 
-> [!NOTE]  
-> This can be used in situations where SSL is not available, though be warned, Digest Access is considered 
-> an obsolete protocol.
 
 ```elixir
      config :ex_ftp,
