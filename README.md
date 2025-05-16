@@ -31,21 +31,23 @@
 - [Reckless Quick Start](#reckless-quick-start)
 - [Configuration](#configuration)
   - [Choosing an Authenticator](#choosing-an-authenticator)
-    - [No Auth](#authenticator-no-auth)
-    - [Passthrough Auth](#authenticator-passthrough-auth)
-    - [HTTP Basic Auth](#authenticator-http-basic-auth)
-    - [HTTP Digest Access Auth](#authenticator-http-digest-access-auth)
-    - [Bearer Token Auth](#authenticator-bearer-token-auth)
-    - [Webhook Auth](#authenticator-webhook-auth)
-    - [Custom Auth](#authenticator-custom-auth)
   - [Choosing a Storage Connector](#choosing-a-storage-connector)
-      - [File Storage Connector](#file-storage-connector)
-      - [S3 Connector](#s3-storage-connector)
-          - [Using Minio](#using-minio)
-      - [Google Cloud Storage Connector](#google-cloud-storage-connector)
-      - [Azure Storage Connector](#azure-storage-connector)
-      - [Supabase Storage Connector](#supabase-storage-connector)
-      - [Custom Storage Connector](#custom-storage-connector)
+- [Authenticators](#authenticators)
+  - [No Auth](#authenticator-no-auth)
+  - [Passthrough Auth](#authenticator-passthrough-auth)
+  - [HTTP Basic Auth](#authenticator-http-basic-auth)
+  - [HTTP Digest Access Auth](#authenticator-http-digest-access-auth)
+  - [Bearer Token Auth](#authenticator-bearer-token-auth)
+  - [Webhook Auth](#authenticator-webhook-auth)
+  - [Custom Auth](#authenticator-custom-auth)
+- [Storage Connectors](#storage-connectors)
+  - [File](#storage-connector-file)
+  - [S3](#storage-connector-s3)
+    - [Using Minio](#using-minio)
+  - [Google Cloud Storage](#storage-connector-google-cloud-storage)
+  - [Azure](#storage-connector-azure)
+  - [Supabase Storage](#storage-connector-supabase)
+  - [Custom Storage Connector](#custom-storage-connector)
 
 ## Installation
 
@@ -56,7 +58,6 @@ Add `:ex_ftp` to your list of deps in `mix.exs`:
 ```
 
 Then run `mix deps.get` to install ExFTP and its dependencies.
-
 
 ## Reckless Quick Start
 
@@ -72,7 +73,19 @@ Each authenticator is referenced in the `ex_ftp` config under the `authenticator
 
 Additionally, many require a map under `authenticator_config`.
 
+### Choosing a Storage Connector
+
+An `ExFTP.StorageConnector` provides access to your chosen storage provider - with the FTP business abstracted away.
+
+Each storage connector is referenced in the `ex_ftp` config under the `storage_connector` key.
+
+Additionally, many require a map under `storage_config`.
+
 -------
+
+## Authenticators
+
+Below are all the included authenticators.
 
 ### Authenticator: No Auth
 
@@ -269,6 +282,7 @@ defmodule MyCustomAuth do
           authenticator_state :: Authenticator.authenticator_state()
         ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
   def login(_password, authenticator_state) do
+        # authenticator_state may have the key :username
         # perform initial login
         # return {:ok, current_authenticator_state} if successful
         #   authenticator_state is passed around during the session
@@ -288,18 +302,103 @@ end
 
 -------
 
-## Choosing a Storage Connector
+## Storage Connectors
 
-### File Storage Connector
+Below are all the included storage connectors.
 
-### S3 Storage Connector
+### Storage Connector: File
+
+When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use the file system of where it is running.
+This is the out-of-the-box behavior you'd expect from any FTP server.
+
+```elixir
+     config :ex_ftp,
+       #....
+       storage_connector: ExFTP.Storage.FileConnector,
+       storage_config: %{}
+```
+
+-----
+
+### Storage Connector: S3
+
+When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use any S3-compatible storage provider.
+
+Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured properly.
+
+```elixir
+    # ExAws is pretty smart figuring out S3 credentials of the system
+    # For me, I had to include the region.
+    # Consult the ExAws docs for more
+    config :ex_aws,
+        region: {:system, "AWS_REGION"}
+
+    config :ex_ftp,
+        #....
+        storage_connector: ExFTP.Storage.FileConnector,
+        storage_config: %{
+        # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
+        # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+          storage_bucket: "my-storage-bucket"
+       }
+```
 
 #### Using Minio
 
-### Google Cloud Storage Connector
+Minio is a popular open-source, self-hosted alternative to AWS S3. The only difference in config will be how you configure
+`ExAws`.
 
-### Azure Storage Connector
+```elixir
+    config :ex_aws,
+      access_key_id: [
+        {:system, "MINIO_ACCESS"},
+        {:system, "AWS_ACCESS_KEY_ID"},
+        :instance_role
+      ],
+      secret_access_key: [
+        {:system, "MINIO_SECRET"},
+        {:system, "AWS_SECRET_ACCESS_KEY"},
+        :instance_role
+      ],
+      s3: [
+        scheme: "https://",
+        host: "my.minio.example.com",
+        port: 9000,
+        region: "us-east-1"
+      ]
 
-### Supabase Storage Connector
+    config :ex_ftp,
+        #....
+        storage_connector: ExFTP.Storage.FileConnector,
+        storage_config: %{
+        # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
+        # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+          storage_bucket: "my-storage-bucket"
+       }
+```
+
+-----
+
+### Storage Connector: Google Cloud Storage
+
+IN PROGRESS
+
+-----
+
+### Storage Connector: Azure
+
+TODO
+
+-----
+
+### Storage Connector: Supabase
+
+TODO
+
+-----
 
 ### Custom Storage Connector
+
+TO document.
+
+-----
