@@ -82,11 +82,12 @@ Additionally, many require a map under `authenticator_config`.
 
 ### Authenticator: No Auth
 
+> [!WARNING]  
+> This is not recommended for any production server.
+
 When `authenticator` is `ExFTP.Auth.NoAuth`, ex_ftp will completely ignore any supplied credentials and assume
 everything is authenticated.
 
-> [!WARNING]  
-> This is not recommended for any production server.
 
 ```elixir
      config :ex_ftp,
@@ -99,11 +100,11 @@ everything is authenticated.
 
 ### Authenticator: Passthrough Auth
 
-When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
-but accept any user and password combination who isn't `root`.
-
 > [!WARNING]  
 > This is not recommended for any production server.
+
+When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
+but accept any user and password combination who isn't `root`.
 
 ```elixir
      config :ex_ftp,
@@ -116,16 +117,12 @@ but accept any user and password combination who isn't `root`.
 
 ### Authenticator: HTTP Basic Auth
 
-When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
-[HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) with the user's supplied credentials. 
-
-If the endpoint responds with **HTTP 200**, the user is considered authenticated.
-
-Additionally, if configured, ex_ftp can call out to a separate endpoint that performs basic auth to check that a user
-is still considered valid.
-
 > [!WARNING]  
 > This is not recommended for situations not protected by SSL.
+
+When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
+[HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) with the user's supplied credentials.
+
 
 ```elixir
      config :ex_ftp,
@@ -142,6 +139,11 @@ is still considered valid.
       }
  ```
 
+If the endpoint responds with **HTTP 200**, the user is considered authenticated.
+
+Additionally, if configured, ex_ftp can call out to a separate endpoint that performs basic auth to check that a user
+is still considered valid.
+
 -------
 
 ### Authenticator: HTTP Digest Access Auth
@@ -149,11 +151,6 @@ is still considered valid.
 When `authenticator` is `ExFTP.Auth.DigestAuth`, ex_ftp call out to an HTTP endpoint that implements
 [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication) with the user's supplied 
 credentials.
-
-If, after completing the full workflow, the endpoint responds with **HTTP 200**, the user is considered authenticated.
-
-Additionally, if configured, ex_ftp can call out to a separate endpoint that performs digest auth to check that a user
-is still considered valid.
 
 > [!NOTE]  
 > This can be used in situations where SSL is not available, though be warned, Digest Access is considered 
@@ -174,23 +171,22 @@ is still considered valid.
       }
  ```
 
+If, after completing the full workflow, the endpoint responds with **HTTP 200**, the user is considered authenticated.
+
+Additionally, if configured, ex_ftp can call out to a separate endpoint that performs digest auth to check that a user
+is still considered valid.
 -------
 
 ### Authenticator: Bearer Token Auth
 
+> [!NOTE]  
+> This is helpful when the "user" is actually a system or process.
+>
+> `username` isn't important for a Bearer token; though a provided username is still held on to.
+
 When `authenticator` is `ExFTP.Auth.BearerAuth`, ex_ftp call out to an HTTP endpoint that implements
 [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/) with the user's 
 supplied credentials.
-
-If the endpoint responds with **HTTP 200**, the user is considered authenticated.
-
-Additionally, if configured, ex_ftp can call out to a separate endpoint that performs bearer auth to check that a user
-is still considered valid.
-
-> [!NOTE]  
-> This is helpful when the "user" is actually a system or process.
-> 
-> `username` isn't important for a Bearer token; though a provided username is still held on to.
 
 ```elixir
      config :ex_ftp,
@@ -207,20 +203,20 @@ is still considered valid.
       }
  ```
 
+If the endpoint responds with **HTTP 200**, the user is considered authenticated.
+
+Additionally, if configured, ex_ftp can call out to a separate endpoint that performs bearer auth to check that a user
+is still considered valid.
 -------
 
 ### Authenticator: Webhook Auth
 
+> [!NOTE]  
+> `password_hash` is the hash of the supplied password using the hashing algorithm dictated by the config.
+
 When `authenticator` is `ExFTP.Auth.WebhookAuth`, ex_ftp call out to an HTTP endpoint that accepts
 two query parameters: `username` and `password_hash`.
 
-If the endpoint responds with **HTTP 200**, the user is considered authenticated.
-
-Additionally, if configured, ex_ftp can call out to a separate endpoint that performs webhook auth to check that a user
-is still considered valid.
-
-> [!NOTE]  
-> `password_hash` is the hash of the supplied password using the hashing algorithm dictated by the config.
 
 ```elixir
      config :ex_ftp,
@@ -239,6 +235,11 @@ is still considered valid.
             authenticated_ttl_ms: 1000 * 60
       }
  ```
+
+If the endpoint responds with **HTTP 200**, the user is considered authenticated.
+
+Additionally, if configured, ex_ftp can call out to a separate endpoint that performs webhook auth to check that a user
+is still considered valid.
 
 -------
 
