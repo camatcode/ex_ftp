@@ -2,14 +2,13 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-light.png">
-    <img alt="basenji logo" src="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-light.png" width="320">
+    <img alt="ex_ftp logo" src="https://raw.githubusercontent.com/camatcode/ex_ftp/refs/heads/main/assets/ex_ftp-logo-light.png" width="320">
   </picture>
 </p>
 
 <p align="center">
-  Serve an FTP interface that connects locally, to the cloud, or wherever
+  An extendable, lightweight FTP server with cloud integrations already built in
 </p>
-
 
 <p align="center">
   <a href="https://hex.pm/packages/ex_ftp">
@@ -25,11 +24,6 @@
     <img alt="Mastodon Follow" src="https://img.shields.io/badge/mastodon-%40scrum__log%40mastodon.social-purple?color=6364ff">
   </a>
 </p>
-
-<p align="center">
-  An extendable, lightweight FTP server with cloud integrations already built in
-</p>
-
 
 ## Table of Contents
 
