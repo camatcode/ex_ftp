@@ -281,8 +281,9 @@ defmodule ExFTP.Storage.FileConnector do
       fs = File.stream!(path)
 
       try do
-        chunk_stream(stream, opts)
-        |> Enum.into(fs)
+        _ =
+          chunk_stream(stream, opts)
+          |> Enum.into(fs)
 
         send_resp(@closing_connection_success, "Transfer Complete.", socket)
       rescue

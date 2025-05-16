@@ -62,7 +62,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
     end)
   end
 
-  @tag run: true
   test "LIST", state do
     w_dir = File.cwd!()
     listing = test_list(state, w_dir)
@@ -81,17 +80,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
   test "NLST", state do
     w_dir = File.cwd!()
     listing = test_nlst(state, w_dir)
-    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
-    # CWD w_dir
-    w_dir = File.cwd!()
-
-    socket
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-    |> send_and_expect("NLST", [], 150)
-
-    assert {:ok, listing} = read_fully(pasv_socket)
-
-    expect_recv(socket, 226, "Directory send OK.")
 
     parts = String.split(listing, "\r\n")
     refute Enum.empty?(parts)
@@ -107,17 +95,9 @@ defmodule ExFTP.Storage.FileConnectorTest do
   end
 
   test "NLST -a", state do
-    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
-    # CWD w_dir
     w_dir = File.cwd!()
 
-    socket
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-    |> send_and_expect("NLST", ["-a"], 150)
-
-    assert {:ok, listing} = read_fully(pasv_socket)
-
-    expect_recv(socket, 226, "Directory send OK.")
+    listing = test_nlst_a(state, w_dir)
 
     parts = String.split(listing, "\r\n")
     refute Enum.empty?(parts)
@@ -137,40 +117,16 @@ defmodule ExFTP.Storage.FileConnectorTest do
     # CWD w_dir
     w_dir = File.cwd!()
 
-    socket
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-
-    files_to_download =
+    paths_to_download =
       File.ls!(w_dir) |> Enum.filter(fn file -> Path.join(w_dir, file) |> File.regular?() end)
 
-    refute Enum.empty?(files_to_download)
-
-    files_to_download
-    |> Enum.each(fn file ->
-      %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
-      send_and_expect(socket, "RETR", [file], 150)
-      assert {:ok, bytes} = read_fully(pasv_socket)
-      refute byte_size(bytes) == 0
-      assert bytes == File.read!(Path.join(w_dir, file)) <> "\r\n"
-      expect_recv(socket, 226, "Transfer complete.")
-    end)
+    test_retr(state, w_dir, paths_to_download)
   end
 
-  test "SIZE", %{socket: socket, password: _password} do
+  test "SIZE", %{socket: socket, password: _password} = state do
     # CWD w_dir
     w_dir = File.cwd!()
-
-    socket
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-
-    files_to_size = File.ls!(w_dir)
-    refute Enum.empty?(files_to_size)
-
-    files_to_size
-    |> Enum.each(fn file ->
-      assert %{size: size} = File.lstat!(Path.join(w_dir, file))
-      send_and_expect(socket, "SIZE", [file], 213, "#{size}")
-    end)
+    test_size(state, w_dir)
   end
 
   test "STOR", %{socket: socket, password: _password} = state do
@@ -178,31 +134,12 @@ defmodule ExFTP.Storage.FileConnectorTest do
     w_dir = System.tmp_dir!() |> Path.join("stor_test")
     on_exit(fn -> File.rm_rf!(w_dir) end)
 
-    socket
-    |> send_and_expect("MKD", [w_dir], 257, "\"#{w_dir}\" directory created.")
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-
     files_to_store =
       File.ls!(File.cwd!())
       |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
 
     refute Enum.empty?(files_to_store)
 
-    files_to_store
-    |> Enum.each(fn file ->
-      %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
-      send_and_expect(socket, "STOR", [file], 150)
-
-      File.stream!(Path.join(File.cwd!(), file), [], 5 * 1024 * 1024)
-      |> Enum.each(fn data ->
-        :ok = :gen_tcp.send(pasv_socket, data)
-      end)
-
-      close_pasv(pasv_socket)
-
-      expect_recv(socket, 226, "Transfer Complete.")
-      assert %{size: size} = File.lstat!(Path.join(File.cwd!(), file))
-      send_and_expect(socket, "SIZE", [file], 213, "#{size}")
-    end)
+    test_stor(state, w_dir, files_to_store)
   end
 end

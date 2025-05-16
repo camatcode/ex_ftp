@@ -680,8 +680,10 @@ defmodule ExFTP.Storage.Common do
     w_path = change_prefix(connector.get_working_directory(connector_state), ".")
 
     {:ok, first} = connector.get_content_info(w_path, connector_state)
+    first = Map.put(first, :file_name, ".")
     w_path = change_prefix(connector.get_working_directory(connector_state), "..")
     {:ok, second} = connector.get_content_info(w_path, connector_state)
+    second = Map.put(second, :file_name, "..")
     [first, second]
   end
 end
