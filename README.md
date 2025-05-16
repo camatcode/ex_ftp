@@ -40,7 +40,7 @@
   - [Bearer Token Auth](#authenticator-bearer-token-auth)
   - [Webhook Auth](#authenticator-webhook-auth)
   - [Custom Auth](#authenticator-custom-auth)
-- [Storage Connectors](#authenticators)
+- [Storage Connectors](#storage-connectors)
   - [File](#storage-connector-file)
   - [S3](#storage-connector-s3)
     - [Using Minio](#using-minio)
@@ -84,6 +84,8 @@ Additionally, many require a map under `storage_config`.
 -------
 
 ## Authenticators
+
+Below are all the included authenticators.
 
 ### Authenticator: No Auth
 
@@ -301,6 +303,8 @@ end
 -------
 
 ## Storage Connectors
+
+Below are all the included storage connectors.
 
 ### Storage Connector: File
 
