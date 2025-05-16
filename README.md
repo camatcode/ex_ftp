@@ -37,13 +37,13 @@
 - [Reckless Quick Start](#reckless-quick-start)
 - [Configuration](#configuration)
   - [Choosing an Authenticator](#choosing-an-authenticator)
-    - [No Auth](#no-auth)
-    - [Passthrough Auth](#passthrough-auth)
-    - [HTTP Basic Auth](#http-basic-auth)
-    - [HTTP Digest Access Auth](#http-digest-access-auth)
-    - [Bearer Token Auth](#bearer-token-auth)
-    - [Webhook Auth](#webhook-auth)
-    - [Custom Auth](#custom-auth)
+    - [No Auth](#authenticator-no-auth)
+    - [Passthrough Auth](#authenticator-passthrough-auth)
+    - [HTTP Basic Auth](#authenticator-http-basic-auth)
+    - [HTTP Digest Access Auth](#authenticator-http-digest-access-auth)
+    - [Bearer Token Auth](#authenticator-bearer-token-auth)
+    - [Webhook Auth](#authenticator-webhook-auth)
+    - [Custom Auth](#authenticator-custom-auth)
   - [Choosing a Storage Connector](#choosing-a-storage-connector)
       - [File Storage Connector](#file-storage-connector)
       - [S3 Connector](#s3-storage-connector)
@@ -80,7 +80,7 @@ Additionally, many require a map under `authenticator_config`.
 
 -------
 
-### No Auth
+### Authenticator: No Auth
 
 When `authenticator` is `ExFTP.Auth.NoAuth`, ex_ftp will completely ignore any supplied credentials and assume
 everything is authenticated.
@@ -97,7 +97,7 @@ everything is authenticated.
 
 -------
 
-### Passthrough Auth
+### Authenticator: Passthrough Auth
 
 When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
 but accept any user and password combination who isn't `root`.
@@ -114,7 +114,7 @@ but accept any user and password combination who isn't `root`.
 
 -------
 
-### HTTP Basic Auth
+### Authenticator: HTTP Basic Auth
 
 When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
 [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) with the user's supplied credentials. 
@@ -144,7 +144,7 @@ is still considered valid.
 
 -------
 
-### HTTP Digest Access Auth
+### Authenticator: HTTP Digest Access Auth
 
 When `authenticator` is `ExFTP.Auth.DigestAuth`, ex_ftp call out to an HTTP endpoint that implements
 [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication) with the user's supplied 
@@ -176,7 +176,7 @@ is still considered valid.
 
 -------
 
-### Bearer Token Auth
+### Authenticator: Bearer Token Auth
 
 When `authenticator` is `ExFTP.Auth.BearerAuth`, ex_ftp call out to an HTTP endpoint that implements
 [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/) with the user's 
@@ -209,7 +209,7 @@ is still considered valid.
 
 -------
 
-### Webhook Auth
+### Authenticator: Webhook Auth
 
 When `authenticator` is `ExFTP.Auth.WebhookAuth`, ex_ftp call out to an HTTP endpoint that accepts
 two query parameters: `username` and `password_hash`.
@@ -242,7 +242,7 @@ is still considered valid.
 
 -------
 
-### Custom Auth
+### Authenticator: Custom Auth
 
 Creating your own Authenticator is simple - just implement the `ExFTP.Authenticator` behaviour.
 
