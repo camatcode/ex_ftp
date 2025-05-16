@@ -175,6 +175,7 @@ If, after completing the full workflow, the endpoint responds with **HTTP 200**,
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs digest auth to check that a user
 is still considered valid.
+
 -------
 
 ### Authenticator: Bearer Token Auth
