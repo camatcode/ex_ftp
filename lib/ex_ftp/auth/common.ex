@@ -78,14 +78,6 @@ defmodule ExFTP.Auth.Common do
     end
   end
 
-  def get_key(map, k) when is_map(map) do
-    Map.get(map, k)
-    |> case do
-      nil -> {:error, "No #{k} found"}
-      v -> {:ok, v}
-    end
-  end
-
   def prepare(m) do
     m
     |> prepare_values()

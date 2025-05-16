@@ -1,5 +1,8 @@
 import Config
 
+config :ex_aws,
+  region: {:system, "AWS_REGION"}
+
 config :ex_ftp,
   ftp_port: 4041,
   min_passive_port: System.get_env("MIN_PASSIVE_PORT", "40002") |> String.to_integer(),

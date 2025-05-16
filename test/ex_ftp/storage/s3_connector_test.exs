@@ -1,0 +1,144 @@
+defmodule ExFTP.Storage.S3ConnectorTest do
+  @moduledoc false
+
+  use ExUnit.Case
+  doctest ExFTP.Storage.S3Connector
+
+  import ExFTP.TestHelper
+  import ExFTP.StorageTester
+
+  alias ExFTP.Storage.S3Connector
+
+  setup do
+    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
+    Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.S3Connector)
+    Application.put_env(:ex_ftp, :storage_config, %{})
+
+    socket = get_socket()
+    username = Faker.Internet.user_name()
+    password = Faker.Internet.slug()
+
+    send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+    |> send_and_expect("PASS", [password], 230, "Welcome.")
+
+    %{
+      socket: socket,
+      password: password,
+      storage_connector: ExFTP.Storage.S3Connector,
+      connector_state: %{current_working_directory: "/"}
+    }
+  end
+
+  @test_bucket "ex-ftp-test"
+
+  test "PWD", state do
+    test_pwd(state)
+  end
+
+  @tag run: true
+  test "CWD / CDUP", state do
+    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
+    test_cwd_cdup(state, tmp_dir)
+  end
+
+  test "MKD / RMD", state do
+    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
+    test_mkd_rmd(state, tmp_dir)
+  end
+
+  @tag run: true
+  test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR", state do
+    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
+
+    files_to_store =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+
+    refute Enum.empty?(files_to_store)
+
+    test_stor(state, tmp_dir, files_to_store)
+
+    # LIST -a
+    listing = test_list_a(state, tmp_dir)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
+    end)
+
+    # LIST
+    test_list(state, tmp_dir)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      |> Enum.reject(&String.starts_with?(&1, "."))
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
+    end)
+
+    # NLST
+    listing = test_nlst(state, tmp_dir)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      |> Enum.reject(&String.starts_with?(&1, "."))
+      |> Enum.sort()
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
+    end)
+
+    # NLST -a
+
+    listing = test_nlst_a(state, tmp_dir)
+
+    parts = String.split(listing, "\r\n")
+    refute Enum.empty?(parts)
+
+    files_to_find =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      |> Enum.sort()
+
+    refute Enum.empty?(files_to_find)
+
+    Enum.each(files_to_find, fn file_to_find ->
+      assert [_found | _] =
+               Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
+    end)
+
+    # SIZE
+    test_size(state, tmp_dir)
+
+    # RETR
+    paths_to_download =
+      File.ls!(File.cwd!())
+      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+
+    test_retr(state, tmp_dir, paths_to_download)
+  end
+end

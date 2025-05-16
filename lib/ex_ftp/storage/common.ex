@@ -24,7 +24,7 @@ defmodule ExFTP.Storage.Common do
   @opening_data_connection 150
   @closing_connection_success 226
   @action_aborted 451
-  @file_action_aborted 552
+  # @file_action_aborted 552
 
   @doc """
   Responds to FTP's `PWD` command
@@ -539,37 +539,82 @@ defmodule ExFTP.Storage.Common do
       ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
-    connector.open_write_stream(w_path, connector_state)
-    |> case do
-      {:ok, stream} ->
-        send_resp(@opening_data_connection, "Ok to send data.", socket)
+    send_resp(@opening_data_connection, "Ok to send data.", socket)
 
-        PassiveSocket.read(
-          pasv,
-          fn stream, opts ->
-            fs = opts[:fs]
-
-            try do
-              _fs =
-                chunk_stream(stream, opts)
-                |> Enum.into(fs)
-
-              send_resp(@closing_connection_success, "Transfer Complete.", socket)
-            rescue
-              _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
-            after
-              connector.close_write_stream(fs, connector_state)
-            end
-          end,
-          fs: stream,
-          chunk_size: 5 * 1024 * 1024
-        )
-
-      _ ->
-        send_resp(@file_action_aborted, "Failed to transfer.", socket)
-    end
+    PassiveSocket.read(
+      pasv,
+      connector.get_write_func(w_path, socket, connector_state, chunk_size: 5 * 1024 * 1024)
+    )
 
     connector_state
+  end
+
+  def prepare(m) do
+    m
+    |> prepare_values()
+    |> prepare_keys()
+  end
+
+  def prepare_values(m) do
+    m
+  end
+
+  def prepare_keys(m) do
+    m
+    |> snake_case_keys()
+    |> atomize_keys()
+  end
+
+  def snake_case_keys(m) do
+    m
+    |> Enum.map(fn {key, val} ->
+      {ProperCase.snake_case(key), val}
+    end)
+  end
+
+  def atomize_keys(m) do
+    m
+    |> Enum.map(fn {key, val} ->
+      key = String.to_atom(key)
+      {key, val}
+    end)
+  end
+
+  def validate_config(mod) do
+    with {:ok, config} <- get_storage_config() do
+      validated = mod.build(config)
+      {:ok, validated}
+    end
+  end
+
+  def chunk_stream(stream, opts) do
+    opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
+
+    Stream.chunk_while(
+      stream,
+      <<>>,
+      fn data, chunk ->
+        chunk = chunk <> data
+
+        if byte_size(chunk) >= opts[:chunk_size] do
+          {:cont, chunk, <<>>}
+        else
+          {:cont, chunk}
+        end
+      end,
+      fn
+        <<>> -> {:cont, []}
+        chunk -> {:cont, chunk, []}
+      end
+    )
+  end
+
+  defp get_storage_config do
+    Application.get_env(:ex_ftp, :storage_config)
+    |> case do
+      nil -> {:error, "No :storage_config found"}
+      config -> {:ok, config}
+    end
   end
 
   defp hidden?(%{file_name: file_name}), do: String.starts_with?(file_name, ".")
@@ -631,34 +676,14 @@ defmodule ExFTP.Storage.Common do
     end
   end
 
-  defp chunk_stream(stream, opts) do
-    opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
-
-    Stream.chunk_while(
-      stream,
-      <<>>,
-      fn data, chunk ->
-        chunk = chunk <> data
-
-        if byte_size(chunk) >= opts[:chunk_size] do
-          {:cont, chunk, <<>>}
-        else
-          {:cont, chunk}
-        end
-      end,
-      fn
-        <<>> -> {:cont, []}
-        chunk -> {:cont, chunk, []}
-      end
-    )
-  end
-
   defp get_hidden_roots(connector, connector_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), ".")
 
     {:ok, first} = connector.get_content_info(w_path, connector_state)
+    first = Map.put(first, :file_name, ".")
     w_path = change_prefix(connector.get_working_directory(connector_state), "..")
     {:ok, second} = connector.get_content_info(w_path, connector_state)
+    second = Map.put(second, :file_name, "..")
     [first, second]
   end
 end
