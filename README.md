@@ -209,6 +209,8 @@ If the endpoint responds with **HTTP 200**, the user is considered authenticated
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs bearer auth to check that a user
 is still considered valid.
+
+
 -------
 
 ### Authenticator: Webhook Auth
@@ -289,6 +291,7 @@ defmodule MyCustomAuth do
   end
 end
 ```
+
 -------
 
 ## Choosing a Storage Connector
