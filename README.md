@@ -74,10 +74,6 @@ Additionally, many require a map under `authenticator_config`.
 
 -------
 
-<details>
-
-<summary>Authenticator: No Auth</summary>
-
 ### Authenticator: No Auth
 
 > [!WARNING]  
@@ -94,12 +90,9 @@ everything is authenticated.
        authenticator_config: %{}
  ```
 
-</details>
+-------
 
-
-<details>
-
-<summary>Authenticator: Passthrough Auth</summary>
+### Authenticator: Passthrough Auth
 
 > [!WARNING]  
 > This is not recommended for any production server.
@@ -113,12 +106,10 @@ but accept any user and password combination who isn't `root`.
        authenticator: ExFTP.Auth.PassthroughAuth,
        authenticator_config: %{}
  ```
-</details>
+
 -------
 
-<details>
-
-<summary>Authenticator: HTTP Basic Auth</summary>
+### Authenticator: HTTP Basic Auth
 
 > [!WARNING]  
 > This is not recommended for situations not protected by SSL.
@@ -142,8 +133,6 @@ When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpo
       }
  ```
 
-</details>
-
 If the endpoint responds with **HTTP 200**, the user is considered authenticated.
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs basic auth to check that a user
@@ -151,9 +140,7 @@ is still considered valid.
 
 -------
 
-<details>
-
-<summary> Authenticator: HTTP Digest Access Auth</summary>
+### Authenticator: HTTP Digest Access Auth
 
 > [!NOTE]  
 > This can be used in situations where SSL is not available, though be warned, Digest Access is considered
@@ -184,12 +171,9 @@ If, after completing the full workflow, the endpoint responds with **HTTP 200**,
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs digest auth to check that a user
 is still considered valid.
 
-</details>
 -------
 
-<details>
-
-<summary>Authenticator: Bearer Token Auth</summary>
+### Authenticator: Bearer Token Auth
 
 > [!NOTE]  
 > This is helpful when the "user" is actually a system or process.
@@ -220,13 +204,10 @@ If the endpoint responds with **HTTP 200**, the user is considered authenticated
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs bearer auth to check that a user
 is still considered valid.
 
-</details>
 
 -------
 
-<details>
-
-<summary>Authenticator: Webhook Auth</summary>
+### Authenticator: Webhook Auth
 
 > [!NOTE]  
 > `password_hash` is the hash of the supplied password using the hashing algorithm dictated by the config.
@@ -258,12 +239,9 @@ If the endpoint responds with **HTTP 200**, the user is considered authenticated
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs webhook auth to check that a user
 is still considered valid.
 
-</details>
 -------
 
-<details>
-
-<summary>Authenticator: Custom Auth</summary>
+### Authenticator: Custom Auth
 
 Creating your own Authenticator is simple - just implement the `ExFTP.Authenticator` behaviour.
 
@@ -308,7 +286,6 @@ defmodule MyCustomAuth do
 end
 ```
 
-</details>
 -------
 
 ## Choosing a Storage Connector
