@@ -372,7 +372,7 @@ config :ex_aws,
 
 config :ex_ftp,
   #....
-  storage_connector: ExFTP.Storage.FileConnector,
+  storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
     # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
     # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
@@ -410,7 +410,7 @@ config :ex_aws,
 
 config :ex_ftp,
   #....
-  storage_connector: ExFTP.Storage.FileConnector,
+  storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
     # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
     # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
