@@ -1,17 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.DigestAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which will call out to an endpoint with HTTP auth digest to determine access
+  When **authenticator** is `ExFTP.Auth.DigestAuth`, this authenticator will call out to an HTTP endpoint that
+  implements [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication){:target=\"_blank\"}
+  with the user's supplied credentials.
 
-  This route at minimum, assumes there exists an HTTP endpoint that when called with HTTP auth digest
-    that it will respond first with an HTTP 401 with Digest Auth headers, then HTTP *200* if successful auth digest; any other response is considered a bad login.
-
-  Additionally, this authenticator can be set up to reach out to another endpoint that when called with HTTP auth digest
-   will  respond first with an HTTP 401 with Digest Auth headers, then status *200* if the user is still considered authenticated, and any other status if
-   the user should not be considered authenticated.
-
-  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
-  a user.
+  > #### 🔒 Security {: .tip}
+  >
+  > This can be used in situations where SSL is not available, though be warned, Digest Access is considered
+  > an obsolete protocol.
 
   <!-- tabs-open -->
 
@@ -26,13 +23,14 @@ defmodule ExFTP.Auth.DigestAuth do
 
   ```elixir
     %{
+      # ... ,
       authenticator: ExFTP.Auth.DigestAuth,
       authenticator_config: %{
         login_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
         login_method: :get,
         authenticated_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
         authenticated_method: :get,
-        authenticated_ttl_ms: 1000 * 60
+        authenticated_ttl_ms: 1000 * 60 * 60
       }
     }
   ```
@@ -62,7 +60,7 @@ defmodule ExFTP.Auth.DigestAuth do
   def valid_user?(_username), do: true
 
   @doc """
-  Requests a login using HTTP Digest.
+  Requests a login using [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication){:target=\"_blank\"}
 
   <!-- tabs-open -->
 
@@ -72,11 +70,11 @@ defmodule ExFTP.Auth.DigestAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * Receives a password from the client
-   * Calls the `login_url` - receives HTTP 401 with digest headers
-   * Performs calculation, calls `login_url` with proper headers
-   * If the response is HTTP 200, success. Otherwise, bad login.
+   * Reads the **authenticator_config**.
+   * Receives a password from the client (a username was supplied earlier)
+   * Calls the **login_url** - receives **HTTP 401** with digest headers
+   * Performs calculation, calls **login_url** with proper headers
+   * If the response is **HTTP 200**, success. Otherwise, bad login.
 
   #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
@@ -92,9 +90,8 @@ defmodule ExFTP.Auth.DigestAuth do
       iex> })
       iex> {:ok, _} = DigestAuth.login(password , %{username: username})
 
-  #{ExFTP.Doc.related(["`t:ExFTP.Auth.DigestAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.DigestAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`"])}
 
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -119,12 +116,12 @@ defmodule ExFTP.Auth.DigestAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * If the config has `authenticated_url`,
-     * Calls it
-     * First, if the response is HTTP 401, perform digest calculation, then call again with the result
-     * Next, if the response is HTTP 200, success. Otherwise, no longer authenticated.
-   * If the config does not have `authenticated_url`,
+   * Reads the **authenticator_config**.
+   * If the config has **authenticated_url**,
+      * Calls the **authenticated_url** - receives **HTTP 401** with digest headers
+      * Performs calculation, calls **authenticated_url** with proper headers
+      * If the response is **HTTP 200**, success. Otherwise, bad login.
+   * If the config does not have **authenticated_url**,
      * investigate the **authenticator_state** for `authenticated: true`
 
   #{ExFTP.Doc.returns(success: "`true` or `false`")}
@@ -144,8 +141,6 @@ defmodule ExFTP.Auth.DigestAuth do
       true
 
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.DigestAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
