@@ -256,8 +256,8 @@ is still considered valid.
 > [!NOTE]  
 > `password_hash` is the hash of the supplied password using the hashing algorithm dictated by the config.
 
-When `authenticator` is `ExFTP.Auth.WebhookAuth`, ex_ftp call out to an HTTP endpoint that accepts
-two query parameters: `username` and `password_hash`.
+When **authenticator** is `ExFTP.Auth.WebhookAuth`, this authenticator will call out to an HTTP endpoint that accepts
+two query parameters: `username` and/or `password_hash`.
 
 
 ```elixir
