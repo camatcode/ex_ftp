@@ -1,7 +1,13 @@
 import Config
 
 config :ex_aws,
-  region: {:system, "AWS_REGION"}
+  s3: [
+    scheme: "http://",
+    host: "ariadne",
+    port: 4566,
+    access_key_id: "",
+    secret_access_key: ""
+  ]
 
 config :ex_ftp,
   ftp_port: 4041,
