@@ -52,7 +52,7 @@ defmodule ExFTP.Auth.DigestAuth do
   Always returns `true`.
 
   > #### No performance benefit {: .tip}
-  > This method is normally used to short-circuit login requests.
+  > This method is normally used to short-circuit bad login requests.
   > The performance gain in that short-circuit is negligible for this auth, so it's not used.
   """
   @impl Authenticator

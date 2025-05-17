@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.NoAuth do
   @moduledoc """
-  When `authenticator` is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and
+  When **authenticator** is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and
   assume everything is authenticated.
 
   > #### 🔒 Security {: .error}

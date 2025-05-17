@@ -123,7 +123,7 @@ Below are all the included authenticators.
 > [!WARNING]  
 > This is not recommended for any production server.
 
-When `authenticator` is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and 
+When **authenticator** is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and 
 assume everything is authenticated.
 
 
@@ -141,8 +141,8 @@ assume everything is authenticated.
 > [!WARNING]  
 > This is not recommended for any production server.
 
-When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
-but accept any user and password combination who isn't `root`.
+When **authenticator** is `ExFTP.Auth.PassthroughAuth`, this authenticator will require credentials, 
+but accepts any user and password combination who isn't `root`.
 
 ```elixir
      config :ex_ftp,
