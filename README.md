@@ -62,7 +62,7 @@ Then run `mix deps.get` to install ExFTP and its dependencies.
 
 ## Reckless Quick Start
 
-TODO
+🚧 TODO
 
 ## Configuration
 
@@ -343,7 +343,9 @@ Below are all the included storage connectors.
 
 ### Storage Connector: File
 
-When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use the file system of where it is running.
+When **storage_connector** is `ExFTP.Storage.FileConnector`, this connector will use the file system of where 
+it is running.
+
 This is the out-of-the-box behavior you'd expect from any FTP server.
 
 ```elixir
@@ -357,7 +359,7 @@ config :ex_ftp,
 
 ### Storage Connector: S3
 
-When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use any S3-compatible storage provider.
+When **storage_connector** is `ExFTP.Storage.S3Connector`, this connector will use any S3-compatible storage provider.
 
 Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured properly.
 
@@ -420,24 +422,24 @@ config :ex_ftp,
 
 ### Storage Connector: Google Cloud Storage
 
-IN PROGRESS
+🚧 IN PROGRESS
 
 -----
 
 ### Storage Connector: Azure
 
-TODO
+🚧 TODO
 
 -----
 
 ### Storage Connector: Supabase
 
-TODO
+🚧 TODO
 
 -----
 
 ### Custom Storage Connector
 
-TO document.
+🚧 TO document.
 
 -----
