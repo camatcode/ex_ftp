@@ -21,14 +21,13 @@ defmodule ExFTP.Auth.BearerAuthConfig do
 
   <!-- tabs-open -->
   ### 🏷️ Required Keys
-    * **login_url** :: `t:login_url/0`
+    * **login_url** :: `t:ExFTP.Auth.Common.login_url/0`
 
   ### 🏷️ Optional Keys
-    * **login_method** :: `t:login_method/0`
-    * **password_hash_type** :: `t:password_hash_type/0`
-    * **authenticated_url** :: `t:authenticated_url/0`
-    * **authenticated_method** :: `t:authenticated_url/0`
-    * **authenticated_ttl_ms** :: `t:authenticated_ttl_ms/0`
+    * **login_method** :: `t:ExFTP.Auth.Common.login_method/0`
+    * **authenticated_url** :: `t:ExFTP.Auth.Common.authenticated_url/0`
+    * **authenticated_method** :: `t:ExFTP.Auth.Common.authenticated_url/0`
+    * **authenticated_ttl_ms** :: `t:ExFTP.Auth.Common.authenticated_ttl_ms/0`
 
   <!-- tabs-open -->
   """
@@ -50,6 +49,10 @@ defmodule ExFTP.Auth.BearerAuthConfig do
     authenticated_method: :get
   ]
 
+  @doc """
+  Builds a `BasicAuthConfig` from a map
+  """
+  @spec build(m :: map) :: BasicAuthConfig.t()
   def build(m) do
     fields =
       m

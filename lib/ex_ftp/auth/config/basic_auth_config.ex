@@ -52,7 +52,7 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   @doc """
   Builds a `BasicAuthConfig` from a map
   """
-  @spec build(username :: map) :: BasicAuthConfig.t()
+  @spec build(m :: map) :: BasicAuthConfig.t()
   def build(m) do
     fields =
       m
