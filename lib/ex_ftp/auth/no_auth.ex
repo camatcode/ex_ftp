@@ -15,7 +15,7 @@ defmodule ExFTP.Auth.NoAuth do
   *Keys*
 
   * **authenticator**  == `ExFTP.Auth.NoAuth`
-  * **authenticator_config** :: `%{}`
+  * **authenticator_config** == `%{}`
 
   *Example*
 
