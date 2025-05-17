@@ -24,9 +24,9 @@ defmodule ExFTP.Auth.DigestAuthConfig do
     * **login_url** :: `t:ExFTP.Auth.Common.login_url/0`
 
   ### 🏷️ Optional Keys
-    * **login_method** :: `:get | :post`
+    * **login_method** :: `t:ExFTP.Auth.Common.login_method/0`
     * **authenticated_url** :: `t:ExFTP.Auth.Common.authenticated_url/0`
-    * **authenticated_method** :: `:get | :post`
+    * **authenticated_method** :: `t:ExFTP.Auth.Common.authenticated_method/0`
     * **authenticated_ttl_ms** :: `t:ExFTP.Auth.Common.authenticated_ttl_ms/0`
 
   <!-- tabs-open -->
@@ -49,6 +49,17 @@ defmodule ExFTP.Auth.DigestAuthConfig do
     authenticated_method: :get
   ]
 
+  @doc """
+  Builds a `t:ExFTP.Auth.DigestAuthConfig.t/0` from a map
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **m** :: A map to build into a `t:ExFTP.Auth.DigestAuthConfig.t/0`
+
+  <!-- tabs-close -->
+  """
+  @spec build(m :: map) :: DigestAuthConfig.t()
   def build(m) do
     fields =
       m
