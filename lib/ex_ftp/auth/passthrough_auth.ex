@@ -1,34 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.PassthroughAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which permits any user except `"root"`
+  When **authenticator** is `ExFTP.Auth.PassthroughAuth`, this authenticator will require credentials,
+  but accepts any user and password combination who isn't `root`.
+
+  > #### 🔒 Security {: .error}
+  >
+  > Don't use `PassthroughAuth` for production servers.
 
   <!-- tabs-open -->
 
   ### ⚙️ Configuration
 
-  > #### Elixir {: .info}
-  > `NoAuth` only requires `authenticator` to be set to `ExFTP.Auth.PassthroughAuth`
-  >
-  > ```elixir
-  >     config :ex_ftp,
-  >       ....
-  >       authenticator: ExFTP.Auth.PassthroughAuth,
-  >       ....
-  > ```
+  *Keys*
 
-  ### ⚠️ Reminders
-  > #### Authenticator State {: .tip}
-  >
-  >   * `authenticated:` `true` will exist if the current user has successfully called `login/2`
-  >      during this session
-  >   * `username:` `t:ExFTP.Authenticator.username/0` will exist if the current session has defined the user
-  >      (but hasn't necessarily supplied a password)
+  * **authenticator**  == `ExFTP.Auth.PassthroughAuth`
+  * **authenticator_config** == `%{}`
 
-  > #### 🔒 Security {: .tip}
-  >
-  > `PassThroughAuth` is not recommended for publicly facing deployment servers; as it's only
-  > one step better than no auth at all.
+  *Example*
+
+  ```elixir
+    %{
+      # ... ,
+      authenticator: ExFTP.Auth.PassthroughAuth,
+      authenticator_config: %{}
+    }
+  ```
 
   #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
 
@@ -62,9 +59,7 @@ defmodule ExFTP.Auth.PassthroughAuth do
   >
   > The client will never be informed that a username is invalid.
   >
-  > The server uses this method to short-circuit auth calls.
-
-  #{ExFTP.Doc.resources("section-4")}
+  > The server uses this method to short-circuit bad auth calls.
 
   <!-- tabs-close -->
   """
@@ -90,16 +85,6 @@ defmodule ExFTP.Auth.PassthroughAuth do
       iex> {:error, _} = PassthroughAuth.login("password", %{})
       iex> # "root" is a disallowed user in PassthroughAuth
       iex> {:error, _} = PassthroughAuth.login("password", %{username: "root"})
-
-  ### ⚠️ Reminders
-  > #### Authenticator State {: .tip}
-  >
-  > The `t:ExFTP.Authenticator.authenticator_state/0` will contain a `:username` key, if one was provided.
-  >
-  > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
-  > See `authenticated?/1` for more information.
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -132,8 +117,6 @@ defmodule ExFTP.Auth.PassthroughAuth do
       true
       iex> PassthroughAuth.authenticated?(%{})
       false
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """

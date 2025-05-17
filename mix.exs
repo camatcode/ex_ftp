@@ -1,4 +1,4 @@
-defmodule Ftp2Cloud.MixProject do
+defmodule ExFTP.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/camatcode/ex_ftp"
@@ -27,7 +27,6 @@ defmodule Ftp2Cloud.MixProject do
         source_ref: "v#{@version}",
         source_url: @source_url,
         extra_section: "GUIDES",
-        extras: extras(),
         formatters: ["html"],
         extras: extras(),
         groups_for_modules: groups_for_modules(),
@@ -45,13 +44,14 @@ defmodule Ftp2Cloud.MixProject do
         ExFTP.Auth.WebhookAuth,
         ExFTP.Auth.BearerAuth,
         ExFTP.Auth.BasicAuth,
-        ExFTP.Auth.BasicAuthConfig
+        ExFTP.Auth.DigestAuth
       ],
       "Authenticator Config": [
         ExFTP.Auth.Common,
         ExFTP.Auth.WebhookAuthConfig,
         ExFTP.Auth.BearerAuthConfig,
-        ExFTP.Auth.BasicAuthConfig
+        ExFTP.Auth.BasicAuthConfig,
+        ExFTP.Auth.DigestAuthConfig
       ],
       Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]

@@ -1,17 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.WebhookAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which will call out to an HTTP endpoint to determine access
-
-  This route at minimum, assumes there exists an HTTP endpoint that when called with `username` and `password_hash`
-  as query parameters will respond status *200* on a valid parameters and any other status on an invalid login.
-
-  Additionally, this authenticator can be set up to reach out to another endpoint that when called with a `username`
-  query parameter will respond status *200* if the user is still considered authenticated, and any other status if
-  the user should not be considered authenticated.
-
-  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
-  a user.
+  When **authenticator** is `ExFTP.Auth.WebhookAuth`, this authenticator will call out to an HTTP endpoint that accepts
+  two query parameters: `username` and/or `password_hash`.
 
   <!-- tabs-open -->
 
@@ -26,6 +17,7 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   ```elixir
     %{
+      # ... ,
       authenticator: ExFTP.Auth.WebhookAuth,
       authenticator_config: %{
         login_url: "https://httpbin.dev/status/200",
@@ -33,7 +25,7 @@ defmodule ExFTP.Auth.WebhookAuth do
         password_hash_type: :sha256,
         authenticated_url: "https://httpbin.dev/status/200",
         authenticated_method: :post,
-        authenticated_ttl_ms: 1000 * 60
+        authenticated_ttl_ms: 1000 * 60 * 60
       }
     }
   ```
@@ -56,7 +48,7 @@ defmodule ExFTP.Auth.WebhookAuth do
   Always returns `true`.
 
   > #### No performance benefit {: .tip}
-  > This method is normally used to short-circuit login requests.
+  > This method is normally used to short-circuit bad login requests.
   > The performance gain in that short-circuit is negligible for webhooks, so it's not used.
   """
   @impl Authenticator
@@ -64,7 +56,7 @@ defmodule ExFTP.Auth.WebhookAuth do
   def valid_user?(_username), do: true
 
   @doc """
-  Requests a login using a callback.
+  Requests a login using a webhook.
 
   <!-- tabs-open -->
 
@@ -74,11 +66,11 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
+   * Reads the **authenticator_config**.
    * Receives a password from the client (a `:username` key might exist in the **authenticator_state**)
    * Hashes the password
-   * Calls the `login_url` (e.g `http://httpbin.dev/get?username={username}&password_hash={password_hash}`)
-   * If the response is HTTP 200, success. Otherwise, bad login.
+   * Calls the **login_url** (e.g `http://httpbin.dev/get?username={username}&password_hash={password_hash}`)
+   * If the response is **HTTP 200**, success. Otherwise, bad login.
 
   #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
@@ -94,17 +86,7 @@ defmodule ExFTP.Auth.WebhookAuth do
       iex> {:ok, _} = WebhookAuth.login("password123", %{username: "jsmith"})
 
 
-  ### ⚠️ Reminders
-  > #### Authenticator State {: .tip}
-  >
-  > The `t:ExFTP.Authenticator.authenticator_state/0` will contain a `:username` key, if one was provided.
-  >
-  > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
-  > See `authenticated?/1` for more information.
-
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -129,11 +111,11 @@ defmodule ExFTP.Auth.WebhookAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * If the config has `authenticated_url`,
-     * Calls it (e.g `http://httpbin.dev/get?username={username}`)
-     * If the response is HTTP 200, success. Otherwise, no longer authenticated.
-   * If the config does not have `authenticated_url`,
+   * Reads the **authenticator_config**.
+   * If the config has **authenticated_url**,
+     * Calls it with the username(e.g `http://httpbin.dev/get?username={username}`)
+     * If the response is **HTTP 200**, success. Otherwise, no longer authenticated.
+   * If the config does not have **authenticated_url**,
      * investigate the **authenticator_state** for `authenticated: true`
 
   #{ExFTP.Doc.returns(success: "`true` or `false`")}
@@ -151,8 +133,6 @@ defmodule ExFTP.Auth.WebhookAuth do
       true
 
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.WebhookAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """

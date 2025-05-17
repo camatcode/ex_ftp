@@ -123,8 +123,8 @@ Below are all the included authenticators.
 > [!WARNING]  
 > This is not recommended for any production server.
 
-When `authenticator` is `ExFTP.Auth.NoAuth`, ex_ftp will completely ignore any supplied credentials and assume
-everything is authenticated.
+When **authenticator** is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and 
+assume everything is authenticated.
 
 
 ```elixir
@@ -141,8 +141,8 @@ everything is authenticated.
 > [!WARNING]  
 > This is not recommended for any production server.
 
-When `authenticator` is `ExFTP.Auth.PassthroughAuth`, ex_ftp will require credentials, 
-but accept any user and password combination who isn't `root`.
+When **authenticator** is `ExFTP.Auth.PassthroughAuth`, this authenticator will require credentials, 
+but accepts any user and password combination who isn't `root`.
 
 ```elixir
      config :ex_ftp,
@@ -158,7 +158,7 @@ but accept any user and password combination who isn't `root`.
 > [!WARNING]  
 > This is not recommended for situations not protected by SSL.
 
-When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
+When **authenticator** is `ExFTP.Auth.BasicAuth`, this authenticator will call out to an HTTP endpoint that implements 
 [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) with the user's supplied credentials.
 
 
@@ -190,9 +190,9 @@ is still considered valid.
 > This can be used in situations where SSL is not available, though be warned, Digest Access is considered
 > an obsolete protocol.
 
-When `authenticator` is `ExFTP.Auth.DigestAuth`, ex_ftp call out to an HTTP endpoint that implements
-[HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication) with the user's supplied 
-credentials.
+When **authenticator** is `ExFTP.Auth.DigestAuth`, this authenticator will call out to an HTTP endpoint that
+implements [HTTP Digest Access Auth](https://en.wikipedia.org/wiki/Digest_access_authentication) with the user's
+supplied credentials.
 
 
 ```elixir
@@ -224,7 +224,7 @@ is still considered valid.
 >
 > `username` isn't important for a Bearer token; though a provided username is still held on to.
 
-When `authenticator` is `ExFTP.Auth.BearerAuth`, ex_ftp call out to an HTTP endpoint that implements
+When **authenticator** is `ExFTP.Auth.BearerAuth`, this authenticator will call out to an HTTP endpoint that implements
 [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/) with the user's 
 supplied credentials.
 
@@ -256,8 +256,8 @@ is still considered valid.
 > [!NOTE]  
 > `password_hash` is the hash of the supplied password using the hashing algorithm dictated by the config.
 
-When `authenticator` is `ExFTP.Auth.WebhookAuth`, ex_ftp call out to an HTTP endpoint that accepts
-two query parameters: `username` and `password_hash`.
+When **authenticator** is `ExFTP.Auth.WebhookAuth`, this authenticator will call out to an HTTP endpoint that accepts
+two query parameters: `username` and/or `password_hash`.
 
 
 ```elixir
