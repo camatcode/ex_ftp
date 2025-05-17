@@ -22,7 +22,7 @@ defmodule ExFTP.Auth.NoAuth do
   ```elixir
     %{
       # ... ,
-      authenticator: ExFTP.Auth.DigestAuth,
+      authenticator: ExFTP.Auth.NoAuth,
       authenticator_config: %{}
     }
   ```
