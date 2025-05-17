@@ -30,8 +30,9 @@
 - [Installation](#installation)
 - [Reckless Quick Start](#reckless-quick-start)
 - [Configuration](#configuration)
-  - [Choosing an Authenticator](#choose-an-authenticator)
-  - [Choosing a Storage Connector](#choose-a-storage-connector)
+  - [Server Config](#1-server-config)
+  - [Choosing an Authenticator](#2-choose-an-authenticator)
+  - [Choosing a Storage Connector](#3-choose-a-storage-connector)
 - [Authenticators](#authenticators)
   - [No Auth](#authenticator-no-auth)
   - [Passthrough Auth](#authenticator-passthrough-auth)
@@ -64,6 +65,8 @@ Then run `mix deps.get` to install ExFTP and its dependencies.
 TODO
 
 ## Configuration
+
+### 1. Server Config
 
 A detailed, example configuration.
 
