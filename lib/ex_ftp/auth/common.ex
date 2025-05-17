@@ -101,8 +101,7 @@ defmodule ExFTP.Auth.Common do
   """
   @spec prepare(m :: map()) :: map()
   def prepare(m) do
-    m
-    |> prepare_keys()
+    prepare_keys(m)
   end
 
   defp prepare_keys(m) do
@@ -112,22 +111,21 @@ defmodule ExFTP.Auth.Common do
   end
 
   defp snake_case_keys(m) do
-    m
-    |> Enum.map(fn {key, val} ->
+    Enum.map(m, fn {key, val} ->
       {ProperCase.snake_case(key), val}
     end)
   end
 
   defp atomize_keys(m) do
-    m
-    |> Enum.map(fn {key, val} ->
+    Enum.map(m, fn {key, val} ->
       key = String.to_atom(key)
       {key, val}
     end)
   end
 
   defp get_authenticator_config do
-    Application.get_env(:ex_ftp, :authenticator_config)
+    :ex_ftp
+    |> Application.get_env(:authenticator_config)
     |> case do
       nil -> {:error, "No :authenticator_config found"}
       config -> {:ok, config}

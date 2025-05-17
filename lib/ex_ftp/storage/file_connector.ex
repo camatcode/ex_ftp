@@ -1,9 +1,35 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Storage.FileConnector do
   @moduledoc """
-  An implementation of `ExFTP.StorageConnector` which serves content from local file storage.
+  When **storage_connector** is `ExFTP.Storage.FileConnector`, this connector will use the file system of where
+  it is running.
+
+  This is the out-of-the-box behavior you'd expect from any FTP server.
+
+  > #### 🔒 Security {: .warning}
+  >
+  > Currently, there is no file access management per user.
+  >
+  > Authenticated users perform file system actions as the same file system user as the FTP server
 
   <!-- tabs-open -->
+
+  ### ⚙️ Configuration
+
+  *Keys*
+
+  * **storage_connector**  == `ExFTP.Storage.FileConnector`
+  * **storage_config**  == `%{}`
+
+  *Example*
+
+  ```elixir
+    %{
+      # ... ,
+      storage_connector: ExFTP.Storage.FileConnector,
+      storage_config: %{}
+    }
+  ```
 
   #{ExFTP.Doc.related(["`ExFTP.StorageConnector`"])}
 
@@ -13,8 +39,8 @@ defmodule ExFTP.Storage.FileConnector do
   """
   @behaviour ExFTP.StorageConnector
 
-  import ExFTP.Storage.Common
   import ExFTP.Common
+  import ExFTP.Storage.Common
 
   alias ExFTP.StorageConnector
 
@@ -25,8 +51,6 @@ defmodule ExFTP.Storage.FileConnector do
 
   ### 🏷️ Params
     * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
-
-  #{ExFTP.Doc.returns(success: "(The working directory)")}
 
   ### 💻 Examples
 
@@ -42,9 +66,10 @@ defmodule ExFTP.Storage.FileConnector do
   <!-- tabs-close -->
   """
   @impl StorageConnector
+  @spec get_working_directory(connector_state :: ExFTP.StorageConnector.connector_state()) ::
+          String.t()
   def get_working_directory(%{current_working_directory: cwd} = _connector_state), do: cwd
 
-  @impl StorageConnector
   @doc """
   Whether a given path is an existing directory
 
@@ -69,11 +94,15 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
+  @spec directory_exists?(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: boolean
   def directory_exists?(path, _connector_state) do
     File.exists?(path) && File.dir?(path)
   end
 
-  @impl StorageConnector
   @doc """
   Creates a directory, given a path
 
@@ -99,8 +128,14 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
+  @spec make_directory(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, connector_state} | {:error, term()}
   def make_directory(path, connector_state) do
-    File.mkdir_p(path)
+    path
+    |> File.mkdir_p()
     |> case do
       :ok -> {:ok, connector_state}
       err -> err
@@ -136,7 +171,8 @@ defmodule ExFTP.Storage.FileConnector do
   <!-- tabs-close -->
   """
   def delete_directory(path, connector_state) do
-    rmrf_dir(path)
+    path
+    |> rmrf_dir()
     |> case do
       {:ok, _} -> {:ok, connector_state}
       err -> err
@@ -168,7 +204,8 @@ defmodule ExFTP.Storage.FileConnector do
   <!-- tabs-close -->
   """
   def get_directory_contents(path, connector_state) do
-    File.ls(path)
+    path
+    |> File.ls()
     |> case do
       {:ok, files} ->
         contents =
@@ -210,7 +247,8 @@ defmodule ExFTP.Storage.FileConnector do
   <!-- tabs-close -->
   """
   def get_content_info(path, _connector_state) do
-    File.lstat(path)
+    path
+    |> File.lstat()
     |> case do
       {:ok,
        %{
@@ -282,7 +320,8 @@ defmodule ExFTP.Storage.FileConnector do
 
       try do
         _ =
-          chunk_stream(stream, opts)
+          stream
+          |> chunk_stream(opts)
           |> Enum.into(fs)
 
         send_resp(@closing_connection_success, "Transfer Complete.", socket)

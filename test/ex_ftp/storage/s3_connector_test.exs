@@ -2,12 +2,13 @@ defmodule ExFTP.Storage.S3ConnectorTest do
   @moduledoc false
 
   use ExUnit.Case
-  doctest ExFTP.Storage.S3Connector
 
-  import ExFTP.TestHelper
   import ExFTP.StorageTester
+  import ExFTP.TestHelper
 
   alias ExFTP.Storage.S3Connector
+
+  doctest ExFTP.Storage.S3Connector
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
@@ -18,7 +19,8 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
 
-    send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+    socket
+    |> send_and_expect("USER", [username], 331, "User name okay, need password")
     |> send_and_expect("PASS", [password], 230, "Welcome.")
 
     %{
@@ -54,8 +56,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
 
     files_to_store =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
 
     refute Enum.empty?(files_to_store)
 
@@ -68,8 +71,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
 
     refute Enum.empty?(files_to_find)
 
@@ -84,8 +88,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
       |> Enum.reject(&String.starts_with?(&1, "."))
 
     refute Enum.empty?(files_to_find)
@@ -101,8 +106,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
       |> Enum.reject(&String.starts_with?(&1, "."))
       |> Enum.sort()
 
@@ -120,8 +126,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
       |> Enum.sort()
 
     refute Enum.empty?(files_to_find)
@@ -136,8 +143,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
 
     # RETR
     paths_to_download =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
 
     test_retr(state, tmp_dir, paths_to_download)
   end

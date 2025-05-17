@@ -34,8 +34,9 @@ defmodule ExFTP.Auth.NoAuth do
   <!-- tabs-close -->
   """
 
+  @behaviour ExFTP.Authenticator
+
   alias ExFTP.Authenticator
-  @behaviour Authenticator
 
   @doc """
   Always returns true
@@ -86,8 +87,7 @@ defmodule ExFTP.Auth.NoAuth do
           password :: Authenticator.password(),
           authenticator_state :: Authenticator.authenticator_state()
         ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
-  def login(_password, authenticator_state),
-    do: {:ok, authenticator_state}
+  def login(_password, authenticator_state), do: {:ok, authenticator_state}
 
   @doc """
   Assumes the user is always authenticated

@@ -1,12 +1,15 @@
 defmodule ExFTP.Storage.FileConnectorTest do
   @moduledoc false
 
-  import ExFTP.TestHelper
-  import ExFTP.StorageTester
-
   use ExUnit.Case
+
+  import ExFTP.StorageTester
+  import ExFTP.TestHelper
+
+  alias ExFTP.Storage.FileConnector
+
   doctest ExFTP.Storage.Common
-  doctest ExFTP.Storage.FileConnector
+  doctest FileConnector
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
@@ -15,13 +18,14 @@ defmodule ExFTP.Storage.FileConnectorTest do
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
 
-    send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+    socket
+    |> send_and_expect("USER", [username], 331, "User name okay, need password")
     |> send_and_expect("PASS", [password], 230, "Welcome.")
 
     %{
       socket: socket,
       password: password,
-      storage_connector: ExFTP.Storage.FileConnector,
+      storage_connector: FileConnector,
       connector_state: %{current_working_directory: "/"}
     }
   end
@@ -30,7 +34,8 @@ defmodule ExFTP.Storage.FileConnectorTest do
     test_pwd(state)
 
     # root can't PWD with passthrough auth
-    send_and_expect(socket, "USER", ["root"], 331, "User name okay, need password")
+    socket
+    |> send_and_expect("USER", ["root"], 331, "User name okay, need password")
     |> send_and_expect("PASS", [password], 530, "Authentication failed.")
     |> send_and_expect("PWD", [], 530, "Not logged in")
   end
@@ -69,7 +74,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     parts = String.split(listing, "\r\n")
     refute Enum.empty?(parts)
 
-    files_to_find = File.ls!(w_dir) |> Enum.reject(&String.starts_with?(&1, "."))
+    files_to_find = w_dir |> File.ls!() |> Enum.reject(&String.starts_with?(&1, "."))
     refute Enum.empty?(files_to_find)
 
     Enum.each(files_to_find, fn file_to_find ->
@@ -85,7 +90,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(w_dir) |> Enum.reject(&String.starts_with?(&1, ".")) |> Enum.sort()
+      w_dir |> File.ls!() |> Enum.reject(&String.starts_with?(&1, ".")) |> Enum.sort()
 
     refute Enum.empty?(files_to_find)
 
@@ -103,7 +108,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     refute Enum.empty?(parts)
 
     files_to_find =
-      File.ls!(w_dir) |> Enum.sort()
+      w_dir |> File.ls!() |> Enum.sort()
 
     refute Enum.empty?(files_to_find)
 
@@ -118,7 +123,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     w_dir = File.cwd!()
 
     paths_to_download =
-      File.ls!(w_dir) |> Enum.filter(fn file -> Path.join(w_dir, file) |> File.regular?() end)
+      w_dir |> File.ls!() |> Enum.filter(fn file -> w_dir |> Path.join(file) |> File.regular?() end)
 
     test_retr(state, w_dir, paths_to_download)
   end
@@ -131,12 +136,13 @@ defmodule ExFTP.Storage.FileConnectorTest do
 
   test "STOR", %{socket: socket, password: _password} = state do
     # CWD w_dir
-    w_dir = System.tmp_dir!() |> Path.join("stor_test")
+    w_dir = Path.join(System.tmp_dir!(), "stor_test")
     on_exit(fn -> File.rm_rf!(w_dir) end)
 
     files_to_store =
-      File.ls!(File.cwd!())
-      |> Enum.filter(fn file -> Path.join(File.cwd!(), file) |> File.regular?() end)
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
 
     refute Enum.empty?(files_to_store)
 

@@ -37,13 +37,13 @@ defmodule ExFTP.Auth.BearerAuth do
   <!-- tabs-close -->
   """
 
+  @behaviour ExFTP.Authenticator
+
   import ExFTP.Auth.Common
 
   alias ExFTP.Auth.BearerAuthConfig
   alias ExFTP.Auth.WebhookAuth
   alias ExFTP.Authenticator
-
-  @behaviour Authenticator
 
   @doc """
   Always returns `true`.
@@ -138,23 +138,22 @@ defmodule ExFTP.Auth.BearerAuth do
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
-    with {:ok, config} <- validate_config(BearerAuthConfig) do
-      check_authentication(config, authenticator_state)
-    end
-    |> case do
+    with_result =
+      with {:ok, config} <- validate_config(BearerAuthConfig) do
+        check_authentication(config, authenticator_state)
+      end
+
+    case with_result do
       {:ok, _} -> true
       _ -> false
     end
   end
 
-  defp check_login(
-         provided_token,
-         %{login_url: url, login_method: http_method} = _config,
-         authenticator_state
-       ) do
+  defp check_login(provided_token, %{login_url: url, login_method: http_method} = _config, authenticator_state) do
     headers = [{"authorization", "Bearer #{provided_token}"}]
 
-    Req.request(url: url, method: http_method, redirect: true, headers: headers)
+    [url: url, method: http_method, redirect: true, headers: headers]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, Map.put(authenticator_state, :bearer_token, provided_token)}
@@ -164,10 +163,7 @@ defmodule ExFTP.Auth.BearerAuth do
     end
   end
 
-  defp check_authentication(
-         %{authenticated_url: nil} = _config,
-         %{authenticated: true} = authenticator_state
-       ) do
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = authenticator_state) do
     {:ok, authenticator_state}
   end
 
@@ -178,7 +174,8 @@ defmodule ExFTP.Auth.BearerAuth do
        when not is_nil(url) and not is_nil(bearer_token) do
     headers = [{"authorization", "Bearer #{bearer_token}"}]
 
-    Req.request(url: url, method: http_method, redirect: true, headers: headers)
+    [url: url, method: http_method, redirect: true, headers: headers]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, authenticator_state}

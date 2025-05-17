@@ -106,11 +106,11 @@ defmodule ExFTP.PassiveSocket do
   end
 
   defp consume_read(socket, consume_fun, consume_opts) do
-    Stream.resource(
-      fn ->
-        {:ok, read_socket} = accept(socket)
-        read_socket
-      end,
+    fn ->
+      {:ok, read_socket} = accept(socket)
+      read_socket
+    end
+    |> Stream.resource(
       fn read_socket ->
         case :gen_tcp.recv(read_socket, 0) do
           {:ok, data} ->

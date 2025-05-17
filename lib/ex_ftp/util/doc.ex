@@ -2,12 +2,10 @@
 defmodule ExFTP.Doc do
   @moduledoc false
 
-  def maintainer_github,
-    do: "👾 [Github: camatcode](https://github.com/camatcode/){:target=\"_blank\"}"
+  def maintainer_github, do: "👾 [Github: camatcode](https://github.com/camatcode/){:target=\"_blank\"}"
 
   def maintainer_fediverse,
-    do:
-      "🐘 [Fediverse: @scrum_log@maston.social](https://mastodon.social/@scrum_log){:target=\"_blank\"}"
+    do: "🐘 [Fediverse: @scrum_log@maston.social](https://mastodon.social/@scrum_log){:target=\"_blank\"}"
 
   def contact_maintainer, do: "💬 Contact the maintainer (he's happy to help!)"
 
@@ -25,8 +23,7 @@ defmodule ExFTP.Doc do
     header = "### 👀 See Also "
 
     related_block =
-      related_list
-      |> Enum.map_join("\n", fn related ->
+      Enum.map_join(related_list, "\n", fn related ->
         "  * #{related}"
       end)
 

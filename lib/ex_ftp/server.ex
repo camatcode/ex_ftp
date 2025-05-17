@@ -3,6 +3,7 @@ defmodule ExFTP.Server do
   @moduledoc false
 
   use GenServer
+
   require Logger
 
   def start_link(opts) do

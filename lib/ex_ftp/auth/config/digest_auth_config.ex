@@ -61,10 +61,8 @@ defmodule ExFTP.Auth.DigestAuthConfig do
   """
   @spec build(m :: map) :: DigestAuthConfig.t()
   def build(m) do
-    fields =
-      m
-      |> prepare()
+    fields = prepare(m)
 
-    struct(ExFTP.Auth.DigestAuthConfig, fields)
+    struct(DigestAuthConfig, fields)
   end
 end

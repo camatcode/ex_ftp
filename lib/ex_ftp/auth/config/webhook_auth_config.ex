@@ -77,10 +77,8 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
   """
   @spec build(m :: map) :: WebhookAuthConfig.t()
   def build(m) do
-    fields =
-      m
-      |> prepare()
+    fields = prepare(m)
 
-    struct(ExFTP.Auth.WebhookAuthConfig, fields)
+    struct(WebhookAuthConfig, fields)
   end
 end

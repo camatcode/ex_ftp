@@ -8,8 +8,8 @@ defmodule ExFTP.Storage.S3Connector do
 
   @behaviour ExFTP.StorageConnector
 
-  import ExFTP.Storage.Common
   import ExFTP.Common
+  import ExFTP.Storage.Common
 
   alias ExFTP.Storage.S3ConnectorConfig
   alias ExFTP.StorageConnector
@@ -46,9 +46,7 @@ defmodule ExFTP.Storage.S3Connector do
 
     current_v_dirs = Map.get(connector_state, :virtual_directories, ["/"])
 
-    new_v_dirs =
-      (current_v_dirs ++ dirs)
-      |> Enum.uniq()
+    new_v_dirs = Enum.uniq(current_v_dirs ++ dirs)
 
     connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
     {:ok, connector_state}
@@ -67,9 +65,7 @@ defmodule ExFTP.Storage.S3Connector do
     current_v_dirs =
       Map.get(connector_state, :virtual_directories, ["/"])
 
-    new_v_dirs =
-      ((current_v_dirs -- [path]) ++ ["/"])
-      |> Enum.uniq()
+    new_v_dirs = Enum.uniq((current_v_dirs -- [path]) ++ ["/"])
 
     connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
     {:ok, connector_state}
@@ -113,7 +109,8 @@ defmodule ExFTP.Storage.S3Connector do
 
       fn stream, opts ->
         try do
-          chunk_stream(stream, opts)
+          stream
+          |> chunk_stream(opts)
           |> ExAws.S3.upload(bucket, prefix)
           |> ExAws.request!()
 
@@ -132,7 +129,8 @@ defmodule ExFTP.Storage.S3Connector do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
 
-      s3_get_prefix_contents(config, path, connector_state, :key)
+      config
+      |> s3_get_prefix_contents(path, connector_state, :key)
       |> case do
         [content | _] -> {:ok, content}
         _ -> {:error, "Could not get content info"}
@@ -142,17 +140,10 @@ defmodule ExFTP.Storage.S3Connector do
 
   defp s3_get_prefix_contents(config, path, connector_state, type \\ :prefix)
 
-  defp s3_get_prefix_contents(
-         %{storage_bucket: nil} = _config,
-         "/" = _path,
-         _connector_state,
-         _type
-       ) do
+  defp s3_get_prefix_contents(%{storage_bucket: nil} = _config, "/" = _path, _connector_state, _type) do
     with {:ok, %{body: %{buckets: buckets}}} <-
-           ExAws.S3.list_buckets()
-           |> ExAws.request() do
-      buckets
-      |> Enum.map(fn bucket -> to_content_info(bucket, nil) end)
+           ExAws.request(ExAws.S3.list_buckets()) do
+      Enum.map(buckets, fn bucket -> to_content_info(bucket, nil) end)
     end
   end
 
@@ -167,12 +158,12 @@ defmodule ExFTP.Storage.S3Connector do
         # yes I know I'm forcing evaluation
         # TODO: figure out how to append to a stream
         # Its probably a stream.resource() wrapper
-        ExAws.S3.list_objects(bucket, prefix: prefix, delimiter: "/", stream_prefixes: true)
+        bucket
+        |> ExAws.S3.list_objects(prefix: prefix, delimiter: "/", stream_prefixes: true)
         |> ExAws.stream!()
-        |> Stream.map(fn thing ->
+        |> Enum.map(fn thing ->
           to_content_info(thing, prefix)
         end)
-        |> Enum.into([])
       else
         []
       end
@@ -221,11 +212,13 @@ defmodule ExFTP.Storage.S3Connector do
     prefix = get_prefix(config, bucket, path)
 
     stream =
-      ExAws.S3.list_objects(bucket, prefix: prefix)
+      bucket
+      |> ExAws.S3.list_objects(prefix: prefix)
       |> ExAws.stream!()
       |> Stream.map(& &1.key)
 
-    ExAws.S3.delete_all_objects(bucket, stream)
+    bucket
+    |> ExAws.S3.delete_all_objects(stream)
     |> ExAws.request()
   end
 
@@ -245,16 +238,15 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   # / == s3://storage_bucket/
-  defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path)
-       when not is_nil(storage_bucket),
-       do: storage_bucket
+  defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path) when not is_nil(storage_bucket), do: storage_bucket
 
   # / == list buckets
   defp get_bucket(%{storage_bucket: nil} = _config, "/" = _path), do: nil
 
   # /path == s3://path/
   defp get_bucket(%{storage_bucket: nil} = _config, path) do
-    Path.split(path)
+    path
+    |> Path.split()
     |> case do
       ["/", bucket | _] -> bucket
       _ -> nil
@@ -262,8 +254,7 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   # / == s3://storage_bucket/
-  defp get_prefix(%{storage_bucket: storage_bucket} = _config, _bucket, "/" = _path)
-       when not is_nil(storage_bucket) do
+  defp get_prefix(%{storage_bucket: storage_bucket} = _config, _bucket, "/" = _path) when not is_nil(storage_bucket) do
     nil
   end
 
@@ -278,9 +269,7 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   defp get_prefix(_config, _bucket, path) do
-    prefix =
-      path
-      |> String.replace(~r/^\//, "")
+    prefix = String.replace(path, ~r/^\//, "")
 
     if "" == prefix, do: nil, else: prefix
   end
@@ -288,7 +277,8 @@ defmodule ExFTP.Storage.S3Connector do
   defp bucket_exists?(nil), do: false
 
   defp bucket_exists?(bucket) do
-    ExAws.S3.head_bucket(bucket)
+    bucket
+    |> ExAws.S3.head_bucket()
     |> ExAws.request()
     |> case do
       {:ok, %{status_code: 200}} -> true
@@ -296,13 +286,12 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
-  defp prefix_exists?(bucket, nil = _prefix)
-       when not is_nil(bucket),
-       do: bucket_exists?(bucket)
+  defp prefix_exists?(bucket, nil = _prefix) when not is_nil(bucket), do: bucket_exists?(bucket)
 
   defp prefix_exists?(bucket, prefix) when not is_nil(bucket) do
     empty? =
-      ExAws.S3.list_objects(bucket, delimiter: "/", prefix: prefix)
+      bucket
+      |> ExAws.S3.list_objects(delimiter: "/", prefix: prefix)
       |> ExAws.stream!()
       |> Enum.take(1)
       |> Enum.empty?()

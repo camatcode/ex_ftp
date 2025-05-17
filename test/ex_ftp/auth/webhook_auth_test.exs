@@ -3,9 +3,9 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
   use ExUnit.Case
 
-  alias ExFTP.Auth.WebhookAuth
-
   import ExFTP.TestHelper
+
+  alias ExFTP.Auth.WebhookAuth
 
   doctest ExFTP.Auth.WebhookAuth
 
@@ -85,7 +85,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
-      send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+      socket
+      |> send_and_expect("USER", [username], 331, "User name okay, need password")
       |> send_and_expect("PASS", [password], 230, "Welcome.")
 
       send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
@@ -101,7 +102,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
         authenticated_ttl_ms: 5000
       })
 
-      send_and_expect(socket, "USER", [username], 331, "User name okay, need password")
+      socket
+      |> send_and_expect("USER", [username], 331, "User name okay, need password")
       |> send_and_expect("PASS", [password], 230, "Welcome.")
 
       send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")

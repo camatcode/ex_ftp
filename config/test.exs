@@ -5,8 +5,8 @@ config :ex_aws,
 
 config :ex_ftp,
   ftp_port: 4041,
-  min_passive_port: System.get_env("MIN_PASSIVE_PORT", "40002") |> String.to_integer(),
-  max_passive_port: System.get_env("MAX_PASSIVE_PORT", "40007") |> String.to_integer(),
+  min_passive_port: "MIN_PASSIVE_PORT" |> System.get_env("40002") |> String.to_integer(),
+  max_passive_port: "MAX_PASSIVE_PORT" |> System.get_env("40007") |> String.to_integer(),
   authenticator: ExFTP.Auth.PassthroughAuth,
   authenticator_config: %{
     authenticated_url: nil,
