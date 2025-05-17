@@ -27,7 +27,6 @@ defmodule ExFTP.MixProject do
         source_ref: "v#{@version}",
         source_url: @source_url,
         extra_section: "GUIDES",
-        extras: extras(),
         formatters: ["html"],
         extras: extras(),
         groups_for_modules: groups_for_modules(),
