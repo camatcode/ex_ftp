@@ -30,8 +30,9 @@
 - [Installation](#installation)
 - [Reckless Quick Start](#reckless-quick-start)
 - [Configuration](#configuration)
-  - [Choosing an Authenticator](#choose-an-authenticator)
-  - [Choosing a Storage Connector](#choose-a-storage-connector)
+  - [Server Config](#1-server-config)
+  - [Choosing an Authenticator](#2-choose-an-authenticator)
+  - [Choosing a Storage Connector](#3-choose-a-storage-connector)
 - [Authenticators](#authenticators)
   - [No Auth](#authenticator-no-auth)
   - [Passthrough Auth](#authenticator-passthrough-auth)
@@ -65,10 +66,11 @@ TODO
 
 ## Configuration
 
-A detailed, example configuration.
+### 1. Server Config
+
+Here is a detailed, example configuration.
 
 ```elixir
-
 config :ex_ftp,
   # port to run on
   ftp_port: 21,
@@ -77,7 +79,7 @@ config :ex_ftp,
   # This range would represent how many of these certain commands can run at the same time.
   # Be aware, too few options could create bottlenecks
   min_passive_port: System.get_env("MIN_PASSIVE_PORT", "40002") |> String.to_integer(),
-  max_passive_port: System.get_env("MAX_PASSIVE_PORT", "40007") |> String.to_integer(),
+  max_passive_port: System.get_env("MAX_PASSIVE_PORT", "40012") |> String.to_integer(),
   # See "Choose an Authenticator"
   authenticator: ExFTP.Auth.BasicAuth,
   authenticator_config: %{
@@ -96,7 +98,7 @@ config :ex_ftp,
 ```
 
 
-##### 2. Choose an Authenticator
+### 2. Choose an Authenticator
 
 An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASSWORD` command.
 
@@ -104,7 +106,7 @@ Each authenticator is referenced in the `ex_ftp` config under the `authenticator
 
 Additionally, many require a map under `authenticator_config`.
 
-##### 3. Choose a Storage Connector
+### 3. Choose a Storage Connector
 
 An `ExFTP.StorageConnector` provides access to your chosen storage provider - with the FTP business abstracted away.
 
@@ -120,7 +122,7 @@ Below are all the included authenticators.
 
 ### Authenticator: No Auth
 
-> [!WARNING]  
+> [!WARNING]
 > This is not recommended for any production server.
 
 When **authenticator** is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and 
@@ -128,27 +130,27 @@ assume everything is authenticated.
 
 
 ```elixir
-     config :ex_ftp,
-       #....
-       authenticator: ExFTP.Auth.NoAuth,
-       authenticator_config: %{}
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.NoAuth,
+  authenticator_config: %{}
  ```
 
 -------
 
 ### Authenticator: Passthrough Auth
 
-> [!WARNING]  
+> [!WARNING] 
 > This is not recommended for any production server.
 
 When **authenticator** is `ExFTP.Auth.PassthroughAuth`, this authenticator will require credentials, 
 but accepts any user and password combination who isn't `root`.
 
 ```elixir
-     config :ex_ftp,
-       #....
-       authenticator: ExFTP.Auth.PassthroughAuth,
-       authenticator_config: %{}
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.PassthroughAuth,
+  authenticator_config: %{}
  ```
 
 -------
@@ -163,18 +165,18 @@ When **authenticator** is `ExFTP.Auth.BasicAuth`, this authenticator will call o
 
 
 ```elixir
-     config :ex_ftp,
-       #....
-        authenticator: ExFTP.Auth.BasicAuth,
-        authenticator_config: %{
-          # used to login
-          login_url: "https://httpbin.dev/basic-auth/",
-          login_method: :get,
-          # used to verify the user is still considered valid (optional)
-          authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
-          authenticated_method: :get,
-          authenticated_ttl_ms: 1000 * 60 * 60
-      }
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.BasicAuth,
+  authenticator_config: %{
+    # used to login
+    login_url: "https://httpbin.dev/basic-auth/",
+    login_method: :get,
+    # used to verify the user is still considered valid (optional)
+    authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
+    authenticated_method: :get,
+    authenticated_ttl_ms: 1000 * 60 * 60
+  }
  ```
 
 If the endpoint responds with **HTTP 200**, the user is considered authenticated.
@@ -196,18 +198,18 @@ supplied credentials.
 
 
 ```elixir
-     config :ex_ftp,
-       #....
-        authenticator: ExFTP.Auth.DigestAuth,
-        authenticator_config: %{
-          # used to login
-          login_url: "https://httpbin.dev/basic-auth/",
-          login_method: :get,
-          # used to verify the user is still considered valid (optional)
-          authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
-          authenticated_method: :get,
-          authenticated_ttl_ms: 1000 * 60 * 60
-      }
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.DigestAuth,
+  authenticator_config: %{
+    # used to login
+    login_url: "https://httpbin.dev/basic-auth/",
+    login_method: :get,
+    # used to verify the user is still considered valid (optional)
+    authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
+    authenticated_method: :get,
+    authenticated_ttl_ms: 1000 * 60 * 60
+  }
  ```
 
 If, after completing the full workflow, the endpoint responds with **HTTP 200**, the user is considered authenticated.
@@ -229,18 +231,18 @@ When **authenticator** is `ExFTP.Auth.BearerAuth`, this authenticator will call 
 supplied credentials.
 
 ```elixir
-     config :ex_ftp,
-       #....
-        authenticator: ExFTP.Auth.BearerAuth,
-        authenticator_config: %{
-          # used to login
-          login_url: "https://httpbin.dev/bearer",
-          login_method: :post,
-          # used to verify the user is still considered valid (optional)
-          authenticated_url: "https://httpbin.dev/bearer",
-          authenticated_method: :post,
-          authenticated_ttl_ms: 1000 * 60 * 60
-      }
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.BearerAuth,
+  authenticator_config: %{
+    # used to login
+    login_url: "https://httpbin.dev/bearer",
+    login_method: :post,
+    # used to verify the user is still considered valid (optional)
+    authenticated_url: "https://httpbin.dev/bearer",
+    authenticated_method: :post,
+    authenticated_ttl_ms: 1000 * 60 * 60
+  }
  ```
 
 If the endpoint responds with **HTTP 200**, the user is considered authenticated.
@@ -261,21 +263,21 @@ two query parameters: `username` and/or `password_hash`.
 
 
 ```elixir
-     config :ex_ftp,
-       #....
-        authenticator: ExFTP.Auth.WebhookAuth,
-        authenticator_config: %{
-            # used to login
-            login_url: "https://httpbin.dev/status/200",
-            login_method: :post,
-            # affects the output of the `password_hash` query parameter
-            # accepts anything that :crypto can handle
-            password_hash_type: :sha256,
-            # used to verify the user is still considered valid (optional)
-            authenticated_url: "https://httpbin.dev/status/200",
-            authenticated_method: :post,
-            authenticated_ttl_ms: 1000 * 60 * 60
-      }
+config :ex_ftp,
+  #....
+  authenticator: ExFTP.Auth.WebhookAuth,
+  authenticator_config: %{
+    # used to login
+    login_url: "https://httpbin.dev/status/200",
+    login_method: :post,
+    # affects the output of the `password_hash` query parameter
+    # accepts anything that :crypto can handle
+    password_hash_type: :sha256,
+    # used to verify the user is still considered valid (optional)
+    authenticated_url: "https://httpbin.dev/status/200",
+    authenticated_method: :post,
+    authenticated_ttl_ms: 1000 * 60 * 60
+  }
  ```
 
 If the endpoint responds with **HTTP 200**, the user is considered authenticated.
@@ -343,10 +345,10 @@ When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use the f
 This is the out-of-the-box behavior you'd expect from any FTP server.
 
 ```elixir
-     config :ex_ftp,
-       #....
-       storage_connector: ExFTP.Storage.FileConnector,
-       storage_config: %{}
+config :ex_ftp,
+  #....
+  storage_connector: ExFTP.Storage.FileConnector,
+  storage_config: %{}
 ```
 
 -----
@@ -358,20 +360,20 @@ When `storage_connector` is `ExFTP.Storage.FileConnector`, ex_ftp will use any S
 Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured properly.
 
 ```elixir
-    # ExAws is pretty smart figuring out S3 credentials of the system
-    # For me, I had to include the region.
-    # Consult the ExAws docs for more
-    config :ex_aws,
-        region: {:system, "AWS_REGION"}
+# ExAws is pretty smart figuring out S3 credentials of the system
+# For me, I had to include the region.
+# Consult the ExAws docs for more
+config :ex_aws,
+  region: {:system, "AWS_REGION"}
 
-    config :ex_ftp,
-        #....
-        storage_connector: ExFTP.Storage.FileConnector,
-        storage_config: %{
-        # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-        # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
-          storage_bucket: "my-storage-bucket"
-       }
+config :ex_ftp,
+  #....
+  storage_connector: ExFTP.Storage.FileConnector,
+  storage_config: %{
+    # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
+    # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+    storage_bucket: "my-storage-bucket"
+  }
 ```
 
 #### Using Minio
@@ -380,32 +382,36 @@ Minio is a popular open-source, self-hosted alternative to AWS S3. The only diff
 `ExAws`.
 
 ```elixir
-    config :ex_aws,
-      access_key_id: [
-        {:system, "MINIO_ACCESS"},
-        {:system, "AWS_ACCESS_KEY_ID"},
-        :instance_role
-      ],
-      secret_access_key: [
-        {:system, "MINIO_SECRET"},
-        {:system, "AWS_SECRET_ACCESS_KEY"},
-        :instance_role
-      ],
-      s3: [
-        scheme: "https://",
-        host: "my.minio.example.com",
-        port: 9000,
-        region: "us-east-1"
-      ]
+# Assuming:
+#   we're connecting to a minio @ https://my.minio.example.com:9000/
+#   there exists a $MINIO_ACCESS or $AWS_ACCESS_KEY_ID in system env
+#   there exists a $MINIO_SECRET or $AWS_SECRET_ACCESS_KEY in system env
+config :ex_aws,
+  access_key_id: [
+    {:system, "MINIO_ACCESS"},
+    {:system, "AWS_ACCESS_KEY_ID"},
+    :instance_role
+  ],
+  secret_access_key: [
+    {:system, "MINIO_SECRET"},
+    {:system, "AWS_SECRET_ACCESS_KEY"},
+    :instance_role
+  ],
+  s3: [
+    scheme: "https://",
+    host: "my.minio.example.com",
+    port: 9000,
+    region: "us-east-1"
+  ]
 
-    config :ex_ftp,
-        #....
-        storage_connector: ExFTP.Storage.FileConnector,
-        storage_config: %{
-        # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-        # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
-          storage_bucket: "my-storage-bucket"
-       }
+config :ex_ftp,
+  #....
+  storage_connector: ExFTP.Storage.FileConnector,
+  storage_config: %{
+    # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
+    # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+    storage_bucket: "my-storage-bucket"
+  }
 ```
 
 -----
