@@ -30,12 +30,8 @@ defmodule ExFTP.DigestAuthUtil do
   end
 
   defp init_digest(url, http_method) do
-    Req.request(
-      url: url,
-      method: http_method,
-      raw: true,
-      redirect: true
-    )
+    [url: url, method: http_method, raw: true, redirect: true]
+    |> Req.request()
     |> case do
       {:ok, %{headers: %{"www-authenticate" => [digest_info]}, body: entity_body}} ->
         with {:ok, parsed} <- parse_digest(digest_info) do
@@ -56,13 +52,7 @@ defmodule ExFTP.DigestAuthUtil do
     )
   end
 
-  def create_response(
-        http_method,
-        username,
-        password,
-        digest_info,
-        path
-      ) do
+  def create_response(http_method, username, password, digest_info, path) do
     hash_1 = make_hash_1(username, password, digest_info)
     hash_2 = make_hash_2(http_method, path, digest_info)
 
@@ -73,27 +63,13 @@ defmodule ExFTP.DigestAuthUtil do
     hash(algo, [username, realm, password])
   end
 
-  defp make_hash_1(username, password, %{
-         realm: realm,
-         is_sess: true,
-         crypto_algo: algo,
-         nonce: nonce,
-         cnonce: cnonce
-       }) do
+  defp make_hash_1(username, password, %{realm: realm, is_sess: true, crypto_algo: algo, nonce: nonce, cnonce: cnonce}) do
     inner_hash = hash(algo, [username, realm, password])
     hash(algo, [inner_hash, nonce, cnonce])
   end
 
-  defp make_hash_2(
-         http_method,
-         path,
-         %{
-           crypto_algo: algo,
-           entity_body: entity_body,
-           use_auth_int: use_auth_int?
-         }
-       ) do
-    http_method_str = Atom.to_string(http_method) |> String.upcase()
+  defp make_hash_2(http_method, path, %{crypto_algo: algo, entity_body: entity_body, use_auth_int: use_auth_int?}) do
+    http_method_str = http_method |> Atom.to_string() |> String.upcase()
 
     hash_elements =
       if use_auth_int?,
@@ -103,27 +79,15 @@ defmodule ExFTP.DigestAuthUtil do
     hash(algo, hash_elements)
   end
 
-  defp make_response(
-         hash_1,
-         hash_2,
-         %{use_auth_int: true, crypto_algo: algo, nonce: nonce, cnonce: cnonce}
-       ) do
+  defp make_response(hash_1, hash_2, %{use_auth_int: true, crypto_algo: algo, nonce: nonce, cnonce: cnonce}) do
     hash(algo, [hash_1, nonce, @nc, cnonce, "auth-int", hash_2])
   end
 
-  defp make_response(
-         hash_1,
-         hash_2,
-         %{use_auth_int: false, crypto_algo: algo, nonce: nonce, qop: []}
-       ) do
+  defp make_response(hash_1, hash_2, %{use_auth_int: false, crypto_algo: algo, nonce: nonce, qop: []}) do
     hash(algo, [hash_1, nonce, hash_2])
   end
 
-  defp make_response(
-         hash_1,
-         hash_2,
-         %{use_auth_int: false, crypto_algo: algo, nonce: nonce, cnonce: cnonce}
-       ) do
+  defp make_response(hash_1, hash_2, %{use_auth_int: false, crypto_algo: algo, nonce: nonce, cnonce: cnonce}) do
     hash(algo, [hash_1, nonce, @nc, cnonce, "auth", hash_2])
   end
 
@@ -142,8 +106,7 @@ defmodule ExFTP.DigestAuthUtil do
 
         {String.to_atom(k), v}
       end)
-      |> Enum.map(&serialize/1)
-      |> Map.new()
+      |> Map.new(&serialize/1)
       |> Map.put_new(:algorithm, "MD5")
       |> Map.put_new(:qop, [])
 
@@ -152,7 +115,8 @@ defmodule ExFTP.DigestAuthUtil do
     cnonce = hash(algo, [random_string(16)])
 
     use_auth_int? =
-      Map.get(parsed, :qop)
+      parsed
+      |> Map.get(:qop)
       |> Enum.member?("auth-int")
 
     {:ok,

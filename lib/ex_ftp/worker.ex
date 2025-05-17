@@ -17,11 +17,12 @@ defmodule ExFTP.Worker do
   @impl GenServer
   def init(socket) do
     {:ok, host} =
-      Application.get_env(:ex_ftp, :ftp_addr, "127.0.0.1")
+      :ex_ftp
+      |> Application.get_env(:ftp_addr, "127.0.0.1")
       |> to_charlist()
       |> :inet.parse_address()
 
-    unless Application.get_env(:ex_ftp, :mix_env) == :test do
+    if Application.get_env(:ex_ftp, :mix_env) != :test do
       {:ok, {ip_address, _port}} = :inet.peername(socket)
       ip_address_str = ip_address |> Tuple.to_list() |> Enum.join(".")
       Logger.info("Received FTP connection from #{ip_address_str}")
@@ -123,7 +124,8 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["PASV"], %{socket: socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> case do
       :ok ->
         {:ok, pasv} = PassiveSocket.start_link()
@@ -141,7 +143,8 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["EPSV"], %{socket: socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> case do
       :ok ->
         {:ok, pasv} = PassiveSocket.start_link()
@@ -156,7 +159,8 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["EPRT", _eport_info], %{socket: socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> case do
       :ok -> send_resp(200, "EPRT command successful.", socket)
       _ -> nil
@@ -171,49 +175,53 @@ defmodule ExFTP.Worker do
     if authenticator.valid_user?(username) do
       send_resp(331, "User name okay, need password.", socket)
 
-      Map.put(server_state, :authenticator_state, %{username: username})
+      server_state
+      |> Map.put(:authenticator_state, %{username: username})
       |> noreply()
     else
       # Yes I know, its strange - but I don't want to leak that this isn't a valid user to the client
       send_resp(331, "User name okay, need password.", socket)
 
-      Map.put(server_state, :authenticator_state, %{})
+      server_state
+      |> Map.put(:authenticator_state, %{})
       |> noreply()
     end
   end
 
   defp run(
          ["PASS", password],
-         %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} =
-           server_state
+         %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} = server_state
        ) do
-    authenticator.login(password, auth_state)
+    password
+    |> authenticator.login(auth_state)
     |> case do
       {:ok, auth_state} ->
-        auth_state = auth_state |> Map.put(:authenticated, true)
+        auth_state = Map.put(auth_state, :authenticated, true)
 
         send_resp(230, "Welcome.", socket)
 
-        Map.put(server_state, :authenticator_state, auth_state)
+        server_state
+        |> Map.put(:authenticator_state, auth_state)
         |> noreply()
 
       {_, %{} = auth_state} ->
         send_resp(530, "Authentication failed.", socket)
 
-        Map.put(server_state, :authenticator_state, auth_state)
+        server_state
+        |> Map.put(:authenticator_state, auth_state)
         |> noreply()
 
       _ ->
         send_resp(530, "Authentication failed.", socket)
 
-        server_state
-        |> noreply()
+        noreply(server_state)
     end
   end
 
   # Storage Connector Commands
   defp run(["PWD"], %{socket: _socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> with_ok(&pwd/1, server_state)
     |> update_connector_state(server_state)
     |> noreply()
@@ -222,21 +230,24 @@ defmodule ExFTP.Worker do
   defp run(["CDUP"], state), do: run(["CWD", ".."], state)
 
   defp run(["CWD", path], %{socket: _socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> with_ok(&cwd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
   defp run(["MKD", path], %{socket: _socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> with_ok(&mkd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
   end
 
   defp run(["RMD", path], %{socket: _socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> with_ok(&rmd/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
@@ -246,7 +257,8 @@ defmodule ExFTP.Worker do
 
   defp run(["LIST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
       |> noreply()
@@ -257,7 +269,8 @@ defmodule ExFTP.Worker do
 
   defp run(["LIST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&list/1, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
       |> noreply()
@@ -268,7 +281,8 @@ defmodule ExFTP.Worker do
 
   defp run(["NLST", "-a", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
       |> noreply()
@@ -279,7 +293,8 @@ defmodule ExFTP.Worker do
 
   defp run(["NLST", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&nlst/1, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
       |> noreply()
@@ -288,7 +303,8 @@ defmodule ExFTP.Worker do
 
   defp run(["RETR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&retr/1, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
       |> noreply()
@@ -296,7 +312,8 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["SIZE", path], %{socket: _socket} = server_state) do
-    check_auth(server_state)
+    server_state
+    |> check_auth()
     |> with_ok(&size/1, server_state, path: path)
     |> update_connector_state(server_state)
     |> noreply()
@@ -304,7 +321,8 @@ defmodule ExFTP.Worker do
 
   defp run(["STOR", path], %{socket: _socket} = server_state) do
     with {:ok, pasv} <- with_pasv_socket(server_state) do
-      check_auth(server_state)
+      server_state
+      |> check_auth()
       |> with_ok(&stor/1, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
       |> noreply()
@@ -319,15 +337,10 @@ defmodule ExFTP.Worker do
   defp with_ok(
          maybe_ok,
          fnc,
-         %{
-           socket: socket,
-           storage_connector: connector,
-           connector_state: connector_state
-         },
+         %{socket: socket, storage_connector: connector, connector_state: connector_state},
          opts \\ []
        ) do
-    maybe_ok
-    |> case do
+    case maybe_ok do
       :ok ->
         fnc.(%{
           socket: socket,
@@ -354,15 +367,13 @@ defmodule ExFTP.Worker do
       24 * 60 * 60 * 60 * 1000
   end
 
-  defp check_auth(%{
-         socket: socket,
-         authenticator: auth,
-         authenticator_state: %{username: username} = auth_state
-       })
+  defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: %{username: username} = auth_state})
        when not is_nil(username) do
-    Cachex.get_and_update(:auth_cache, username, fn
+    :auth_cache
+    |> Cachex.get_and_update(username, fn
       nil ->
-        authenticate(auth, auth_state)
+        auth
+        |> authenticate(auth_state)
         |> case do
           :ok -> {:commit, :ok, expire: get_auth_ttl()}
           _ -> {:ignore, nil}

@@ -41,12 +41,12 @@ defmodule ExFTP.Auth.BasicAuth do
   <!-- tabs-close -->
   """
 
+  @behaviour ExFTP.Authenticator
+
   import ExFTP.Auth.Common
 
   alias ExFTP.Auth.BasicAuthConfig
   alias ExFTP.Authenticator
-
-  @behaviour Authenticator
 
   @doc """
   Always returns `true`.
@@ -150,10 +150,12 @@ defmodule ExFTP.Auth.BasicAuth do
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
-    with {:ok, config} <- validate_config(BasicAuthConfig) do
-      check_authentication(config, authenticator_state)
-    end
-    |> case do
+    with_result =
+      with {:ok, config} <- validate_config(BasicAuthConfig) do
+        check_authentication(config, authenticator_state)
+      end
+
+    case with_result do
       {:ok, _} -> true
       _ -> false
     end
@@ -164,12 +166,8 @@ defmodule ExFTP.Auth.BasicAuth do
          %{login_url: url, login_method: http_method} = _config,
          %{username: username} = authenticator_state
        ) do
-    Req.request(
-      url: url,
-      method: http_method,
-      redirect: true,
-      auth: {:basic, "#{username}:#{password}"}
-    )
+    [url: url, method: http_method, redirect: true, auth: {:basic, "#{username}:#{password}"}]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         authenticator_state = Map.put(authenticator_state, :password, password)
@@ -180,10 +178,7 @@ defmodule ExFTP.Auth.BasicAuth do
     end
   end
 
-  defp check_authentication(
-         %{authenticated_url: nil} = _config,
-         %{authenticated: true} = authenticator_state
-       ) do
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = authenticator_state) do
     {:ok, authenticator_state}
   end
 
@@ -192,12 +187,8 @@ defmodule ExFTP.Auth.BasicAuth do
          %{username: username, password: password} = authenticator_state
        )
        when not is_nil(url) do
-    Req.request(
-      url: url,
-      method: http_method,
-      redirect: true,
-      auth: {:basic, "#{username}:#{password}"}
-    )
+    [url: url, method: http_method, redirect: true, auth: {:basic, "#{username}:#{password}"}]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, authenticator_state}

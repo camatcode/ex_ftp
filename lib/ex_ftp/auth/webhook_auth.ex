@@ -37,12 +37,12 @@ defmodule ExFTP.Auth.WebhookAuth do
   <!-- tabs-close -->
   """
 
+  @behaviour ExFTP.Authenticator
+
   import ExFTP.Auth.Common
 
   alias ExFTP.Auth.WebhookAuthConfig
   alias ExFTP.Authenticator
-
-  @behaviour Authenticator
 
   @doc """
   Always returns `true`.
@@ -138,26 +138,25 @@ defmodule ExFTP.Auth.WebhookAuth do
   """
   @impl Authenticator
   def authenticated?(authenticator_state) do
-    with {:ok, config} <- validate_config(WebhookAuthConfig) do
-      check_authentication(config, authenticator_state)
-    end
-    |> case do
+    with_result =
+      with {:ok, config} <- validate_config(WebhookAuthConfig) do
+        check_authentication(config, authenticator_state)
+      end
+
+    case with_result do
       {:ok, _} -> true
       _ -> false
     end
   end
 
-  defp check_login(
-         password,
-         %{login_url: url, login_method: http_method} = config,
-         authenticator_state
-       ) do
+  defp check_login(password, %{login_url: url, login_method: http_method} = config, authenticator_state) do
     params =
       if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
 
     params = params ++ [password_hash: hash_password(password, config)]
 
-    Req.request(url: url, method: http_method, redirect: true, params: params)
+    [url: url, method: http_method, redirect: true, params: params]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, authenticator_state}
@@ -167,10 +166,7 @@ defmodule ExFTP.Auth.WebhookAuth do
     end
   end
 
-  defp check_authentication(
-         %{authenticated_url: nil} = _config,
-         %{authenticated: true} = authenticator_state
-       ) do
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = authenticator_state) do
     {:ok, authenticator_state}
   end
 
@@ -178,14 +174,12 @@ defmodule ExFTP.Auth.WebhookAuth do
     {:error, "Not Authenticated"}
   end
 
-  defp check_authentication(
-         %{authenticated_url: url, authenticated_method: http_method} = _config,
-         authenticator_state
-       ) do
+  defp check_authentication(%{authenticated_url: url, authenticated_method: http_method} = _config, authenticator_state) do
     params =
       if authenticator_state[:username], do: [username: authenticator_state[:username]], else: []
 
-    Req.request(url: url, method: http_method, redirect: true, params: params)
+    [url: url, method: http_method, redirect: true, params: params]
+    |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
         {:ok, authenticator_state}
@@ -196,7 +190,8 @@ defmodule ExFTP.Auth.WebhookAuth do
   end
 
   defp hash_password(password, %{password_hash_type: password_hash_type}) do
-    :crypto.hash(password_hash_type, password)
+    password_hash_type
+    |> :crypto.hash(password)
     |> Base.encode16(case: :lower)
   end
 end

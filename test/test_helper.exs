@@ -12,10 +12,9 @@ defmodule ExFTP.TestHelper do
     cmd = String.trim(cmd)
 
     arg_str =
-      args
-      |> Enum.map_join(" ", fn arg -> String.trim(arg) end)
+      Enum.map_join(args, " ", fn arg -> String.trim(arg) end)
 
-    cmd = "#{cmd} #{arg_str}" |> String.trim()
+    cmd = String.trim("#{cmd} #{arg_str}")
 
     :ok = :gen_tcp.send(socket, "#{cmd}\r\n")
     socket
@@ -66,8 +65,7 @@ defmodule ExFTP.TestHelper do
 
     on_exit(:close_pasv_socket, fn -> :gen_tcp.close(pasv_socket) end)
 
-    state
-    |> Map.put(:pasv_socket, pasv_socket)
+    Map.put(state, :pasv_socket, pasv_socket)
   end
 
   def close_pasv(pasv), do: :gen_tcp.close(pasv)
@@ -83,9 +81,10 @@ defmodule ExFTP.TestHelper do
 end
 
 defmodule ExFTP.StorageTester do
-  import ExFTP.TestHelper
-
+  @moduledoc false
   use ExUnit.Case
+
+  import ExFTP.TestHelper
 
   def test_pwd(%{socket: socket}) do
     send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
@@ -118,8 +117,7 @@ defmodule ExFTP.StorageTester do
 
     # CWD tmp_dir
     # MKD dir_to_make
-    socket
-    |> send_and_expect("MKD", [dir_to_make], 257, "\"#{dir_to_make}\" directory created.")
+    send_and_expect(socket, "MKD", [dir_to_make], 257, "\"#{dir_to_make}\" directory created.")
 
     # CWD dir_to_make
     # RMD dir_to_make
@@ -129,8 +127,7 @@ defmodule ExFTP.StorageTester do
 
     # verify you've been kicked out
     # PWD
-    socket
-    |> send_and_expect("PWD", [], 257)
+    send_and_expect(socket, "PWD", [], 257)
   end
 
   def test_list_a(state, w_dir) do
@@ -142,7 +139,7 @@ defmodule ExFTP.StorageTester do
 
     assert {:ok, listing} = read_fully(pasv_socket)
     expect_recv(socket, 226, "Directory send OK.")
-    listing |> String.trim()
+    String.trim(listing)
   end
 
   def test_list(state, w_dir) do
@@ -154,7 +151,7 @@ defmodule ExFTP.StorageTester do
 
     assert {:ok, listing} = read_fully(pasv_socket)
     expect_recv(socket, 226, "Directory send OK.")
-    listing |> String.trim()
+    String.trim(listing)
   end
 
   def test_nlst(state, w_dir) do
@@ -167,7 +164,7 @@ defmodule ExFTP.StorageTester do
     assert {:ok, listing} = read_fully(pasv_socket)
 
     expect_recv(socket, 226, "Directory send OK.")
-    listing |> String.trim()
+    String.trim(listing)
   end
 
   def test_nlst_a(state, w_dir) do
@@ -180,17 +177,14 @@ defmodule ExFTP.StorageTester do
     assert {:ok, listing} = read_fully(pasv_socket)
 
     expect_recv(socket, 226, "Directory send OK.")
-    listing |> String.trim()
+    String.trim(listing)
   end
 
   def test_retr(%{socket: socket} = state, w_dir, paths_to_download) do
-    socket
-    |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
-
+    send_and_expect(socket, "CWD", [w_dir], 250, "Directory changed successfully.")
     refute Enum.empty?(paths_to_download)
 
-    paths_to_download
-    |> Enum.each(fn file ->
+    Enum.each(paths_to_download, fn file ->
       %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
       send_and_expect(socket, "RETR", [file], 150)
       assert {:ok, bytes} = read_fully(pasv_socket)
@@ -208,10 +202,9 @@ defmodule ExFTP.StorageTester do
 
     assert {:ok, listing} = read_fully(pasv_socket)
     expect_recv(socket, 226, "Directory send OK.")
-    files_to_size = String.split(listing, "\r\n") |> Enum.reject(&(&1 == ""))
+    files_to_size = listing |> String.split("\r\n") |> Enum.reject(&(&1 == ""))
 
-    files_to_size
-    |> Enum.map(fn file ->
+    Enum.map(files_to_size, fn file ->
       send_and_expect(socket, "SIZE", [String.trim(file)], 213)
     end)
   end
@@ -221,12 +214,13 @@ defmodule ExFTP.StorageTester do
     |> send_and_expect("MKD", [w_dir], 257, "\"#{w_dir}\" directory created.")
     |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
 
-    files_to_store
-    |> Enum.each(fn file ->
+    Enum.each(files_to_store, fn file ->
       %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
       send_and_expect(socket, "STOR", [file], 150)
 
-      File.stream!(Path.join(File.cwd!(), file), [], 5 * 1024 * 1024)
+      File.cwd!()
+      |> Path.join(file)
+      |> File.stream!(5 * 1024 * 1024, [])
       |> Enum.each(fn data ->
         :ok = :gen_tcp.send(pasv_socket, data)
       end)

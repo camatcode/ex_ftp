@@ -33,8 +33,9 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   <!-- tabs-close -->
   """
+  @behaviour ExFTP.Authenticator
+
   alias ExFTP.Authenticator
-  @behaviour Authenticator
 
   @doc """
   Returns `true` if **username** is anything except `"root"`
@@ -127,7 +128,8 @@ defmodule ExFTP.Auth.PassthroughAuth do
 
   defp not_root?(username) when is_bitstring(username) do
     "root" !=
-      String.downcase(username)
+      username
+      |> String.downcase()
       |> String.trim()
   end
 end

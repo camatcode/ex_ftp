@@ -46,13 +46,7 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def pwd(
-        %{
-          storage_connector: connector,
-          socket: socket,
-          connector_state: connector_state
-        } = _server_state
-      ) do
+  def pwd(%{storage_connector: connector, socket: socket, connector_state: connector_state} = _server_state) do
     :ok =
       send_resp(
         @directory_action_ok,
@@ -89,20 +83,13 @@ defmodule ExFTP.Storage.Common do
   <!-- tabs-close -->
   """
 
-  def cwd(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          connector_state: connector_state
-        } = _server_state
-      ) do
+  def cwd(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
     old_wd = connector.get_working_directory(connector_state)
     new_wd = change_prefix(old_wd, path)
 
     if connector.directory_exists?(new_wd, connector_state) do
       send_resp(@file_action_ok, "Directory changed successfully.", socket)
-      connector_state |> Map.put(:current_working_directory, new_wd)
+      Map.put(connector_state, :current_working_directory, new_wd)
     else
       :ok =
         send_resp(@file_action_not_taken, "Failed to change directory. Does not exist.", socket)
@@ -134,14 +121,7 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def mkd(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          connector_state: connector_state
-        } = _server_state
-      ) do
+  def mkd(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
     wd = connector.get_working_directory(connector_state)
     new_d = change_prefix(wd, path)
 
@@ -149,7 +129,8 @@ defmodule ExFTP.Storage.Common do
       :ok =
         send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
     else
-      connector.make_directory(path, connector_state)
+      path
+      |> connector.make_directory(connector_state)
       |> case do
         {:ok, connector_state} ->
           send_resp(@directory_action_ok, "\"#{new_d}\" directory created.", socket)
@@ -185,26 +166,19 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def rmd(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          connector_state: connector_state
-        } = _server_state
-      ) do
+  def rmd(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
     wd = connector.get_working_directory(connector_state)
     rm_d = change_prefix(wd, path)
 
-    connector.delete_directory(rm_d, connector_state)
+    rm_d
+    |> connector.delete_directory(connector_state)
     |> case do
       {:ok, connector_state} ->
         send_resp(@file_action_ok, "\"#{rm_d}\" directory removed.", socket)
         # kickout if you just RM'd the dir you're in
         new_working_dir = if wd == rm_d, do: change_prefix(wd, ".."), else: wd
 
-        connector_state
-        |> Map.put(:current_working_directory, new_working_dir)
+        Map.put(connector_state, :current_working_directory, new_working_dir)
 
       _ ->
         send_resp(@file_action_not_taken, "Failed to remove directory.", socket)
@@ -278,16 +252,18 @@ defmodule ExFTP.Storage.Common do
     hidden_dirs = if include_hidden, do: get_hidden_roots(connector, connector_state), else: []
 
     items =
-      connector.get_directory_contents(wd, connector_state)
+      wd
+      |> connector.get_directory_contents(connector_state)
       |> case do
         {:ok, contents} ->
-          if include_hidden do
-            hidden_dirs ++ contents
-          else
-            contents
-            |> Enum.reject(&hidden?/1)
-          end
-          |> Enum.sort_by(& &1.file_name)
+          if_result =
+            if include_hidden do
+              hidden_dirs ++ contents
+            else
+              Enum.reject(contents, &hidden?/1)
+            end
+
+          Enum.sort_by(if_result, & &1.file_name)
 
         _ ->
           if include_hidden, do: hidden_dirs, else: []
@@ -297,9 +273,7 @@ defmodule ExFTP.Storage.Common do
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
     else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv, &1, close_after_write: false))
+      :ok = Enum.each(items, &PassiveSocket.write(pasv, &1, close_after_write: false))
 
       PassiveSocket.close(pasv)
     end
@@ -358,16 +332,18 @@ defmodule ExFTP.Storage.Common do
     hidden_dirs = if include_hidden, do: get_hidden_roots(connector, connector_state), else: []
 
     items =
-      connector.get_directory_contents(wd, connector_state)
+      wd
+      |> connector.get_directory_contents(connector_state)
       |> case do
         {:ok, contents} ->
-          if include_hidden do
-            hidden_dirs ++ contents
-          else
-            contents
-            |> Enum.reject(&hidden?/1)
-          end
-          |> Enum.sort_by(& &1.file_name)
+          if_result =
+            if include_hidden do
+              hidden_dirs ++ contents
+            else
+              Enum.reject(contents, &hidden?/1)
+            end
+
+          Enum.sort_by(if_result, & &1.file_name)
 
         _ ->
           if include_hidden, do: hidden_dirs, else: []
@@ -377,9 +353,7 @@ defmodule ExFTP.Storage.Common do
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
     else
-      :ok =
-        items
-        |> Enum.each(&PassiveSocket.write(pasv, &1, close_after_write: false))
+      :ok = Enum.each(items, &PassiveSocket.write(pasv, &1, close_after_write: false))
 
       PassiveSocket.close(pasv)
     end
@@ -413,13 +387,8 @@ defmodule ExFTP.Storage.Common do
   <!-- tabs-close -->
   """
   def retr(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          pasv: pasv,
-          connector_state: connector_state
-        } = _server_state
+        %{storage_connector: connector, path: path, socket: socket, pasv: pasv, connector_state: connector_state} =
+          _server_state
       ) do
     :ok =
       send_resp(
@@ -430,7 +399,8 @@ defmodule ExFTP.Storage.Common do
 
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
-    connector.get_content(w_path, connector_state)
+    w_path
+    |> connector.get_content(connector_state)
     |> case do
       {:ok, stream} ->
         PassiveSocket.write(pasv, stream, close_after_write: true)
@@ -482,17 +452,11 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def size(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          connector_state: connector_state
-        } = _server_state
-      ) do
+  def size(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
-    connector.get_content_info(w_path, connector_state)
+    w_path
+    |> connector.get_content_info(connector_state)
     |> case do
       {:ok, %{size: size}} -> send_resp(@file_status_ok, "#{size}", socket)
       _ -> send_resp(@file_action_not_taken, "Could not get file size.", socket)
@@ -529,13 +493,8 @@ defmodule ExFTP.Storage.Common do
   <!-- tabs-close -->
   """
   def stor(
-        %{
-          storage_connector: connector,
-          path: path,
-          socket: socket,
-          pasv: pasv,
-          connector_state: connector_state
-        } = _server_state
+        %{storage_connector: connector, path: path, socket: socket, pasv: pasv, connector_state: connector_state} =
+          _server_state
       ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
@@ -566,15 +525,13 @@ defmodule ExFTP.Storage.Common do
   end
 
   def snake_case_keys(m) do
-    m
-    |> Enum.map(fn {key, val} ->
+    Enum.map(m, fn {key, val} ->
       {ProperCase.snake_case(key), val}
     end)
   end
 
   def atomize_keys(m) do
-    m
-    |> Enum.map(fn {key, val} ->
+    Enum.map(m, fn {key, val} ->
       key = String.to_atom(key)
       {key, val}
     end)
@@ -610,7 +567,8 @@ defmodule ExFTP.Storage.Common do
   end
 
   defp get_storage_config do
-    Application.get_env(:ex_ftp, :storage_config)
+    :ex_ftp
+    |> Application.get_env(:storage_config)
     |> case do
       nil -> {:error, "No :storage_config found"}
       config -> {:ok, config}
@@ -619,42 +577,31 @@ defmodule ExFTP.Storage.Common do
 
   defp hidden?(%{file_name: file_name}), do: String.starts_with?(file_name, ".")
 
-  defp format_name(%{
-         file_name: file_name,
-         type: type
-       }) do
+  defp format_name(%{file_name: file_name, type: type}) do
     if type == :directory, do: file_name, else: file_name <> "/"
   end
 
-  defp format_content(%{
-         file_name: file_name,
-         modified_datetime: date,
-         size: size,
-         access: access,
-         type: type
-       }) do
+  defp format_content(%{file_name: file_name, modified_datetime: date, size: size, access: access, type: type}) do
     type =
-      type
-      |> case do
+      case type do
         :directory -> "d"
         :symlink -> "l"
         _ -> "-"
       end
 
     access =
-      access
-      |> case do
+      case access do
         :read -> "r--"
         :write -> "-w-"
         :read_write -> "rw-"
         _ -> "---"
       end
 
-    size = to_string(size) |> String.pad_leading(16)
+    size = size |> to_string() |> String.pad_leading(16)
 
     owner = " 0"
     group = "        0"
-    unknown_val = "1" |> String.pad_leading(5)
+    unknown_val = String.pad_leading("1", 5)
     permissions = "#{type}#{access}r--r--"
 
     "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
@@ -668,10 +615,11 @@ defmodule ExFTP.Storage.Common do
         Path.expand(path)
 
       String.starts_with?(path, "~") ->
-        String.replace(path, "~", "/") |> Path.expand()
+        path |> String.replace("~", "/") |> Path.expand()
 
       true ->
-        Path.join(current_prefix, path)
+        current_prefix
+        |> Path.join(path)
         |> Path.expand()
     end
   end

@@ -1,5 +1,6 @@
 defmodule ExFTP.ServerTest do
   use ExUnit.Case
+
   doctest ExFTP.Server
 
   test "accepts tcp connections" do

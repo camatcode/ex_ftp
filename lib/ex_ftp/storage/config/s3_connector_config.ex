@@ -52,10 +52,8 @@ defmodule ExFTP.Storage.S3ConnectorConfig do
   """
   @spec build(m :: map) :: S3ConnectorConfig.t()
   def build(m) do
-    fields =
-      m
-      |> prepare()
+    fields = prepare(m)
 
-    struct(ExFTP.Storage.S3ConnectorConfig, fields)
+    struct(S3ConnectorConfig, fields)
   end
 end

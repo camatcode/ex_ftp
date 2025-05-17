@@ -325,7 +325,9 @@ defmodule MyCustomAuth do
   end
 
   @impl Authenticator
-  @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
+  @spec authenticated?(
+          authenticator_state :: Authenticator.authenticator_state()
+        ) :: boolean()
   def authenticated?(authenticator_state), do
         # re-check that a user is authenticated
         # return {:ok, current_authenticator_state} if successful
