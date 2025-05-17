@@ -319,7 +319,8 @@ defmodule MyCustomAuth do
         # perform initial login
         # return {:ok, current_authenticator_state} if successful
         #   authenticator_state is passed around during the session
-        #   your authenticated?/1 may want this method to put something about the password in the state
+        #   your authenticated?/1 may want this method to put 
+        #     something about the password in the state
         # return {:error, anything} if unsuccessful
   end
 
