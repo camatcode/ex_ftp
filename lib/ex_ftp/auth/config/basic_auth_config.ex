@@ -50,7 +50,7 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   ]
 
   @doc """
-  Builds a `BasicAuthConfig` from a map
+  Builds a `t:ExFTP.Auth.BasicAuthConfig.t/0` from a map
 
   <!-- tabs-open -->
 
