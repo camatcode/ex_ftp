@@ -132,7 +132,7 @@ defmodule ExFTP.Storage.FileConnector do
   @spec make_directory(
           path :: ExFTP.StorageConnector.path(),
           connector_state :: ExFTP.StorageConnector.connector_state()
-        ) :: {:ok, connector_state} | {:error, term()}
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def make_directory(path, connector_state) do
     path
     |> File.mkdir_p()

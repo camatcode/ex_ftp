@@ -37,7 +37,6 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     test_pwd(state)
   end
 
-  @tag run: true
   test "CWD / CDUP", state do
     tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
@@ -50,7 +49,6 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     test_mkd_rmd(state, tmp_dir)
   end
 
-  @tag run: true
   test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR", state do
     tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)

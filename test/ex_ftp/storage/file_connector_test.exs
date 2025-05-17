@@ -118,7 +118,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     end)
   end
 
-  test "RETR", %{socket: socket, password: _password} = state do
+  test "RETR", state do
     # CWD w_dir
     w_dir = File.cwd!()
 
@@ -128,13 +128,13 @@ defmodule ExFTP.Storage.FileConnectorTest do
     test_retr(state, w_dir, paths_to_download)
   end
 
-  test "SIZE", %{socket: socket, password: _password} = state do
+  test "SIZE", state do
     # CWD w_dir
     w_dir = File.cwd!()
     test_size(state, w_dir)
   end
 
-  test "STOR", %{socket: socket, password: _password} = state do
+  test "STOR", state do
     # CWD w_dir
     w_dir = Path.join(System.tmp_dir!(), "stor_test")
     on_exit(fn -> File.rm_rf!(w_dir) end)
