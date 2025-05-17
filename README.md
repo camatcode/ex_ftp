@@ -300,10 +300,10 @@ defmodule MyCustomAuth do
 
   @impl Authenticator
   @spec valid_user?(username :: Authenticator.username()) :: boolean
-  def valid_user?(_username) do
+  def valid_user?(username) do
         # return true if the username is valid
         # return false if invalid
-        # this short-circuits login requests,
+        # this short-circuits bad login requests,
         # if it would take longer than 5 seconds to validate a username
         #   then its best to just return true
         #   as there wouldn't be a performance benefit
@@ -314,17 +314,18 @@ defmodule MyCustomAuth do
           password :: Authenticator.password(),
           authenticator_state :: Authenticator.authenticator_state()
         ) :: {:ok, Authenticator.authenticator_state()} | {:error, term()}
-  def login(_password, authenticator_state) do
+  def login(password, authenticator_state) do
         # authenticator_state may have the key :username
         # perform initial login
         # return {:ok, current_authenticator_state} if successful
         #   authenticator_state is passed around during the session
+        #   your authenticated?/1 may want this method to put something about the password in the state
         # return {:error, anything} if unsuccessful
   end
 
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
-  def authenticated?(_authenticator_state), do
+  def authenticated?(authenticator_state), do
         # re-check that a user is authenticated
         # return {:ok, current_authenticator_state} if successful
         #   authenticator_state is passed around during the session
