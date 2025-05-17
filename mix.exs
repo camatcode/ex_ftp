@@ -53,7 +53,14 @@ defmodule ExFTP.MixProject do
         ExFTP.Auth.BasicAuthConfig,
         ExFTP.Auth.DigestAuthConfig
       ],
-      Storage: [ExFTP.StorageConnector, ExFTP.Storage.FileConnector],
+      "Storage Connector": [
+        ExFTP.StorageConnector,
+        ExFTP.Storage.FileConnector,
+        ExFTP.Storage.S3Connector
+      ],
+      "Storage Connector Config": [
+        ExFTP.Storage.S3ConnectorConfig
+      ],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
     ]
   end

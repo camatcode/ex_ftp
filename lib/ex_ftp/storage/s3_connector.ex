@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Storage.S3Connector do
-  @moduledoc false
+  @moduledoc """
+  When **storage_connector** is `ExFTP.Storage.S3Connector`, this connector will use any S3-compatible storage provider.
+
+  Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured properly.
+  """
 
   @behaviour ExFTP.StorageConnector
 
