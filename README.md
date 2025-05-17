@@ -158,7 +158,7 @@ but accept any user and password combination who isn't `root`.
 > [!WARNING]  
 > This is not recommended for situations not protected by SSL.
 
-When `authenticator` is `ExFTP.Auth.BasicAuth`, ex_ftp call out to an HTTP endpoint that implements 
+When **authenticator** is `ExFTP.Auth.BasicAuth`, this authenticator will call out to an HTTP endpoint that implements 
 [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) with the user's supplied credentials.
 
 

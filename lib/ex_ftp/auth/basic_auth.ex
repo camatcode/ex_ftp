@@ -1,17 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.BasicAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which will call out to an endpoint with Basic HTTP auth to determine access
+  When **authenticator** is `ExFTP.Auth.BasicAuth`, this authenticator will call out to an HTTP endpoint that implements
+  [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication){:target=\"_blank\"} with the user's
+  supplied credentials.
 
-  This route at minimum, assumes there exists an HTTP endpoint that when called with Basic HTTP auth
-    that it will respond HTTP *200* if successful; any other response is considered a bad login.
-
-  Additionally, this authenticator can be set up to reach out to another endpoint that when called with Basic HTTP auth
-   will respond status *200* if the user is still considered authenticated, and any other status if
-   the user should not be considered authenticated.
-
-  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
-  a user.
+  > #### 🔒 Security {: .warning}
+  >
+  > `BasicAuth` is not recommended for situations not protected by SSL.
 
   <!-- tabs-open -->
 
@@ -32,7 +28,7 @@ defmodule ExFTP.Auth.BasicAuth do
         login_method: :get,
         authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
         authenticated_method: :get,
-        authenticated_ttl_ms: 1000 * 60
+        authenticated_ttl_ms: 1000 * 60 * 60
       }
     }
   ```
@@ -63,7 +59,7 @@ defmodule ExFTP.Auth.BasicAuth do
   def valid_user?(_username), do: true
 
   @doc """
-  Requests a login using Basic Auth.
+  Requests a login using [HTTP Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication){:target=\"_blank\"}
 
   <!-- tabs-open -->
 
@@ -73,10 +69,10 @@ defmodule ExFTP.Auth.BasicAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
+   * Reads the **authenticator_config**.
    * Receives a password from the client (a username was provided earlier)
-   * Calls the `login_url` with proper basic auth
-   * If the response is HTTP 200, success. Otherwise, bad login.
+   * Calls the **login_url** with HTTP Basic Auth
+   * If the response is **HTTP 200**, success. Otherwise, bad login.
 
   #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
@@ -91,13 +87,11 @@ defmodule ExFTP.Auth.BasicAuth do
       iex>  login_method: :get,
       iex>  authenticated_url: "https://httpbin.dev/hidden-basic-auth/" <> username <> "/" <> password,
       iex>  authenticated_method: :get,
-      iex>  authenticated_ttl_ms: 1
+      iex>  authenticated_ttl_ms: 1000 * 60 * 60
       iex> })
       iex> {:ok, _} = BasicAuth.login(password, %{username: username})
 
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.BasicAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
@@ -122,11 +116,11 @@ defmodule ExFTP.Auth.BasicAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * If the config has `authenticated_url`,
-     * Calls it using Basic Auth with username and password provided by the user
-     * If the response is HTTP 200, success. Otherwise, no longer authenticated.
-   * If the config does not have `authenticated_url`,
+   * Reads the **authenticator_config**.
+   * If the config has **authenticated_url**,
+     * Calls it using HTTP Basic Auth with username and password provided by the user
+     * If the response is **HTTP 200**, success. Otherwise, no longer authenticated.
+   * If the config does not have **authenticated_url**,
      * investigate the **authenticator_state** for `authenticated: true`
 
   #{ExFTP.Doc.returns(success: "`true` or `false`")}
@@ -142,15 +136,13 @@ defmodule ExFTP.Auth.BasicAuth do
       iex>  login_method: :get,
       iex>  authenticated_url: "https://httpbin.dev/hidden-basic-auth/" <> username <> "/" <> password,
       iex>  authenticated_method: :get,
-      iex>  authenticated_ttl_ms: 1
+      iex>  authenticated_ttl_ms: 1000 * 60 * 60
       iex> })
       iex> {:ok, state} = BasicAuth.login(password, %{username: username})
       iex> BasicAuth.authenticated?(state)
       true
 
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.BasicAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
