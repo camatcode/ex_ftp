@@ -16,7 +16,7 @@ defmodule ExFTP.Auth.Common do
   @type authenticated_url :: URI.t() | String.t()
 
   @typedoc """
-  Paired with `t:authenticated_url/0`
+  HTTP method paired with `t:authenticated_url/0`
 
   <!-- tabs-open -->
 
@@ -49,7 +49,7 @@ defmodule ExFTP.Auth.Common do
   @type login_url :: URI.t() | String.t()
 
   @typedoc """
-  Paired with `t:login_url/0`
+  HTTP method paired with `t:login_url/0`
 
   <!-- tabs-open -->
 
@@ -71,6 +71,17 @@ defmodule ExFTP.Auth.Common do
   @type http_method ::
           :get | :head | :post | :put | :connect | :delete | :options | :trace | :patch
 
+  @doc """
+  Grabs the `authenticator_config` from `Application.get_env/2` and validates it.
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **mod** :: A module to validate against (e.g `ExFTP.Auth.BasicAuthConfig`)
+
+  #{ExFTP.Doc.returns(success: "`{:ok, config}`", failure: "`{:error, desc}`")}
+
+  <!-- tabs-close -->
+  """
   def validate_config(mod) do
     with {:ok, config} <- get_authenticator_config() do
       validated = mod.build(config)
@@ -78,30 +89,36 @@ defmodule ExFTP.Auth.Common do
     end
   end
 
+  @doc """
+  Cleans keys and values of a given map in preparation to build into a config
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **m** :: A map to prepare before building into a config
+
+  <!-- tabs-close -->
+  """
+  @spec prepare(m :: map()) :: map()
   def prepare(m) do
     m
-    |> prepare_values()
     |> prepare_keys()
   end
 
-  def prepare_values(m) do
-    m
-  end
-
-  def prepare_keys(m) do
+  defp prepare_keys(m) do
     m
     |> snake_case_keys()
     |> atomize_keys()
   end
 
-  def snake_case_keys(m) do
+  defp snake_case_keys(m) do
     m
     |> Enum.map(fn {key, val} ->
       {ProperCase.snake_case(key), val}
     end)
   end
 
-  def atomize_keys(m) do
+  defp atomize_keys(m) do
     m
     |> Enum.map(fn {key, val} ->
       key = String.to_atom(key)
