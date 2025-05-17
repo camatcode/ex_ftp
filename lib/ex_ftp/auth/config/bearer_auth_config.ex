@@ -17,7 +17,7 @@ defmodule ExFTP.Auth.BearerAuthConfig do
   alias ExFTP.Auth.Common
 
   @typedoc """
-  The **authenticator_config** value for `ExFTP.Auth.WebhookAuth`
+  The **authenticator_config** value for `ExFTP.Auth.BearerAuth`
 
   <!-- tabs-open -->
   ### 🏷️ Required Keys
@@ -50,7 +50,14 @@ defmodule ExFTP.Auth.BearerAuthConfig do
   ]
 
   @doc """
-  Builds a `BasicAuthConfig` from a map
+  Builds a `t:ExFTP.Auth.BearerAuthConfig.t/0` from a map
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **m** :: A map to build into a `t:ExFTP.Auth.BearerAuthConfig.t/0`
+
+  <!-- tabs-close -->
   """
   @spec build(m :: map) :: BasicAuthConfig.t()
   def build(m) do
