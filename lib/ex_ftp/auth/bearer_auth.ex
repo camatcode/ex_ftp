@@ -1,17 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.BearerAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which will call out to an endpoint with a Bearer token to determine access
-
-  This route at minimum, assumes there exists an HTTP endpoint that when called with "authorization" : "Bearer {provided_bearer}"
-    in the headers that it will respond HTTP *200* if successful; any other response is considered a bad login.
-
-  Additionally, this authenticator can be set up to reach out to another endpoint that when called with a Bearer token
-   in the headers will respond status *200* if the user is still considered authenticated, and any other status if
-   the user should not be considered authenticated.
-
-  Independently, this authenticator can set a time-to-live (TTL) which, after reached, will require re-auth check from
-  a user.
+  When **authenticator** is `ExFTP.Auth.BearerAuth`, this authenticator will call out to an HTTP endpoint that
+  implements [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/){:target=\"_blank\"}
+  with the user's supplied credentials.
 
   <!-- tabs-open -->
 
@@ -26,13 +18,14 @@ defmodule ExFTP.Auth.BearerAuth do
 
   ```elixir
     %{
+      # ... ,
       authenticator: ExFTP.Auth.BearerAuth,
       authenticator_config: %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :post,
         authenticated_url: "https://httpbin.dev/bearer",
         authenticated_method: :post,
-        authenticated_ttl_ms: 1000 * 60
+        authenticated_ttl_ms: 1000 * 60 * 60
       }
     }
   ```
@@ -49,13 +42,14 @@ defmodule ExFTP.Auth.BearerAuth do
   alias ExFTP.Auth.BearerAuthConfig
   alias ExFTP.Auth.WebhookAuth
   alias ExFTP.Authenticator
+
   @behaviour Authenticator
 
   @doc """
   Always returns `true`.
 
   > #### No performance benefit {: .tip}
-  > This method is normally used to short-circuit login requests.
+  > This method is normally used to short-circuit bad login requests.
   > The performance gain in that short-circuit is negligible for this authenticator, so it's not used.
   """
   @impl Authenticator
@@ -63,7 +57,8 @@ defmodule ExFTP.Auth.BearerAuth do
   def valid_user?(username), do: WebhookAuth.valid_user?(username)
 
   @doc """
-  Requests a login using a Bearer token.
+  Requests a login using a
+  [Bearer Token](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/){:target=\"_blank\"}
 
   <!-- tabs-open -->
 
@@ -73,10 +68,10 @@ defmodule ExFTP.Auth.BearerAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * Receives a bearer token from the client
-   * Calls the `login_url` with the proper bearer token headers (e.g `http://httpbin.dev/bearer`)
-   * If the response is HTTP 200, success. Otherwise, bad login.
+   * Reads the **authenticator_config**.
+   * Receives a bearer token from the client (as a password)
+   * Calls the **login_url** with the proper bearer token headers
+   * If the response is **HTTP 200**, success. Otherwise, bad login.
 
   #{ExFTP.Doc.returns(success: "{:ok, authenticator_state}", failure: "{:error, bad_login}")}
 
@@ -90,18 +85,7 @@ defmodule ExFTP.Auth.BearerAuth do
       iex> })
       iex> {:ok, _} = BearerAuth.login("my.bearer.token" , %{})
 
-
-  ### ⚠️ Reminders
-  > #### Authenticator State {: .tip}
-  >
-  > The `t:ExFTP.Authenticator.authenticator_state/0` will contain a `:username` key, if one was provided.
-  >
-  > On success, the **authenticator_state** will be automatically updated to include `authenticated: true`.
-  > See `authenticated?/1` for more information.
-
-  #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`", "`t:ExFTP.Auth.WebhookAuthConfig.password_hash_type/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
+  #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.Common.login_url/0`", "`t:ExFTP.Auth.Common.login_method/0`"])}
 
   <!-- tabs-close -->
   """
@@ -126,11 +110,11 @@ defmodule ExFTP.Auth.BearerAuth do
 
   ### 🧑‍🍳 Workflow
 
-   * Reads the `authenticator_config`.
-   * If the config has `authenticated_url`,
-     * Calls it with a bearer token provided by the user in the headers (e.g `http://httpbin.dev/bearer`)
-     * If the response is HTTP 200, success. Otherwise, no longer authenticated.
-   * If the config does not have `authenticated_url`,
+   * Reads the **authenticator_config**.
+   * If the config has **authenticated_url**,
+     * Calls it with a bearer token provided by the user in the headers
+     * If the response is **HTTP 200**, success. Otherwise, no longer authenticated.
+   * If the config does not have **authenticated_url**,
      * investigate the **authenticator_state** for `authenticated: true`
 
   #{ExFTP.Doc.returns(success: "`true` or `false`")}
@@ -148,8 +132,6 @@ defmodule ExFTP.Auth.BearerAuth do
       true
 
   #{ExFTP.Doc.related(["`t:ExFTP.Auth.BearerAuthConfig.t/0`", "`t:ExFTP.Auth.Common.authenticated_url/0`", "`t:ExFTP.Auth.Common.authenticated_method/0`"])}
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """

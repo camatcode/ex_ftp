@@ -224,7 +224,7 @@ is still considered valid.
 >
 > `username` isn't important for a Bearer token; though a provided username is still held on to.
 
-When `authenticator` is `ExFTP.Auth.BearerAuth`, ex_ftp call out to an HTTP endpoint that implements
+When **authenticator** is `ExFTP.Auth.BearerAuth`, this authenticator will call out to an HTTP endpoint that implements
 [Bearer Tokens](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/) with the user's 
 supplied credentials.
 

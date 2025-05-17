@@ -22,6 +22,7 @@ defmodule ExFTP.Auth.BasicAuth do
 
   ```elixir
     %{
+      # ... ,
       authenticator: ExFTP.Auth.BasicAuth,
       authenticator_config: %{
         login_url: "https://httpbin.dev/basic-auth/",
@@ -51,7 +52,7 @@ defmodule ExFTP.Auth.BasicAuth do
   Always returns `true`.
 
   > #### No performance benefit {: .tip}
-  > This method is normally used to short-circuit login requests.
+  > This method is normally used to short-circuit bad login requests.
   > The performance gain in that short-circuit is negligible for basic auth, so it's not used.
   """
   @impl Authenticator
