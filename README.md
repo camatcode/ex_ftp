@@ -123,8 +123,8 @@ Below are all the included authenticators.
 > [!WARNING]  
 > This is not recommended for any production server.
 
-When `authenticator` is `ExFTP.Auth.NoAuth`, ex_ftp will completely ignore any supplied credentials and assume
-everything is authenticated.
+When `authenticator` is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and 
+assume everything is authenticated.
 
 
 ```elixir

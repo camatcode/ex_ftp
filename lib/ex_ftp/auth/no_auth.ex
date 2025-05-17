@@ -1,26 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.Auth.NoAuth do
   @moduledoc """
-  An implementation of `ExFTP.Authenticator` which allows anyone, with or without a username or password
+  When `authenticator` is `ExFTP.Auth.NoAuth`, this authenticator will completely ignore any supplied credentials and
+  assume everything is authenticated.
+
+  > #### 🔒 Security {: .error}
+  >
+  > Don't use `NoAuth` for production servers.
 
   <!-- tabs-open -->
 
   ### ⚙️ Configuration
 
-  > #### Elixir {: .info}
-  > `NoAuth` only requires `authenticator` to be set to `ExFTP.Auth.NoAuth`
-  >
-  > ```elixir
-  >     config :ex_ftp,
-  >       ....
-  >       authenticator: ExFTP.Auth.NoAuth,
-  >       ....
-  > ```
+  *Keys*
 
-  ### ⚠️ Reminders
-  > #### 🔒 Security {: .tip}
-  >
-  > `NoAuth` is not recommended for publicly facing deployment servers
+  * **authenticator**  == `ExFTP.Auth.NoAuth`
+  * **authenticator_config** :: `%{}`
+
+  *Example*
+
+  ```elixir
+    %{
+      # ... ,
+      authenticator: ExFTP.Auth.DigestAuth,
+      authenticator_config: %{}
+    }
+  ```
 
   #{ExFTP.Doc.related(["`ExFTP.Authenticator`"])}
 
@@ -50,8 +55,6 @@ defmodule ExFTP.Auth.NoAuth do
       iex> NoAuth.valid_user?("root")
       true
 
-  #{ExFTP.Doc.resources("section-4")}
-
   <!-- tabs-close -->
   """
   @impl Authenticator
@@ -75,8 +78,6 @@ defmodule ExFTP.Auth.NoAuth do
       iex> {:ok, _auth_state} = NoAuth.login("password", %{username: "jsmith"})
       iex> {:ok, _} = NoAuth.login("password", %{})
       iex> {:ok, _} = NoAuth.login("password", %{username: "root"})
-
-  #{ExFTP.Doc.resources("section-4")}
 
   <!-- tabs-close -->
   """
