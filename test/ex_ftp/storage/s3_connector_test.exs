@@ -10,12 +10,10 @@ defmodule ExFTP.Storage.S3ConnectorTest do
 
   doctest ExFTP.Storage.S3Connector
 
-  @test_bucket "ex-ftp-test"
-
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
     Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.S3Connector)
-    Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: @test_bucket})
+    Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: "ex-ftp-test"})
 
     socket = get_socket()
     username = Faker.Internet.user_name()
@@ -50,7 +48,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
   end
 
   test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR", state do
-    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    tmp_dir = Path.join("/", Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
 
     files_to_store =
