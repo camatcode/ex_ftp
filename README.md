@@ -385,7 +385,7 @@ config :ex_ftp,
 
 Minio is a popular open-source, self-hosted alternative to AWS S3. 
 
-LocalStack is a popular way to testing AWS without connecting to AWS.
+LocalStack is a popular way to test AWS without connecting to AWS.
 
 The only difference in config will be how you configure `ExAws`.
 

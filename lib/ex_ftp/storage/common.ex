@@ -502,7 +502,7 @@ defmodule ExFTP.Storage.Common do
 
     PassiveSocket.read(
       pasv,
-      connector.get_write_func(
+      connector.create_write_func(
         w_path,
         connector_state,
         chunk_size: 5 * 1024 * 1024
