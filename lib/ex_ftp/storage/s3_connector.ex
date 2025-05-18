@@ -97,7 +97,6 @@ defmodule ExFTP.Storage.S3Connector do
         ) :: boolean
   def directory_exists?(path, connector_state) do
     path = clean_path(path)
-    IO.inspect(path, label: :path)
 
     if path == "/" do
       true
