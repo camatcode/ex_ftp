@@ -4,6 +4,33 @@ defmodule ExFTP.Storage.S3Connector do
   When **storage_connector** is `ExFTP.Storage.S3Connector`, this connector will use any S3-compatible storage provider.
 
   Underneath the hood, ex_ftp is using `ExAws.S3`, so you'll need that configured properly.
+
+  <!-- tabs-open -->
+  ### ⚙️ Configuration
+
+  *Keys*
+
+  * **storage_connector**  == `ExFTP.Storage.FileConnector`
+  * **storage_config**  :: `t:ExFTP.Storage.S3ConnectorConfig.t/0`
+
+  *Example*
+
+  ```elixir
+    %{
+      # ... ,
+      storage_connector: ExFTP.Storage.S3Connector,
+      storage_config: %{
+          # the `/` path of the FTP server will point to s3://{my-storage-bucket}/
+          storage_bucket: "my-storage-bucket"
+      }
+  }
+  ```
+
+  #{ExFTP.Doc.related(["`ExFTP.StorageConnector`"])}
+
+  #{ExFTP.Doc.resources()}
+
+  <!-- tabs-close -->
   """
 
   @behaviour ExFTP.StorageConnector
@@ -13,36 +40,104 @@ defmodule ExFTP.Storage.S3Connector do
   alias ExFTP.Storage.S3ConnectorConfig
   alias ExFTP.StorageConnector
 
+  @doc """
+  Returns the current working directory
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.S3Connector
+      iex> S3Connector.get_working_directory(%{current_working_directory: "/"})
+      "/"
+
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_working_directory/1`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
-  def get_working_directory(%{current_working_directory: cwd} = _connector_state) do
-    cwd
-  end
+  @spec get_working_directory(connector_state :: ExFTP.StorageConnector.connector_state()) ::
+          String.t()
+  def get_working_directory(%{current_working_directory: cwd} = _connector_state), do: cwd
 
-  defp clean_path(path) do
-    path = Path.join(path, "") <> "/"
-    path = "/" <> path
-    String.replace(path, "//", "/")
-  end
+  @doc """
+  Whether a given path is an existing directory
 
-  defp virtual_directory?(config, path, connector_state) do
-    path = clean_path(path)
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
 
-    config
-    |> get_virtual_directories(connector_state)
-    |> Enum.member?(path)
-  end
+  #{ExFTP.Doc.returns(success: "`true` or `false`")}
 
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.S3Connector
+      iex> S3Connector.directory_exists?("/", %{current_working_directory: "/"})
+      true
+      iex> S3Connector.directory_exists?("/does-not-exist", %{current_working_directory: "/"})
+      false
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.directory_exists?/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec directory_exists?(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: boolean
   def directory_exists?(path, connector_state) do
     path = clean_path(path)
 
-    with {:ok, config} <- validate_config(S3ConnectorConfig) do
-      virtual_directory?(config, path, connector_state) ||
-        s3_prefix_exists?(config, path)
+    if path == "/" do
+      true
+    else
+      with {:ok, config} <- validate_config(S3ConnectorConfig) do
+        virtual_directory?(config, path, connector_state) ||
+          s3_prefix_exists?(config, path)
+      end
     end
   end
 
+  @doc """
+  Creates a directory, given a path
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.S3Connector
+      iex> connector_state = %{current_working_directory: "/"}
+      iex> dir_to_make = "/new_dir/"
+      iex> {:ok, connector_state} = S3Connector.make_directory(dir_to_make, connector_state)
+      iex> S3Connector.directory_exists?(dir_to_make, connector_state)
+      true
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.make_directory/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec make_directory(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def make_directory(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = clean_path(path)
@@ -110,6 +205,17 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
+  @doc """
+  Create a function/1 that writes a **stream** to storage
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:path/0`
+    * **connector_state** :: `t:connector_state/0`
+    * **opts** :: list of options
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
   def create_write_func(path, connector_state, opts \\ []) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
@@ -143,6 +249,25 @@ defmodule ExFTP.Storage.S3Connector do
         _ -> {:error, "Could not get content info"}
       end
     end
+  end
+
+  defp clean_path(path) do
+    path =
+      path
+      |> String.replace("//", "/")
+      |> Path.join("")
+
+    path = "#{path}/"
+    p = if String.starts_with?(path, "/"), do: path, else: "/#{path}"
+    String.replace(p, "//", "/")
+  end
+
+  defp virtual_directory?(config, path, connector_state) do
+    path = clean_path(path)
+
+    config
+    |> get_virtual_directories(connector_state)
+    |> Enum.member?(path)
   end
 
   defp s3_get_prefix_contents(config, path, connector_state, type \\ :prefix)
