@@ -10,10 +10,12 @@ defmodule ExFTP.Storage.S3ConnectorTest do
 
   doctest ExFTP.Storage.S3Connector
 
+  @test_bucket "ex-ftp-test"
+
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
     Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.S3Connector)
-    Application.put_env(:ex_ftp, :storage_config, %{})
+    Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: @test_bucket})
 
     socket = get_socket()
     username = Faker.Internet.user_name()
@@ -31,20 +33,18 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     }
   end
 
-  @test_bucket "ex-ftp-test"
-
   test "PWD", state do
     test_pwd(state)
   end
 
   test "CWD / CDUP", state do
-    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    tmp_dir = Path.join("/", Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
     test_cwd_cdup(state, tmp_dir)
   end
 
   test "MKD / RMD", state do
-    tmp_dir = "/" <> Path.join(@test_bucket, Faker.Internet.slug())
+    tmp_dir = Path.join("/", Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
     test_mkd_rmd(state, tmp_dir)
   end
