@@ -270,8 +270,39 @@ defmodule ExFTP.StorageConnector do
   """
   @callback get_content(path, connector_state) :: {:ok, any()} | {:error, term()}
 
-  # FIXME
   @doc """
+  Create a function/1 that writes a **stream** to storage
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:path/0`
+    * **connector_state** :: `t:connector_state/0`
+    * **opts** :: list of options
+
+  ### 💻 Examples
+
+  ```elixir
+      @impl StorageConnector
+      def create_write_func(path, connector_state, opts \\ []) do
+        fn stream ->
+          fs = File.stream!(path)
+
+          try do
+            _ =
+              stream
+              |> chunk_stream(opts)
+              |> Enum.into(fs)
+
+            {:ok, connector_state}
+          rescue
+            _ ->
+              {:error, "Failed to transfer"}
+          end
+        end
+      end
+  ```
+
+  <!-- tabs-close -->
   """
-  @callback get_write_func(path, connector_state, opts :: []) :: function()
+  @callback create_write_func(path, connector_state, opts :: list()) :: function()
 end

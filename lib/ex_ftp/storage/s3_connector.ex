@@ -111,12 +111,12 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   @impl StorageConnector
-  def get_write_func(path, connector_state, _opts \\ []) do
+  def create_write_func(path, connector_state, opts \\ []) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      fn stream, opts ->
+      fn stream ->
         try do
           stream
           |> chunk_stream(opts)
