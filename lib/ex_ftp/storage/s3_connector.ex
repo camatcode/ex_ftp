@@ -19,56 +19,69 @@ defmodule ExFTP.Storage.S3Connector do
     cwd
   end
 
-  @impl StorageConnector
-  def directory_exists?(path, connector_state) do
+  defp clean_path(path) do
     path = Path.join(path, "") <> "/"
-
-    with {:ok, config} <- validate_config(S3ConnectorConfig) do
-      virtual_directory?(path, connector_state) || s3_prefix_exists?(config, path)
-    end
+    path = "/" <> path
+    String.replace(path, "//", "/")
   end
 
-  defp virtual_directory?(path, connector_state) do
-    current_v_dirs = Map.get(connector_state, :virtual_directories, ["/"])
-    Enum.member?(current_v_dirs, path)
+  defp virtual_directory?(config, path, connector_state) do
+    path = clean_path(path)
+
+    config
+    |> get_virtual_directories(connector_state)
+    |> Enum.member?(path)
+  end
+
+  @impl StorageConnector
+  def directory_exists?(path, connector_state) do
+    path = clean_path(path)
+
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      virtual_directory?(config, path, connector_state) ||
+        s3_prefix_exists?(config, path)
+    end
   end
 
   @impl StorageConnector
   def make_directory(path, connector_state) do
-    path = Path.join(path, "") <> "/"
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      path = clean_path(path)
 
-    parent_dirs =
-      path
-      |> Path.dirname()
-      |> Path.split()
+      parent_dirs =
+        path
+        |> Path.dirname()
+        |> Path.split()
+        |> Enum.drop(-1)
+        |> Enum.map(fn p -> clean_path(p) end)
 
-    dirs = parent_dirs ++ [path]
+      dirs = parent_dirs ++ [path]
 
-    current_v_dirs = Map.get(connector_state, :virtual_directories, ["/"])
+      current_v_dirs = get_virtual_directories(config, connector_state)
 
-    new_v_dirs = Enum.uniq(current_v_dirs ++ dirs)
+      new_v_dirs = Enum.uniq(current_v_dirs ++ dirs)
 
-    connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
-    {:ok, connector_state}
+      connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
+      {:ok, connector_state}
+    end
   end
 
   @impl StorageConnector
   def delete_directory(path, connector_state) do
     path = Path.join(path, "") <> "/"
 
-    if directory_exists?(path, connector_state) do
-      with {:ok, config} <- validate_config(S3ConnectorConfig) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      if directory_exists?(path, connector_state) do
         delete_s3_prefix(config, path)
       end
+
+      current_v_dirs = get_virtual_directories(config, connector_state)
+
+      new_v_dirs = Enum.uniq((current_v_dirs -- [path]) ++ ["/"])
+
+      connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
+      {:ok, connector_state}
     end
-
-    current_v_dirs =
-      Map.get(connector_state, :virtual_directories, ["/"])
-
-    new_v_dirs = Enum.uniq((current_v_dirs -- [path]) ++ ["/"])
-
-    connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
-    {:ok, connector_state}
   end
 
   @impl StorageConnector
@@ -168,8 +181,7 @@ defmodule ExFTP.Storage.S3Connector do
         []
       end
 
-    current_v_dirs =
-      Map.get(connector_state, :virtual_directories, ["/"])
+    current_v_dirs = get_virtual_directories(config, connector_state)
 
     objects_to_append =
       current_v_dirs
@@ -300,4 +312,12 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   defp prefix_exists?(_bucket, _prefix), do: true
+
+  defp get_virtual_directories(_config, %{virtual_directories: dirs}) do
+    dirs
+  end
+
+  defp get_virtual_directories(%{storage_bucket: _bucket} = _config, connector_state) do
+    Map.get(connector_state, :virtual_directories, ["/"])
+  end
 end

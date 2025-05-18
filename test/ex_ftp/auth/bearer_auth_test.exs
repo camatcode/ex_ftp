@@ -81,7 +81,7 @@ defmodule ExFTP.Auth.BearerAuthTest do
         login_method: :get,
         authenticated_url: "https://httpbin.dev/bearer",
         authenticated_method: :get,
-        authenticated_ttl_ms: 1
+        authenticated_ttl_ms: 10
       })
 
       socket = get_socket()
@@ -94,7 +94,7 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
       send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
 
-      :timer.sleep(10)
+      :timer.sleep(100)
       assert {:ok, false} = Cachex.exists?(:auth_cache, username)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{

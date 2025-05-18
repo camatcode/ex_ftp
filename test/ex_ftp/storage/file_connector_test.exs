@@ -13,6 +13,8 @@ defmodule ExFTP.Storage.FileConnectorTest do
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
+    Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.FileConnector)
+    Application.put_env(:ex_ftp, :storage_config, %{})
 
     socket = get_socket()
     username = Faker.Internet.user_name()
@@ -136,7 +138,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
 
   test "STOR", state do
     # CWD w_dir
-    w_dir = Path.join(System.tmp_dir!(), "stor_test")
+    w_dir = Path.join(System.tmp_dir!(), Faker.Internet.slug())
     on_exit(fn -> File.rm_rf!(w_dir) end)
 
     files_to_store =
