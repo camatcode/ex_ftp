@@ -105,7 +105,7 @@ defmodule ExFTP.PassiveSocket do
     {:noreply, state}
   end
 
-  defp consume_read(socket, consume_fun, consume_opts) do
+  defp consume_read(socket, consume_fun, _consume_opts) do
     fn ->
       {:ok, read_socket} = accept(socket)
       read_socket
@@ -122,7 +122,7 @@ defmodule ExFTP.PassiveSocket do
       end,
       fn read_socket -> :gen_tcp.close(read_socket) end
     )
-    |> consume_fun.(consume_opts)
+    |> consume_fun.()
 
     :ok
   end

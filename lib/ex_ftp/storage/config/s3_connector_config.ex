@@ -17,17 +17,15 @@ defmodule ExFTP.Storage.S3ConnectorConfig do
 
   @typedoc """
   A bucket to use as the root directory of the FTP server.
-
-  If undefined, all buckets will be under the root.
   """
-  @type storage_bucket :: String.t() | nil
+  @type storage_bucket :: String.t()
 
   @typedoc """
   The **storage_config** value for `ExFTP.Storage.S3Connector`
 
   <!-- tabs-open -->
 
-  ### 🏷️ Optional Keys
+  ### 🏷️ Required Keys
     * **storage_bucket** :: `t:ExFTP.Storage.S3ConnectorConfig.storage_bucket/0`
 
   <!-- tabs-open -->

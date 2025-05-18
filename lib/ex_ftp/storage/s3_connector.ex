@@ -8,7 +8,6 @@ defmodule ExFTP.Storage.S3Connector do
 
   @behaviour ExFTP.StorageConnector
 
-  import ExFTP.Common
   import ExFTP.Storage.Common
 
   alias ExFTP.Storage.S3ConnectorConfig
@@ -111,27 +110,22 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
-  @file_action_aborted 552
-  @closing_connection_success 226
-
   @impl StorageConnector
-  def get_write_func(path, socket, _connector_state, _opts \\ []) do
+  def create_write_func(path, connector_state, opts \\ []) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      fn stream, opts ->
+      fn stream ->
         try do
           stream
           |> chunk_stream(opts)
           |> ExAws.S3.upload(bucket, prefix)
           |> ExAws.request!()
 
-          send_resp(@closing_connection_success, "Transfer Complete.", socket)
+          {:ok, connector_state}
         rescue
-          _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
-        after
-          nil
+          _ -> {:error, "Failed to transfer"}
         end
       end
     end

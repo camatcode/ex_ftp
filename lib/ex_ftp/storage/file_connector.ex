@@ -39,7 +39,6 @@ defmodule ExFTP.Storage.FileConnector do
   """
   @behaviour ExFTP.StorageConnector
 
-  import ExFTP.Common
   import ExFTP.Storage.Common
 
   alias ExFTP.StorageConnector
@@ -99,9 +98,7 @@ defmodule ExFTP.Storage.FileConnector do
           path :: ExFTP.StorageConnector.path(),
           connector_state :: ExFTP.StorageConnector.connector_state()
         ) :: boolean
-  def directory_exists?(path, _connector_state) do
-    File.exists?(path) && File.dir?(path)
-  end
+  def directory_exists?(path, _connector_state), do: File.exists?(path) && File.dir?(path)
 
   @doc """
   Creates a directory, given a path
@@ -142,7 +139,6 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  @impl StorageConnector
   @doc """
   Deletes a given directory
 
@@ -170,6 +166,11 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
+  @spec delete_directory(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def delete_directory(path, connector_state) do
     path
     |> rmrf_dir()
@@ -179,7 +180,6 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  @impl StorageConnector
   @doc """
   Returns a list of `t:ExFTP.StorageConnector.content_info/0` representing each object in a given directory
 
@@ -203,6 +203,12 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
+  @spec get_directory_contents(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) ::
+          {:ok, [ExFTP.StorageConnector.content_info()]} | {:error, term()}
   def get_directory_contents(path, connector_state) do
     path
     |> File.ls()
@@ -221,7 +227,6 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  @impl StorageConnector
   @doc """
   Returns a `t:ExFTP.StorageConnector.content_info/0` representing a given path
 
@@ -246,6 +251,12 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
+  @impl StorageConnector
+  @spec get_content_info(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) ::
+          {:ok, ExFTP.StorageConnector.content_info()} | {:error, term()}
   def get_content_info(path, _connector_state) do
     path
     |> File.lstat()
@@ -281,7 +292,6 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  @impl StorageConnector
   @doc """
   Returns a stream to read the raw bytes of an object specified by a given path
 
@@ -306,16 +316,55 @@ defmodule ExFTP.Storage.FileConnector do
 
   <!-- tabs-close -->
   """
-  def get_content(path, _connector_state) do
-    File.read(path)
-  end
-
-  @file_action_aborted 552
-  @closing_connection_success 226
-
   @impl StorageConnector
-  def get_write_func(path, socket, _connector_state, _opts \\ []) do
-    fn stream, opts ->
+  @spec get_content(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, any()} | {:error, term()}
+  def get_content(path, _connector_state), do: File.read(path)
+
+  @doc """
+  Create a function/1 that writes a **stream** to storage
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+    * **opts** :: list of options
+
+  ### 💻 Examples
+
+  ```elixir
+      @impl StorageConnector
+      def create_write_func(path, connector_state, opts \\ []) do
+        fn stream ->
+          fs = File.stream!(path)
+
+          try do
+            _ =
+              stream
+              |> chunk_stream(opts)
+              |> Enum.into(fs)
+
+            {:ok, connector_state}
+          rescue
+            _ ->
+              {:error, "Failed to transfer"}
+          end
+        end
+      end
+  ```
+
+  <!-- tabs-close -->
+  """
+  @impl StorageConnector
+  @spec create_write_func(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state(),
+          opts :: list()
+        ) :: function()
+  def create_write_func(path, connector_state, opts \\ []) do
+    fn stream ->
       fs = File.stream!(path)
 
       try do
@@ -324,11 +373,10 @@ defmodule ExFTP.Storage.FileConnector do
           |> chunk_stream(opts)
           |> Enum.into(fs)
 
-        send_resp(@closing_connection_success, "Transfer Complete.", socket)
+        {:ok, connector_state}
       rescue
-        _ -> send_resp(@file_action_aborted, "Failed to transfer.", socket)
-      after
-        nil
+        _ ->
+          {:error, "Failed to transfer"}
       end
     end
   end
