@@ -270,5 +270,8 @@ defmodule ExFTP.StorageConnector do
   """
   @callback get_content(path, connector_state) :: {:ok, any()} | {:error, term()}
 
-  @callback get_write_func(path, socket, connector_state, opts :: []) :: function()
+  # FIXME
+  @doc """
+  """
+  @callback get_write_func(path, connector_state, opts :: []) :: function()
 end

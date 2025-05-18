@@ -502,8 +502,14 @@ defmodule ExFTP.Storage.Common do
 
     PassiveSocket.read(
       pasv,
-      connector.get_write_func(w_path, socket, connector_state, chunk_size: 5 * 1024 * 1024)
+      connector.get_write_func(
+        w_path,
+        connector_state,
+        chunk_size: 5 * 1024 * 1024
+      )
     )
+
+    ExFTP.Common.send_resp(@closing_connection_success, "Transfer Complete.", socket)
 
     connector_state
   end

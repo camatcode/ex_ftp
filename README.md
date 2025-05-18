@@ -44,7 +44,7 @@
 - [Storage Connectors](#storage-connectors)
   - [File](#storage-connector-file)
   - [S3](#storage-connector-s3)
-    - [Using Minio](#using-minio)
+    - [Using Minio or LocalStack](#using-minio-or-localstack)
   - [Google Cloud Storage](#storage-connector-google-cloud-storage)
   - [Azure](#storage-connector-azure)
   - [Supabase Storage](#storage-connector-supabase)
