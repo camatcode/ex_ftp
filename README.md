@@ -376,16 +376,20 @@ config :ex_ftp,
   #....
   storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
-    # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-    # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+    # the `/` path of the FTP server will point to s3://{my-storage-bucket}/
     storage_bucket: "my-storage-bucket"
   }
 ```
 
-#### Using Minio
+#### Using Minio or LocalStack
 
-Minio is a popular open-source, self-hosted alternative to AWS S3. The only difference in config will be how you configure
-`ExAws`.
+Minio is a popular open-source, self-hosted alternative to AWS S3. 
+
+LocalStack is a popular way to testing AWS without connecting to AWS.
+
+The only difference in config will be how you configure `ExAws`.
+
+Here's an example with minio where we're changing the credentials and endpoint
 
 ```elixir
 # Assuming:
@@ -414,8 +418,7 @@ config :ex_ftp,
   #....
   storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
-    # If storage_bucket defined, the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-    # If storage_bucket not defined, the `/` path of the FTP server will contain all buckets as sub directories
+    # the `/` path of the FTP server will point to s3://{my-storage-bucket}/
     storage_bucket: "my-storage-bucket"
   }
 ```
