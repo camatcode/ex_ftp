@@ -100,7 +100,7 @@ config :ex_ftp,
 
 ### 2. Choose an Authenticator
 
-An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASSWORD` command.
+An `ExFTP.Authenticator` validates credentials when an FTP client sends a `USER` and `PASS` command.
 
 Each authenticator is referenced in the `ex_ftp` config under the `authenticator` key. 
 

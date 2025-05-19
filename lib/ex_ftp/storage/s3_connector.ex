@@ -160,7 +160,38 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
+  @doc """
+  Deletes a given directory
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.S3Connector
+      iex> connector_state = %{current_working_directory: "/"}
+      iex> dir_to_make = "/new_dir"
+      iex> {:ok, connector_state} = S3Connector.make_directory(dir_to_make, connector_state)
+      iex> dir_to_rm = dir_to_make
+      iex> {:ok, connector_state} = S3Connector.delete_directory(dir_to_rm, connector_state)
+      iex> S3Connector.directory_exists?(dir_to_rm, connector_state)
+      false
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_directory/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec delete_directory(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def delete_directory(path, connector_state) do
     path = Path.join(path, "") <> "/"
 
