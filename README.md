@@ -131,6 +131,9 @@ dr--r--r--    1 0        0            4096 2025-03-25 23:11:57Z var
 ftp> ...
 ```
 
+* Now, [properly configure it](#configuration).
+
+
 -------
 
 ## Configuration
