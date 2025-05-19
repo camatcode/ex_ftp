@@ -118,6 +118,10 @@ defmodule ExFTP.Storage.FileConnector do
       iex> {:ok, connector_state} = FileConnector.make_directory(dir_to_make, connector_state)
       iex> FileConnector.directory_exists?(dir_to_make, connector_state)
       true
+      iex> dir_to_rm = dir_to_make
+      iex> {:ok, connector_state} = FileConnector.delete_directory(dir_to_rm, connector_state)
+      iex> FileConnector.directory_exists?(dir_to_rm, connector_state)
+      false
 
   #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.make_directory/2`"])}
 
