@@ -561,21 +561,22 @@ defmodule MyStorageConnector do
         ) :: function()
   def create_write_func(path, connector_state, opts \\ []) do
     # Return a function that will write `stream` to your storage at path
-    fn stream ->
-      fs = File.stream!(path)
-
-      try do
-        _ =
-          stream
-          |> chunk_stream(opts)
-          |> Enum.into(fs)
-
-        {:ok, connector_state}
-      rescue
-        _ ->
-          {:error, "Failed to transfer"}
-      end
-    end
+    # e.g 
+    # fn stream ->
+    #  fs = File.stream!(path)
+    #
+    #  try do
+    #    _ =
+    #      stream
+    #      |> chunk_stream(opts)
+    #      |> Enum.into(fs)
+    #
+    #    {:ok, connector_state}
+    #  rescue
+    #    _ ->
+    #      {:error, "Failed to transfer"}
+    #  end
+    #end
   end
 end
 ```
