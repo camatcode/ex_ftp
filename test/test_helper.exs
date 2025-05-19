@@ -228,6 +228,7 @@ defmodule ExFTP.StorageTester do
       close_pasv(pasv_socket)
 
       expect_recv(socket, 226, "Transfer Complete.")
+      :timer.sleep(100)
       send_and_expect(socket, "SIZE", [file], 213)
     end)
   end
