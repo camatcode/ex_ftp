@@ -461,7 +461,124 @@ S3 requests into requests to those providers, then use the `ExFTP.Storage.S3Conn
 
 ### Custom Storage Connector
 
-🚧 TO document.
+Creating your own Storage Connector is simple - just implement the `ExFTP.StorageConnector` behaviour.
+
+```Elixir
+# SPDX-License-Identifier: Apache-2.0
+defmodule MyStorageConnector do
+  @moduledoc false
+
+  @behaviour ExFTP.StorageConnector
+
+  alias ExFTP.StorageConnector
+
+  @impl StorageConnector
+  @spec get_working_directory(connector_state :: StorageConnector.connector_state()) ::
+          String.t()
+  def get_working_directory(%{current_working_directory: cwd} = _connector_state) do
+    # returns the current directory, for most cases this is just a pass through
+    # however, you might want to modify what the current directory is
+    # based on some state
+  end
+
+  @impl StorageConnector
+  @spec directory_exists?(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: boolean
+  def directory_exists?(path, _connector_state) do
+    # Given a path, does this directory exist in storage?
+  end
+
+  @impl StorageConnector
+  @spec make_directory(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: {:ok, StorageConnector.connector_state()} | {:error, term()}
+  def make_directory(path, connector_state) do
+    # Given a path, make a directory
+    # For S3-like connectors, a "directory" doesn't really exist
+    #  so those connectors typically keep track of virtual directories
+    #  that we're created by user during the session
+    #  if they're unused, they aren't persisted.
+  end
+
+  @impl StorageConnector
+  @spec delete_directory(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: {:ok, StorageConnector.connector_state()} | {:error, term()}
+  def delete_directory(path, connector_state) do
+    # Give a path, delete the directory
+  end
+
+  @impl StorageConnector
+  @spec delete_file(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: {:ok, StorageConnector.connector_state()} | {:error, term()}
+  def delete_file(path, connector_state) do
+    # Give a path, delete the file
+  end
+
+  @impl StorageConnector
+  @spec get_directory_contents(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) ::
+          {:ok, [StorageConnector.content_info()]} | {:error, term()}
+  def get_directory_contents(path, connector_state) do
+    # returns a list of content_infos
+    # the model for them was inspired by File.lstat()
+    # Have a look at StorageConnector.content_info type
+  end
+
+  @impl StorageConnector
+  @spec get_content_info(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) ::
+          {:ok, StorageConnector.content_info()} | {:error, term()}
+  def get_content_info(path, _connector_state) do
+    # given a path, return information on the file/directory there
+    # Have a look at StorageConnector.content_info type
+  end
+
+  @impl StorageConnector
+  @spec get_content(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: {:ok, any()} | {:error, term()}
+  def get_content(path, _connector_state) do
+    # Return a {:ok, stream} of path
+  end
+
+  @impl StorageConnector
+  @spec create_write_func(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state(),
+          opts :: list()
+        ) :: function()
+  def create_write_func(path, connector_state, opts \\ []) do
+    # Return a function that will write `stream` to your storage at path
+    fn stream ->
+      fs = File.stream!(path)
+
+      try do
+        _ =
+          stream
+          |> chunk_stream(opts)
+          |> Enum.into(fs)
+
+        {:ok, connector_state}
+      rescue
+        _ ->
+          {:error, "Failed to transfer"}
+      end
+    end
+  end
+end
+```
 
 [^ top](#top)
 

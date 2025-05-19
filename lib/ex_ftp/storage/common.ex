@@ -24,7 +24,6 @@ defmodule ExFTP.Storage.Common do
   @opening_data_connection 150
   @closing_connection_success 226
   @action_aborted 451
-  # @file_action_aborted 552
 
   @doc """
   Responds to FTP's `PWD` command
@@ -187,7 +186,7 @@ defmodule ExFTP.Storage.Common do
   end
 
   @typedoc """
-  A Port representing a temporary, negotiated passive socket to communicate with an FTP client.
+  A `t:port/0` representing a temporary, negotiated passive socket to communicate with an FTP client.
 
   <!-- tabs-open -->
 
@@ -553,35 +552,16 @@ defmodule ExFTP.Storage.Common do
     end
   end
 
+  @doc """
+  Takes a map and ensures the keys are atoms and use the correct conventions
+  """
   def prepare(m) do
-    m
-    |> prepare_values()
-    |> prepare_keys()
+    prepare_keys(m)
   end
 
-  def prepare_values(m) do
-    m
-  end
-
-  def prepare_keys(m) do
-    m
-    |> snake_case_keys()
-    |> atomize_keys()
-  end
-
-  def snake_case_keys(m) do
-    Enum.map(m, fn {key, val} ->
-      {ProperCase.snake_case(key), val}
-    end)
-  end
-
-  def atomize_keys(m) do
-    Enum.map(m, fn {key, val} ->
-      key = String.to_atom(key)
-      {key, val}
-    end)
-  end
-
+  @doc """
+  Ensures you get a valid config according to a module, **mod**
+  """
   def validate_config(mod) do
     with {:ok, config} <- get_storage_config() do
       validated = mod.build(config)
@@ -589,6 +569,18 @@ defmodule ExFTP.Storage.Common do
     end
   end
 
+  @doc """
+  Chunks a stream into `chunk_size` pieces for upload
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Params
+    * **stream** :: A Stream to read from
+    * **opts** :: `t:ExFTP.StorageConnector.path/0`
+      * **chunk_size** :: `t:pos_integer()`
+
+  <!-- tabs-close -->
+  """
   def chunk_stream(stream, opts) do
     opts = Keyword.merge([chunk_size: 5 * 1024 * 1024], opts)
 
@@ -678,5 +670,24 @@ defmodule ExFTP.Storage.Common do
     {:ok, second} = connector.get_content_info(w_path, connector_state)
     second = Map.put(second, :file_name, "..")
     [first, second]
+  end
+
+  defp prepare_keys(m) do
+    m
+    |> snake_case_keys()
+    |> atomize_keys()
+  end
+
+  defp snake_case_keys(m) do
+    Enum.map(m, fn {key, val} ->
+      {ProperCase.snake_case(key), val}
+    end)
+  end
+
+  defp atomize_keys(m) do
+    Enum.map(m, fn {key, val} ->
+      key = String.to_atom(key)
+      {key, val}
+    end)
   end
 end
