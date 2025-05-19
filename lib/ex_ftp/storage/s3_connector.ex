@@ -209,7 +209,35 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
+  @doc """
+  Returns a list of `t:ExFTP.StorageConnector.content_info/0` representing each object in a given directory
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, [%{...}, ...]}", failure: "{:error, err}")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.S3Connector
+      iex> connector_state = %{current_working_directory: "/"}
+      iex> dir = "/"
+      iex> {:ok, _content_infos} = S3Connector.get_directory_contents(dir, connector_state)
+
+  #{ExFTP.Doc.related(["`t:ExFTP.StorageConnector.content_info/0`", "`c:ExFTP.StorageConnector.get_directory_contents/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec get_directory_contents(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) ::
+          {:ok, [ExFTP.StorageConnector.content_info()]} | {:error, term()}
   def get_directory_contents(path, %{} = connector_state) do
     path = Path.join(path, "") <> "/"
 
