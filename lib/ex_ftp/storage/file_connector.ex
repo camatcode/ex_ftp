@@ -184,6 +184,22 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
+  @doc """
+  Deletes a given file
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_file/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
   def delete_file(path, connector_state) do
     if_result =

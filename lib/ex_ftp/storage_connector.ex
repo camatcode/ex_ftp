@@ -175,6 +175,20 @@ defmodule ExFTP.StorageConnector do
   """
   @callback delete_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
+  @doc """
+  Deletes a given file
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:path/0`
+    * **connector_state** :: `t:connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @callback delete_file(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
   @typedoc """
