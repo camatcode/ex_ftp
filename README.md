@@ -48,6 +48,10 @@
   - [Supabase Storage](#storage-connector-supabase)
   - [Others through S3Proxy](#storage-connector-others-through-s3proxy)
   - [Custom Storage Connector](#custom-storage-connector)
+- [Technical Details](#technical-details)
+  - [Supported Commands](#supported-commands)
+  - [Notes about Fly.io](#notes-about-fly.io)
+- [Special Thanks](#special-thanks)
 
 ## Installation
 
@@ -584,3 +588,67 @@ end
 [^ top](#top)
 
 -------
+
+## Technical Details
+
+### Supported Commands
+
+- General
+  - `QUIT`
+  - `SYST`
+  - `TYPE <mode>`
+  - `PASV`
+  - `EPSV`
+  - `EPRT <eport_info>`
+- Auth
+  - `USER <username>`
+  - `PASS <password>`
+- Storage 
+  - `PWD`
+  - `CDUP`
+  - `CWD <path>`
+  - `MKD <path>`
+  - `RMD <path>`
+  - `DELE <path>`
+  - `LIST`
+    - `LIST -a`
+    - `LIST -a <path>`
+    - `LIST <path>`
+  - `NLST`
+    - `NLST -a`
+    - `NLST -a <path>`
+    - `NLST <path>`
+  - `RETR <path>`
+  - `SIZE <path>`
+  - `STOR <path>`
+
+See `ExFTP.Storage.Common` for more information.
+
+
+### Notes about Fly.io
+
+If you're wanting to deploy onto Fly.io, you'll quickly discover an issue with passive ports.
+
+Fly wants you to enumerate all ports that your server will use, fine; however, it takes the assumption
+that these ports will be open *on start* and will *remain* open. 
+
+FTP passive ports are temporary and negotiated. Fly hates this and assumes something is going wrong.
+
+Be careful.
+
+[^ top](#top)
+
+-----
+
+## Special Thanks
+
+The initial funding for this code came from [StudioCMS.io](https://studiocms.io/).
+
+Its first closed-source implementation came from [Jake Stover](https://github.com/jwstover) and expanded by the 
+entire team at StudioCMS.
+
+Furthermore, StudioCMS's leadership allowed me to clean it up, generalize it, and open source it.
+
+Thanks!
+
+[^ top](#top)
