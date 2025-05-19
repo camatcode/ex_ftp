@@ -201,6 +201,10 @@ defmodule ExFTP.Storage.FileConnector do
   <!-- tabs-close -->
   """
   @impl StorageConnector
+  @spec delete_file(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def delete_file(path, connector_state) do
     if_result =
       if File.regular?(path) do

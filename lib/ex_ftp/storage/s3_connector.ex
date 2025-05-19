@@ -226,6 +226,10 @@ defmodule ExFTP.Storage.S3Connector do
   <!-- tabs-close -->
   """
   @impl StorageConnector
+  @spec delete_file(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def delete_file(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       bucket = get_bucket(config, path)
