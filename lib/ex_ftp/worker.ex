@@ -253,6 +253,14 @@ defmodule ExFTP.Worker do
     |> noreply()
   end
 
+  defp run(["DELE", path], %{socket: _socket} = server_state) do
+    server_state
+    |> check_auth()
+    |> with_ok(&dele/1, server_state, path: path)
+    |> update_connector_state(server_state)
+    |> noreply()
+  end
+
   defp run(["LIST", "-a"], server_state), do: run(["LIST", "-a", "."], server_state)
 
   defp run(["LIST", "-a", path], %{socket: _socket} = server_state) do

@@ -180,6 +180,21 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
+  @impl StorageConnector
+  def delete_file(path, connector_state) do
+    if_result =
+      if File.regular?(path) do
+        File.rm(path)
+      else
+        {:error, "Not a file"}
+      end
+
+    case if_result do
+      :ok -> {:ok, connector_state}
+      err -> err
+    end
+  end
+
   @doc """
   Returns a list of `t:ExFTP.StorageConnector.content_info/0` representing each object in a given directory
 

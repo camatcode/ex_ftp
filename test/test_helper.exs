@@ -229,7 +229,18 @@ defmodule ExFTP.StorageTester do
 
       expect_recv(socket, 226, "Transfer Complete.")
       :timer.sleep(100)
+
       send_and_expect(socket, "SIZE", [file], 213)
+    end)
+  end
+
+  def test_dele(%{socket: socket} = state, w_dir, files_to_store) do
+    test_stor(state, w_dir, files_to_store)
+
+    Enum.each(files_to_store, fn file ->
+      socket
+      |> send_and_expect("DELE", [file], 250)
+      |> send_and_expect("SIZE", [file], 550)
     end)
   end
 end

@@ -514,6 +514,22 @@ defmodule ExFTP.Storage.Common do
     connector_state
   end
 
+  def dele(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    w_path
+    |> connector.delete_file(connector_state)
+    |> case do
+      {:ok, connector_state} ->
+        send_resp(@file_action_ok, "\"#{w_path}\" directory removed.", socket)
+        connector_state
+
+      _ ->
+        send_resp(@file_action_not_taken, "Failed to remove file.", socket)
+        connector_state
+    end
+  end
+
   def prepare(m) do
     m
     |> prepare_values()

@@ -172,6 +172,8 @@ defmodule ExFTP.StorageConnector do
   """
   @callback delete_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
+  @callback delete_file(path, connector_state) :: {:ok, connector_state} | {:error, term()}
+
   @typedoc """
   Information about a given file, directory, or symlink
 

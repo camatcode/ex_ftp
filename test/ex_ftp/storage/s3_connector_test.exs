@@ -47,8 +47,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     test_mkd_rmd(state, tmp_dir)
   end
 
-  @tag run: true
-  test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR", state do
+  test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR, DELE", state do
     tmp_dir = Path.join("/", Faker.Internet.slug())
     on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
 
@@ -145,5 +144,9 @@ defmodule ExFTP.Storage.S3ConnectorTest do
       |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
 
     test_retr(state, tmp_dir, paths_to_download)
+
+    # DELE
+    tmp_dir = Path.join("/", Faker.Internet.slug())
+    test_dele(state, tmp_dir, files_to_store)
   end
 end
