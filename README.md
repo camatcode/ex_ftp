@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<p align="center">
+<p align="center" id="top">
   An extendable, lightweight FTP server with cloud integrations already built in
 </p>
 
@@ -45,9 +45,8 @@
   - [File](#storage-connector-file)
   - [S3](#storage-connector-s3)
     - [Using Minio or LocalStack](#using-minio-or-localstack)
-  - [Google Cloud Storage](#storage-connector-google-cloud-storage)
-  - [Azure](#storage-connector-azure)
   - [Supabase Storage](#storage-connector-supabase)
+  - [Others through S3Proxy](#storage-connector-others-through-s3proxy)
   - [Custom Storage Connector](#custom-storage-connector)
 
 ## Installation
@@ -153,6 +152,8 @@ config :ex_ftp,
   authenticator_config: %{}
  ```
 
+[^ top](#top)
+
 -------
 
 ### Authenticator: HTTP Basic Auth
@@ -183,6 +184,8 @@ If the endpoint responds with **HTTP 200**, the user is considered authenticated
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs basic auth to check that a user
 is still considered valid.
+
+[^ top](#top)
 
 -------
 
@@ -216,6 +219,8 @@ If, after completing the full workflow, the endpoint responds with **HTTP 200**,
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs digest auth to check that a user
 is still considered valid.
+
+[^ top](#top)
 
 -------
 
@@ -251,6 +256,8 @@ Additionally, if configured, ex_ftp can call out to a separate endpoint that per
 is still considered valid.
 
 
+[^ top](#top)
+
 -------
 
 ### Authenticator: Webhook Auth
@@ -284,6 +291,8 @@ If the endpoint responds with **HTTP 200**, the user is considered authenticated
 
 Additionally, if configured, ex_ftp can call out to a separate endpoint that performs webhook auth to check that a user
 is still considered valid.
+
+[^ top](#top)
 
 -------
 
@@ -337,6 +346,8 @@ defmodule MyCustomAuth do
 end
 ```
 
+[^ top](#top)
+
 -------
 
 ## Storage Connectors
@@ -357,7 +368,9 @@ config :ex_ftp,
   storage_config: %{}
 ```
 
------
+[^ top](#top)
+
+-------
 
 ### Storage Connector: S3
 
@@ -423,28 +436,33 @@ config :ex_ftp,
   }
 ```
 
------
+[^ top](#top)
 
-### Storage Connector: Google Cloud Storage
-
-🚧 IN PROGRESS
-
------
-
-### Storage Connector: Azure
-
-🚧 TODO
-
------
+-------
 
 ### Storage Connector: Supabase
 
 🚧 TODO
 
------
+[^ top](#top)
+
+-------
+
+### Storage Connector: Others through S3Proxy
+
+For other storage providers (Google Cloud, Azure Storage, etc.), it's probably best to deploy a proxy that translates
+S3 requests into requests to those providers, then use the `ExFTP.Storage.S3Connector` to connect to that proxy.
+
+* See [S3Proxy](https://github.com/gaul/s3proxy?tab=readme-ov-file)
+
+[^ top](#top)
+
+-------
 
 ### Custom Storage Connector
 
 🚧 TO document.
 
------
+[^ top](#top)
+
+-------
