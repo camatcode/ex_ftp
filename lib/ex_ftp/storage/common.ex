@@ -514,6 +514,45 @@ defmodule ExFTP.Storage.Common do
     connector_state
   end
 
+  @doc """
+  Responds to FTP's `DELE` command
+
+  > #### RFC 959: DELETE (DELE) {: .tip}
+  > This command causes the file specified in the pathname to be
+  > deleted at the server site.  If an extra level of protection
+  > is desired (such as the query, "Do you really wish to
+  > delete?"), it should be provided by the user-FTP process.
+
+  <!-- tabs-open -->
+
+  ### 🏷️ Server State
+    * **storage_connector** :: `ExFTP.StorageConnector`
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **socket** :: `t:ExFTP.StorageConnector.socket/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_file/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  def dele(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
+    w_path
+    |> connector.delete_file(connector_state)
+    |> case do
+      {:ok, connector_state} ->
+        send_resp(@file_action_ok, "\"#{w_path}\" directory removed.", socket)
+        connector_state
+
+      _ ->
+        send_resp(@file_action_not_taken, "Failed to remove file.", socket)
+        connector_state
+    end
+  end
+
   def prepare(m) do
     m
     |> prepare_values()

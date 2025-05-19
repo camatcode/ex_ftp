@@ -118,6 +118,10 @@ defmodule ExFTP.Storage.FileConnector do
       iex> {:ok, connector_state} = FileConnector.make_directory(dir_to_make, connector_state)
       iex> FileConnector.directory_exists?(dir_to_make, connector_state)
       true
+      iex> dir_to_rm = dir_to_make
+      iex> {:ok, connector_state} = FileConnector.delete_directory(dir_to_rm, connector_state)
+      iex> FileConnector.directory_exists?(dir_to_rm, connector_state)
+      false
 
   #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.make_directory/2`"])}
 
@@ -176,6 +180,41 @@ defmodule ExFTP.Storage.FileConnector do
     |> rmrf_dir()
     |> case do
       {:ok, _} -> {:ok, connector_state}
+      err -> err
+    end
+  end
+
+  @doc """
+  Deletes a given file
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_file/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  @impl StorageConnector
+  @spec delete_file(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
+  def delete_file(path, connector_state) do
+    if_result =
+      if File.regular?(path) do
+        File.rm(path)
+      else
+        {:error, "Not a file"}
+      end
+
+    case if_result do
+      :ok -> {:ok, connector_state}
       err -> err
     end
   end

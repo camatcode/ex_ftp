@@ -210,6 +210,40 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   @doc """
+  Deletes a given file
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.delete_file/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  @impl StorageConnector
+  @spec delete_file(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
+  def delete_file(path, connector_state) do
+    with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      bucket = get_bucket(config, path)
+      key = get_prefix(config, bucket, path)
+
+      bucket
+      |> ExAws.S3.delete_object(key)
+      |> ExAws.request!()
+
+      {:ok, connector_state}
+    end
+  end
+
+  @doc """
   Returns a list of `t:ExFTP.StorageConnector.content_info/0` representing each object in a given directory
 
   <!-- tabs-open -->

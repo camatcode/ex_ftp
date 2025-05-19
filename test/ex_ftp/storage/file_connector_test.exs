@@ -84,6 +84,21 @@ defmodule ExFTP.Storage.FileConnectorTest do
     end)
   end
 
+  test "DELE", state do
+    # CWD w_dir
+    w_dir = Path.join(System.tmp_dir!(), Faker.Internet.slug())
+    on_exit(fn -> File.rm_rf!(w_dir) end)
+
+    files_to_store =
+      File.cwd!()
+      |> File.ls!()
+      |> Enum.filter(fn file -> File.cwd!() |> Path.join(file) |> File.regular?() end)
+
+    refute Enum.empty?(files_to_store)
+
+    test_dele(state, w_dir, files_to_store)
+  end
+
   test "NLST", state do
     w_dir = File.cwd!()
     listing = test_nlst(state, w_dir)

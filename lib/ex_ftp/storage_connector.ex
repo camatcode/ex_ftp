@@ -138,6 +138,9 @@ defmodule ExFTP.StorageConnector do
       iex> {:ok, connector_state} = FileConnector.make_directory(dir_to_make, connector_state)
       iex> FileConnector.directory_exists?(dir_to_make, connector_state)
       true
+      iex> {:ok, _connector_state} = FileConnector.delete_directory(dir_to_make, connector_state)
+      iex> FileConnector.directory_exists?(dir_to_rm, connector_state)
+      false
 
   #{ExFTP.Doc.resources("page-32")}
 
@@ -171,6 +174,22 @@ defmodule ExFTP.StorageConnector do
   <!-- tabs-close -->
   """
   @callback delete_directory(path, connector_state) :: {:ok, connector_state} | {:error, term()}
+
+  @doc """
+  Deletes a given file
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:path/0`
+    * **connector_state** :: `t:connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, connector_state}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
+  @callback delete_file(path, connector_state) :: {:ok, connector_state} | {:error, term()}
 
   @typedoc """
   Information about a given file, directory, or symlink
