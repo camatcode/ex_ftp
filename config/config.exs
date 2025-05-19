@@ -11,13 +11,8 @@ config :ex_ftp,
   ftp_port: "FTP_PORT" |> System.get_env("4040") |> String.to_integer(),
   min_passive_port: "MIN_PASSIVE_PORT" |> System.get_env("40002") |> String.to_integer(),
   max_passive_port: "MAX_PASSIVE_PORT" |> System.get_env("40007") |> String.to_integer(),
-  authenticator: ExFTP.Auth.PassthroughAuth,
-  authenticator_config: %{
-    authenticated_url: nil,
-    authenticated_method: :get,
-    login_url: nil,
-    login_method: :get
-  },
+  authenticator: ExFTP.Auth.NoAuth,
+  authenticator_config: %{},
   storage_connector: ExFTP.Storage.FileConnector
 
 # Import environment specific config. This must remain at the bottom
