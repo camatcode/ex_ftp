@@ -65,7 +65,73 @@ Then run `mix deps.get` to install ExFTP and its dependencies.
 
 ## Reckless Quick Start
 
-🚧 TODO
+* Configure ex_ftp 
+  * to use the file system, 
+  * start on port 4040, 
+  * don't include auth
+
+```elixir
+config :ex_ftp,
+  ftp_port: "FTP_PORT" |> System.get_env("4040") |> String.to_integer(),
+  min_passive_port: "MIN_PASSIVE_PORT" |> System.get_env("40002") |> String.to_integer(),
+  max_passive_port: "MAX_PASSIVE_PORT" |> System.get_env("40007") |> String.to_integer(),
+  authenticator: ExFTP.Auth.NoAuth,
+  authenticator_config: %{},
+  storage_connector: ExFTP.Storage.FileConnector
+```
+
+* Run `mix run --no-halt`
+
+```
+17:13:22.110 [info] Accepting connections on port 4040
+```
+
+* Connect using `ftp`
+
+```bash
+➜  ~ ftp localhost -p 4040
+
+Connected to localhost.
+220 Hello from ExFTP.
+Name (localhost:cam): cam
+331 User name okay, need password.
+Password: 
+230 Welcome.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> ls
+229 Entering Extended Passive Mode (|||40007|)
+150 Here comes the directory listing.
+lr--r--r--    1 0        0               7 2024-02-16 00:25:18Z bin -> usr/bin
+dr--r--r--    1 0        0            4096 2025-05-13 03:24:43Z boot
+dr--r--r--    1 0        0            4096 2024-02-16 00:29:08Z cdrom
+dr--r--r--    1 0        0            4680 2025-05-18 23:15:34Z dev
+dr--r--r--    1 0        0           12288 2025-05-19 21:09:33Z etc
+dr--r--r--    1 0        0            4096 2025-03-25 23:12:11Z home
+lr--r--r--    1 0        0               7 2024-02-16 00:25:18Z lib -> usr/lib
+dr--r--r--    1 0        0            4096 2025-02-06 18:03:35Z lib32
+lr--r--r--    1 0        0               9 2024-02-16 00:25:18Z lib64 -> usr/lib64
+dr--r--r--    1 0        0            4096 2025-02-06 18:03:36Z libx32
+d---r--r--    1 0        0           16384 2024-02-16 00:25:10Z lost+found
+dr--r--r--    1 0        0            4096 2024-02-29 22:54:05Z media
+dr--r--r--    1 0        0            4096 2024-01-09 12:59:13Z mnt
+drw-r--r--    1 0        0            4096 2025-04-24 14:24:02Z opt
+dr--r--r--    1 0        0               0 2025-05-02 18:33:36Z proc
+d---r--r--    1 0        0            4096 2025-03-25 23:12:11Z root
+dr--r--r--    1 0        0            1580 2025-05-17 16:28:20Z run
+lr--r--r--    1 0        0               8 2024-02-16 00:25:18Z sbin -> usr/sbin
+dr--r--r--    1 0        0            4096 2024-01-09 12:59:13Z srv
+----r--r--    1 0        0      2147483648 2024-02-16 00:25:16Z swapfile
+dr--r--r--    1 0        0               0 2025-05-02 18:33:36Z sys
+dr--r--r--    1 0        0            4096 2025-05-19 16:01:23Z timeshift
+drw-r--r--    1 0        0           20480 2025-05-19 21:10:53Z tmp
+dr--r--r--    1 0        0            4096 2025-04-25 18:26:53Z usr
+dr--r--r--    1 0        0            4096 2025-03-25 23:11:57Z var
+226 Directory send OK.
+ftp> ...
+```
+
+-------
 
 ## Configuration
 
