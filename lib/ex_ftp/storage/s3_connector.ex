@@ -247,7 +247,27 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
+  @doc """
+  Returns a stream to read the raw bytes of an object specified by a given path
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, data}", failure: "{:error, err}")}  
+
+  #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_content/2`"])}
+
+  #{ExFTP.Doc.resources("page-30")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec get_content(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: {:ok, any()} | {:error, term()}
   def get_content(path, _connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       bucket = get_bucket(config, path)
@@ -276,6 +296,11 @@ defmodule ExFTP.Storage.S3Connector do
   <!-- tabs-close -->
   """
   @impl StorageConnector
+  @spec create_write_func(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state(),
+          opts :: list()
+        ) :: function()
   def create_write_func(path, connector_state, opts \\ []) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       bucket = get_bucket(config, path)
@@ -296,7 +321,28 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
+  @doc """
+  Returns a `t:ExFTP.StorageConnector.content_info/0` representing a given path
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:ExFTP.StorageConnector.path/0`
+    * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "{:ok, %{...}}", failure: "{:error, err}")}
+
+  #{ExFTP.Doc.related(["`t:ExFTP.StorageConnector.content_info/0`", "`c:ExFTP.StorageConnector.get_content_info/2`", "`get_directory_contents/2`"])}
+
+  #{ExFTP.Doc.resources("page-32")}
+
+  <!-- tabs-close -->
+  """
   @impl StorageConnector
+  @spec get_content_info(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) ::
+          {:ok, ExFTP.StorageConnector.content_info()} | {:error, term()}
   def get_content_info(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
