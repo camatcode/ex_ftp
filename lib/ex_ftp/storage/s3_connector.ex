@@ -384,8 +384,11 @@ defmodule ExFTP.Storage.S3Connector do
       config
       |> s3_get_prefix_contents(path, connector_state, :key)
       |> case do
-        [content | _] -> {:ok, content}
-        _ -> {:error, "Could not get content info"}
+        [content | _] ->
+          {:ok, content}
+
+        _ ->
+          {:error, "Could not get content info"}
       end
     end
   end
@@ -411,18 +414,18 @@ defmodule ExFTP.Storage.S3Connector do
 
   defp s3_get_prefix_contents(config, path, connector_state, type \\ :prefix)
 
-  defp s3_get_prefix_contents(%{storage_bucket: nil} = _config, "/" = _path, _connector_state, _type) do
-    with {:ok, %{body: %{buckets: buckets}}} <-
-           ExAws.request(ExAws.S3.list_buckets()) do
-      Enum.map(buckets, fn bucket -> to_content_info(bucket, nil) end)
-    end
-  end
-
   defp s3_get_prefix_contents(%{} = config, path, connector_state, type) do
     bucket = get_bucket(config, path)
     prefix = get_prefix(config, bucket, path)
-    prefix = prefix || ""
-    prefix = if type == :key, do: Path.join(prefix, ""), else: Path.join(prefix, "") <> "/"
+    prefix = prefix || "/"
+    prefix = if type == :key, do: Path.join(prefix, ""), else: clean_path(prefix)
+
+    prefix =
+      if prefix == "/",
+        do: "",
+        else: Path.join("", prefix) <> "/"
+
+    prefix = if type == :key, do: Path.join(prefix, ""), else: prefix
 
     objects =
       if bucket do
@@ -465,13 +468,13 @@ defmodule ExFTP.Storage.S3Connector do
     }
   end
 
-  defp to_content_info(%{key: filename, last_modified: last_mod_str}, parent_prefix) do
+  defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, parent_prefix) do
     {:ok, modified_datetime, _} = DateTime.from_iso8601(last_mod_str)
 
     %{
       file_name: String.replace(filename, parent_prefix, ""),
       modified_datetime: modified_datetime,
-      size: 4096,
+      size: size,
       access: :read_write,
       type: :file
     }
