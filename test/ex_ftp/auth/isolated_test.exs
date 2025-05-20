@@ -5,11 +5,15 @@ defmodule ExFTP.Auth.IsolatedTest do
 
   import ExFTP.TestHelper
 
+  alias ExFTP.Auth.DigestAuth
+
   # I don't understand why, but putting this with all the other digest tests causes a failure when in suite
   test "enforcing ttl" do
     socket = get_socket()
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
+
+    Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
     Application.put_env(:ex_ftp, :authenticator_config, %{
       login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
@@ -27,6 +31,8 @@ defmodule ExFTP.Auth.IsolatedTest do
 
     :timer.sleep(10)
     assert {:ok, false} = Cachex.exists?(:auth_cache, username)
+
+    Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
     Application.put_env(:ex_ftp, :authenticator_config, %{
       login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",

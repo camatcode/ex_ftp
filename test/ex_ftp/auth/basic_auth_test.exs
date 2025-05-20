@@ -7,7 +7,7 @@ defmodule ExFTP.Auth.BasicAuthTest do
 
   alias ExFTP.Auth.BasicAuth
 
-  doctest ExFTP.Auth.BasicAuth
+  doctest BasicAuth
 
   test "valid_user?/1" do
     assert BasicAuth.valid_user?(Faker.Internet.slug())
@@ -19,12 +19,16 @@ defmodule ExFTP.Auth.BasicAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/basic-auth/#{username}/#{password}",
         login_method: :get
       })
 
       assert {:ok, _} = BasicAuth.login(password, %{username: username})
+
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/status/401",
@@ -37,6 +41,7 @@ defmodule ExFTP.Auth.BasicAuthTest do
     end
 
     test "without config defined" do
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
       Application.put_env(:ex_ftp, :authenticator_config, nil)
 
       assert {:error, _} =
@@ -49,6 +54,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/basic-auth/#{username}/#{password}",
         login_method: :get,
@@ -59,6 +66,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
       assert {:ok, state} = BasicAuth.login(password, %{username: username})
 
       assert BasicAuth.authenticated?(state)
+
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/basic-auth/#{username}/#{password}",
@@ -71,6 +80,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
     end
 
     test "without custom authenticated route" do
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get
@@ -83,6 +94,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
       socket = get_socket()
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
+
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/basic-auth/#{username}/#{password}",
@@ -100,6 +113,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
 
       :timer.sleep(10)
       assert {:ok, false} = Cachex.exists?(:auth_cache, username)
+
+      Application.put_env(:ex_ftp, :authenticator, BasicAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/basic-auth/#{username}/#{password}",

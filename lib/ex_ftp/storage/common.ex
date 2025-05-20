@@ -128,7 +128,7 @@ defmodule ExFTP.Storage.Common do
       :ok =
         send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
     else
-      path
+      new_d
       |> connector.make_directory(connector_state)
       |> case do
         {:ok, connector_state} ->
@@ -389,14 +389,14 @@ defmodule ExFTP.Storage.Common do
         %{storage_connector: connector, path: path, socket: socket, pasv: pasv, connector_state: connector_state} =
           _server_state
       ) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
     :ok =
       send_resp(
         @opening_data_connection,
-        "Opening BINARY mode data connection for #{path}",
+        "Opening BINARY mode data connection for #{w_path}",
         socket
       )
-
-    w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     w_path
     |> connector.get_content(connector_state)
@@ -619,6 +619,8 @@ defmodule ExFTP.Storage.Common do
   end
 
   defp format_content(%{file_name: file_name, modified_datetime: date, size: size, access: access, type: type}) do
+    formatted_date = Calendar.strftime(date, "%b %d  %Y")
+
     type =
       case type do
         :directory -> "d"
@@ -641,7 +643,7 @@ defmodule ExFTP.Storage.Common do
     unknown_val = String.pad_leading("1", 5)
     permissions = "#{type}#{access}r--r--"
 
-    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
+    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{formatted_date} #{file_name}"
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)
