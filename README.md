@@ -89,44 +89,43 @@ config :ex_ftp,
 * Connect using `ftp`
 
 ```bash
-➜  ~ ftp localhost -p 4040
+➜  ~ ftp localhost -p 4040      
 
 Connected to localhost.
 220 Hello from ExFTP.
-Name (localhost:cam): cam
+Name (localhost:cam): 
 331 User name okay, need password.
 Password: 
-230 Welcome.
-Remote system type is UNIX.
-Using binary mode to transfer files.
+502 Command not implemented.
+ftp: Login failed
 ftp> ls
-229 Entering Extended Passive Mode (|||40007|)
+229 Entering Extended Passive Mode (|||40002|)
 150 Here comes the directory listing.
-lr--r--r--    1 0        0               7 2024-02-16 00:25:18Z bin -> usr/bin
-dr--r--r--    1 0        0            4096 2025-05-13 03:24:43Z boot
-dr--r--r--    1 0        0            4096 2024-02-16 00:29:08Z cdrom
-dr--r--r--    1 0        0            4680 2025-05-18 23:15:34Z dev
-dr--r--r--    1 0        0           12288 2025-05-19 21:09:33Z etc
-dr--r--r--    1 0        0            4096 2025-03-25 23:12:11Z home
-lr--r--r--    1 0        0               7 2024-02-16 00:25:18Z lib -> usr/lib
-dr--r--r--    1 0        0            4096 2025-02-06 18:03:35Z lib32
-lr--r--r--    1 0        0               9 2024-02-16 00:25:18Z lib64 -> usr/lib64
-dr--r--r--    1 0        0            4096 2025-02-06 18:03:36Z libx32
-d---r--r--    1 0        0           16384 2024-02-16 00:25:10Z lost+found
-dr--r--r--    1 0        0            4096 2024-02-29 22:54:05Z media
-dr--r--r--    1 0        0            4096 2024-01-09 12:59:13Z mnt
-drw-r--r--    1 0        0            4096 2025-04-24 14:24:02Z opt
-dr--r--r--    1 0        0               0 2025-05-02 18:33:36Z proc
-d---r--r--    1 0        0            4096 2025-03-25 23:12:11Z root
-dr--r--r--    1 0        0            1580 2025-05-17 16:28:20Z run
-lr--r--r--    1 0        0               8 2024-02-16 00:25:18Z sbin -> usr/sbin
-dr--r--r--    1 0        0            4096 2024-01-09 12:59:13Z srv
-----r--r--    1 0        0      2147483648 2024-02-16 00:25:16Z swapfile
-dr--r--r--    1 0        0               0 2025-05-02 18:33:36Z sys
-dr--r--r--    1 0        0            4096 2025-05-19 16:01:23Z timeshift
-drw-r--r--    1 0        0           20480 2025-05-19 21:10:53Z tmp
-dr--r--r--    1 0        0            4096 2025-04-25 18:26:53Z usr
-dr--r--r--    1 0        0            4096 2025-03-25 23:11:57Z var
+lr--r--r--    1 0        0               7 Feb 16  2024 bin -> usr/bin
+dr--r--r--    1 0        0            4096 May 13  2025 boot
+dr--r--r--    1 0        0            4096 Feb 16  2024 cdrom
+dr--r--r--    1 0        0            4680 May 20  2025 dev
+dr--r--r--    1 0        0           12288 May 19  2025 etc
+dr--r--r--    1 0        0            4096 Mar 25  2025 home
+lr--r--r--    1 0        0               7 Feb 16  2024 lib -> usr/lib
+dr--r--r--    1 0        0            4096 Feb 06  2025 lib32
+lr--r--r--    1 0        0               9 Feb 16  2024 lib64 -> usr/lib64
+dr--r--r--    1 0        0            4096 Feb 06  2025 libx32
+d---r--r--    1 0        0           16384 Feb 16  2024 lost+found
+dr--r--r--    1 0        0            4096 Feb 29  2024 media
+dr--r--r--    1 0        0            4096 Jan 09  2024 mnt
+drw-r--r--    1 0        0            4096 Apr 24  2025 opt
+dr--r--r--    1 0        0               0 May 02  2025 proc
+d---r--r--    1 0        0            4096 Mar 25  2025 root
+dr--r--r--    1 0        0            1580 May 17  2025 run
+lr--r--r--    1 0        0               8 Feb 16  2024 sbin -> usr/sbin
+dr--r--r--    1 0        0            4096 Jan 09  2024 srv
+----r--r--    1 0        0      2147483648 Feb 16  2024 swapfile
+dr--r--r--    1 0        0               0 May 02  2025 sys
+dr--r--r--    1 0        0            4096 May 19  2025 timeshift
+drw-r--r--    1 0        0           20480 May 20  2025 tmp
+dr--r--r--    1 0        0            4096 Apr 25  2025 usr
+dr--r--r--    1 0        0            4096 Mar 25  2025 var
 226 Directory send OK.
 ftp> ...
 ```

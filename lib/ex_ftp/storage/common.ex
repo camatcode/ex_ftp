@@ -389,14 +389,15 @@ defmodule ExFTP.Storage.Common do
         %{storage_connector: connector, path: path, socket: socket, pasv: pasv, connector_state: connector_state} =
           _server_state
       ) do
+    w_path = change_prefix(connector.get_working_directory(connector_state), path)
+
     :ok =
       send_resp(
         @opening_data_connection,
-        "Opening BINARY mode data connection for #{path}",
+        "Opening BINARY mode data connection for #{w_path}",
         socket
       )
 
-    w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     w_path
     |> connector.get_content(connector_state)
