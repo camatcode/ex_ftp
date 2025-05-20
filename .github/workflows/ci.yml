@@ -56,7 +56,6 @@ jobs:
 
       - name: Run mix format
         run: mix format --check-formatted
-        if: ${{ matrix.lint }}
 
       #- name: Run mix deps.unlock
       #  run: mix deps.unlock --check-unused
@@ -67,11 +66,9 @@ jobs:
 
       - name: Run mix compile
         run: mix compile --warnings-as-errors
-        if: ${{ matrix.lint }}
 
       - name: Run credo
         run: mix credo --strict
-        if: ${{ matrix.lint }}
 
       - name: Run mix test
         run: mix test --exclude ${{ matrix.exclude_tags }} || mix test --failed
