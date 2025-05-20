@@ -19,7 +19,6 @@ jobs:
           - pair:
               elixir: '1.18.3-otp-27'
               otp: '27.3.1'
-            exclude_tags: 'lite'
 
     runs-on: ubuntu-24.04
 
@@ -71,7 +70,7 @@ jobs:
         run: mix credo --strict
 
       - name: Run mix test
-        run: mix test --exclude ${{ matrix.exclude_tags }} || mix test --failed
+        run: mix test || mix test --failed
 
       - name: Run dialyzer
         run: mix dialyzer
