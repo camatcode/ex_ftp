@@ -11,6 +11,7 @@ defmodule ExFTP.Auth.IsolatedTest do
     username = Faker.Internet.user_name()
     password = Faker.Internet.slug()
 
+    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
     Application.put_env(:ex_ftp, :authenticator_config, %{
       login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
       login_method: :get,
@@ -28,6 +29,7 @@ defmodule ExFTP.Auth.IsolatedTest do
     :timer.sleep(10)
     assert {:ok, false} = Cachex.exists?(:auth_cache, username)
 
+    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
     Application.put_env(:ex_ftp, :authenticator_config, %{
       login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
       login_method: :get,
