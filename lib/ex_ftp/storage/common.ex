@@ -619,6 +619,8 @@ defmodule ExFTP.Storage.Common do
   end
 
   defp format_content(%{file_name: file_name, modified_datetime: date, size: size, access: access, type: type}) do
+    formatted_date = Calendar.strftime(date, "%b %d  %Y")
+
     type =
       case type do
         :directory -> "d"
@@ -641,7 +643,7 @@ defmodule ExFTP.Storage.Common do
     unknown_val = String.pad_leading("1", 5)
     permissions = "#{type}#{access}r--r--"
 
-    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{date} #{file_name}"
+    "#{permissions}#{unknown_val}#{owner}#{group}#{size} #{formatted_date} #{file_name}"
   end
 
   defp change_prefix(nil, path), do: change_prefix("/", path)
