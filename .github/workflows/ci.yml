@@ -79,7 +79,6 @@ jobs:
         if: ${{ matrix.lint }}
 
       - name: Run mix test
-        env:
         run: mix test --exclude ${{ matrix.exclude_tags }} || mix test --failed
 
       - name: Run dialyzer
