@@ -536,7 +536,7 @@ S3 requests into requests to those providers, then use the `ExFTP.Storage.S3Conn
 
 Creating your own Storage Connector is simple - just implement the `ExFTP.StorageConnector` behaviour.
 
-```Elixir
+```elixir
 # SPDX-License-Identifier: Apache-2.0
 defmodule MyStorageConnector do
   @moduledoc false
