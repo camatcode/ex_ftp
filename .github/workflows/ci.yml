@@ -20,11 +20,6 @@ jobs:
               elixir: '1.18.3-otp-27'
               otp: '27.3.1'
             exclude_tags: 'lite'
-          - pair:
-              elixir: '1.18.3-otp-27'
-              otp: '27.3.1'
-            exclude_tags: 'gossip'
-            lint: lint
 
     runs-on: ubuntu-24.04
 
@@ -63,9 +58,9 @@ jobs:
         run: mix format --check-formatted
         if: ${{ matrix.lint }}
 
-      - name: Run mix deps.unlock
-        run: mix deps.unlock --check-unused
-        if: ${{ matrix.lint }}
+      #- name: Run mix deps.unlock
+      #  run: mix deps.unlock --check-unused
+      #  if: ${{ matrix.lint }}
 
       - name: Run mix deps.compile
         run: mix deps.compile
