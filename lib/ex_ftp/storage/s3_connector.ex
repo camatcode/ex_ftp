@@ -307,7 +307,7 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      # TODO: Streaming evaluation
+      # do: Streaming evaluation
       stream =
         bucket
         |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
@@ -430,7 +430,7 @@ defmodule ExFTP.Storage.S3Connector do
     objects =
       if bucket do
         # yes I know I'm forcing evaluation
-        # TODO: figure out how to append to a stream
+        # figure out how to append to a stream
         # Its probably a stream.resource() wrapper
         bucket
         |> ExAws.S3.list_objects(prefix: prefix, delimiter: "/", stream_prefixes: true)

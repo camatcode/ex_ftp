@@ -145,6 +145,10 @@ Here is a detailed, example configuration.
 config :ex_ftp,
   # port to run on
   ftp_port: 21,
+  # optional, reports "Hello from {server_name}" on login
+  server_name: :ExFTP,
+  # the address this server binds to (default: 127.0.0.1)
+   ftp_addr: System.get_env("FTP_ADDR", "127.0.0.1"),
   # FTP uses temporary, negotiated ports for certain commands called passive ports
   # Choose the min and max range for these ports
   # This range would represent how many of these certain commands can run at the same time.
