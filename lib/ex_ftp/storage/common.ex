@@ -128,7 +128,7 @@ defmodule ExFTP.Storage.Common do
       :ok =
         send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
     else
-      path
+      new_d
       |> connector.make_directory(connector_state)
       |> case do
         {:ok, connector_state} ->
