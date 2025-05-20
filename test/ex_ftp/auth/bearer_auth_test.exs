@@ -7,7 +7,7 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
   alias ExFTP.Auth.BearerAuth
 
-  doctest ExFTP.Auth.BearerAuth
+  doctest BearerAuth
 
   test "valid_user?/1" do
     assert BearerAuth.valid_user?(Faker.Internet.slug())
@@ -16,7 +16,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
   describe "login/2" do
     test "with config defined" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get
@@ -25,7 +26,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
       assert {:ok, _} =
                BearerAuth.login(Faker.Internet.slug(), %{username: Faker.Internet.slug()})
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/status/401",
         login_method: :post,
@@ -37,7 +39,7 @@ defmodule ExFTP.Auth.BearerAuthTest do
     end
 
     test "without config defined" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
       Application.put_env(:ex_ftp, :authenticator_config, nil)
 
       assert {:error, _} =
@@ -47,7 +49,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
   describe "authenticated/1" do
     test "with custom authenticated route" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get,
@@ -60,7 +63,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
       assert BearerAuth.authenticated?(state)
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get,
@@ -72,7 +76,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
     end
 
     test "without custom authenticated route" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get
@@ -82,7 +87,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
     end
 
     test "enforcing ttl" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get,
@@ -104,7 +110,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
       :timer.sleep(100)
       assert {:ok, false} = Cachex.exists?(:auth_cache, username)
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.BearerAuth)
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/bearer",
         login_method: :get,

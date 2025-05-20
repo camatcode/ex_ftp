@@ -18,6 +18,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       password = Faker.Internet.slug()
 
       Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
         login_method: :get
@@ -26,6 +27,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       assert {:ok, _} = DigestAuth.login(password, %{username: username})
 
       Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/status/404",
         login_method: :post
@@ -49,6 +51,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       password = Faker.Internet.slug()
 
       Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
         login_method: :get,
@@ -61,6 +64,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       assert DigestAuth.authenticated?(state)
 
       Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
         login_method: :get,
@@ -76,6 +80,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       password = Faker.Internet.slug()
 
       Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
         login_method: :get

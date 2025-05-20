@@ -398,7 +398,6 @@ defmodule ExFTP.Storage.Common do
         socket
       )
 
-
     w_path
     |> connector.get_content(connector_state)
     |> case do

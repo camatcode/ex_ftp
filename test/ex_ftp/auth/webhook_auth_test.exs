@@ -7,7 +7,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
   alias ExFTP.Auth.WebhookAuth
 
-  doctest ExFTP.Auth.WebhookAuth
+  doctest WebhookAuth
 
   test "valid_user?/1" do
     assert WebhookAuth.valid_user?(Faker.Internet.slug())
@@ -16,7 +16,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
   describe "login/2" do
     test "with config defined" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get
@@ -25,7 +26,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
       assert {:ok, _} =
                WebhookAuth.login(Faker.Internet.slug(), %{username: Faker.Internet.slug()})
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/status/401",
         login_method: :post,
@@ -37,7 +39,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
     end
 
     test "without config defined" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
       Application.put_env(:ex_ftp, :authenticator_config, nil)
 
       assert {:error, _} =
@@ -47,7 +49,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
   describe "authenticated/1" do
     test "with custom authenticated route" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get,
@@ -57,7 +60,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
       assert WebhookAuth.authenticated?(%{username: Faker.Internet.slug()})
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get,
@@ -69,7 +73,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
     end
 
     test "without custom authenticated route" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get
@@ -79,7 +84,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
     end
 
     test "enforcing ttl" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get,
@@ -101,7 +107,8 @@ defmodule ExFTP.Auth.WebhookAuthTest do
       :timer.sleep(100)
       assert {:ok, false} = Cachex.exists?(:auth_cache, username)
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.WebhookAuth)
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/get",
         login_method: :get,
