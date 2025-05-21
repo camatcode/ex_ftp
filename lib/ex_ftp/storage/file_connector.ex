@@ -410,13 +410,13 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  defp rmrf_dir("/"), do: {:ok, nil}
+  defp rmrf_dir("/"), do: {:error, "Not something to delete"}
 
   defp rmrf_dir(dir) do
     if File.exists?(dir) && File.dir?(dir) do
       File.rm_rf(dir)
     else
-      {:ok, nil}
+      {:error, "Not something to delete"}
     end
   end
 end
