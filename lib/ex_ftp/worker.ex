@@ -431,7 +431,7 @@ defmodule ExFTP.Worker do
     if pasv && Process.alive?(pasv) do
       {:ok, pasv}
     else
-      send_resp(550, "LIST failed. PASV mode required.", Map.get(state, :socket))
+      send_resp(550, "CMD failed. PASV mode required.", Map.get(state, :socket))
       {:noreply, state}
     end
   end

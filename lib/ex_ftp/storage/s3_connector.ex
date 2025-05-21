@@ -493,18 +493,16 @@ defmodule ExFTP.Storage.S3Connector do
     |> ExAws.request()
   end
 
-
   defp s3_prefix_exists?(config, path) do
     bucket = get_bucket(config, path)
     prefix = get_prefix(config, bucket, path)
 
-      bucket_exists?(bucket) && prefix_exists?(bucket, prefix)
+    bucket_exists?(bucket) && prefix_exists?(bucket, prefix)
   end
 
   # / == s3://storage_bucket/
   defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path) when not is_nil(storage_bucket),
     do: storage_bucket
-
 
   # / == s3://storage_bucket/
   defp get_prefix(%{storage_bucket: storage_bucket} = _config, _bucket, "/" = _path) when not is_nil(storage_bucket) do
