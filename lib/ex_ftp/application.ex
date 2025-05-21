@@ -6,7 +6,7 @@ defmodule ExFTP.Application do
 
   @impl true
   def start(_type, _args) do
-    port = Application.get_env(:ex_ftp, :ftp_port)
+    port = Application.get_env(:ex_ftp, :ftp_port, 4041)
 
     children = [
       {Cachex, [:auth_cache]},

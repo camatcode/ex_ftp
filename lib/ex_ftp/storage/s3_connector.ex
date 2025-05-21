@@ -230,11 +230,15 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       key = get_prefix(config, bucket, path)
 
-      bucket
-      |> ExAws.S3.delete_object(key)
-      |> ExAws.request!()
+      if prefix_exists?(bucket, key) do
+        bucket
+        |> ExAws.S3.delete_object(key)
+        |> ExAws.request!()
 
-      {:ok, connector_state}
+        {:ok, connector_state}
+      else
+        {:error, "does not exist"}
+      end
     end
   end
 
@@ -302,12 +306,16 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      stream =
-        bucket
-        |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
-        |> ExAws.stream!()
+      if prefix_exists?(bucket, prefix) do
+        stream =
+          bucket
+          |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
+          |> ExAws.stream!()
 
-      {:ok, stream}
+        {:ok, stream}
+      else
+        {:error, "no such file"}
+      end
     end
   end
 
@@ -334,16 +342,12 @@ defmodule ExFTP.Storage.S3Connector do
       prefix = get_prefix(config, bucket, path)
 
       fn stream ->
-        try do
-          stream
-          |> chunk_stream(opts)
-          |> ExAws.S3.upload(bucket, prefix)
-          |> ExAws.request!()
+        stream
+        |> chunk_stream(opts)
+        |> ExAws.S3.upload(bucket, prefix, timeout: :infinity)
+        |> ExAws.request!()
 
-          {:ok, connector_state}
-        rescue
-          _ -> {:error, "Failed to transfer"}
-        end
+        {:ok, connector_state}
       end
     end
   end
@@ -374,10 +378,16 @@ defmodule ExFTP.Storage.S3Connector do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
 
-      contents = s3_get_prefix_contents(config, path, connector_state, :key)
+      contents =
+        s3_get_prefix_contents(config, path, connector_state, :key)
+        |> Enum.to_list()
 
       if Enum.empty?(contents) do
-        {:error, "Could not get content info"}
+        if virtual_directory?(config, path, connector_state) do
+          {:ok, to_content_info(%{prefix: Path.basename(path)}, nil)}
+        else
+          {:error, "Cant get info"}
+        end
       else
         {:ok, contents |> Enum.take(1) |> hd()}
       end
@@ -456,11 +466,11 @@ defmodule ExFTP.Storage.S3Connector do
     }
   end
 
-  defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, parent_prefix) do
+  defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, _parent_prefix) do
     {:ok, modified_datetime, _} = DateTime.from_iso8601(last_mod_str)
 
     %{
-      file_name: String.replace(filename, parent_prefix, ""),
+      file_name: Path.basename(filename),
       modified_datetime: modified_datetime,
       size: size,
       access: :read_write,

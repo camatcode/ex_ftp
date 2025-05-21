@@ -26,6 +26,8 @@ defmodule ExFTP.PassiveSocket do
 
   def close(pid) do
     GenServer.call(pid, {:close}, :infinity)
+  rescue
+    _ -> :ok
   end
 
   # Server
@@ -96,7 +98,7 @@ defmodule ExFTP.PassiveSocket do
   def handle_call({:close}, _from, %{socket: socket, write_socket: write_socket} = state) do
     Logger.info("Closing PASV connection.")
     write_socket && :gen_tcp.close(write_socket)
-    :gen_tcp.close(socket)
+    socket && :gen_tcp.close(socket)
     {:stop, :normal, :ok, state}
   end
 

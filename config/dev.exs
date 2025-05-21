@@ -1,5 +1,8 @@
 import Config
 
+alias ExFTP.Auth.PassthroughAuth
+alias ExFTP.Storage.S3Connector
+
 config :ex_aws,
   s3: [
     scheme: System.get_env("AWS_SCHEME", "http://"),

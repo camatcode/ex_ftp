@@ -111,13 +111,47 @@ defmodule ExFTP.StorageTester do
     |> send_and_expect("PWD", [], 257, "\"/\" is the current directory")
   end
 
-  def test_mkd_rmd(%{socket: socket}, dir_to_make) do
+  def test_mkd_rmd(%{socket: socket} = state, dir_to_make) do
     # PWD
     send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
 
     # CWD tmp_dir
     # MKD dir_to_make
     send_and_expect(socket, "MKD", [dir_to_make], 257, "\"#{dir_to_make}\" directory created.")
+
+    # LIST -a an empty dir
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("LIST", ["-a"], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) != ""
+
+    # List an empty dir
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("LIST", [], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) == ""
+
+    # NLST an empty dir
+
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("NLST", [], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) == ""
 
     # call it twice
     send_and_expect(socket, "MKD", [dir_to_make], 521, "\"#{dir_to_make}\" directory already exists")
@@ -194,6 +228,14 @@ defmodule ExFTP.StorageTester do
       refute byte_size(bytes) == 0
       expect_recv(socket, 226, "Transfer complete.")
     end)
+
+    # try to retrieve something that doesn't exist
+    file = "/does-not-exist"
+    %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+    send_and_expect(socket, "RETR", [file], 150)
+    assert {:ok, bytes} = read_fully(pasv_socket)
+    assert byte_size(bytes) == 0
+    expect_recv(socket, 451, "File not found.")
   end
 
   def test_size(state, w_dir) do
@@ -219,18 +261,21 @@ defmodule ExFTP.StorageTester do
 
     Enum.each(files_to_store, fn file ->
       %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
       send_and_expect(socket, "STOR", [file], 150)
 
-      File.cwd!()
-      |> Path.join(file)
-      |> File.stream!(5 * 1024 * 1024, [])
-      |> Enum.each(fn data ->
-        :ok = :gen_tcp.send(pasv_socket, data)
-      end)
+      path = Path.join(File.cwd!(), file)
+
+      data =
+        path
+        |> File.read!()
+
+      :ok = :gen_tcp.send(pasv_socket, data)
 
       close_pasv(pasv_socket)
 
       expect_recv(socket, 226, "Transfer Complete.")
+      :timer.sleep(400)
       :timer.sleep(100)
 
       send_and_expect(socket, "SIZE", [file], 213)
@@ -245,5 +290,11 @@ defmodule ExFTP.StorageTester do
       |> send_and_expect("DELE", [file], 250)
       |> send_and_expect("SIZE", [file], 550)
     end)
+
+    # test delete a file that doesn't exist
+    file = "/does-not-exist"
+
+    socket
+    |> send_and_expect("DELE", [file], 550, "Failed to remove file.")
   end
 end
