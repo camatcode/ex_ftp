@@ -69,14 +69,12 @@ jobs:
       - name: Run credo
         run: mix credo --strict
 
-      - name: Run mix test
-        run: mix test || mix test --failed
+      - name: Run tests
+        run: mix coveralls.github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run dialyzer
         run: mix dialyzer
         if: ${{ matrix.lint }}
 
-      - name: Run code coverage
-        run: mix coveralls.github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
