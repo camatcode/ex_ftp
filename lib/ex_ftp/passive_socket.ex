@@ -75,7 +75,13 @@ defmodule ExFTP.PassiveSocket do
         write_socket
       end
 
-    :ok = :gen_tcp.send(write_socket, data <> "\r\n")
+    if is_bitstring(data) do
+      :gen_tcp.send(write_socket, data)
+    else
+      :ok = Enum.each(data, fn chunk -> :gen_tcp.send(write_socket, chunk) end)
+    end
+
+    :ok = :gen_tcp.send(write_socket, "\r\n")
 
     if Keyword.get(opts, :close_after_write, true) do
       :gen_tcp.close(write_socket)

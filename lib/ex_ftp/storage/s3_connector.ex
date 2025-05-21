@@ -307,12 +307,10 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      # do: Streaming evaluation
       stream =
         bucket
         |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
         |> ExAws.stream!()
-        |> Enum.into(<<>>)
 
       {:ok, stream}
     end
@@ -381,14 +379,14 @@ defmodule ExFTP.Storage.S3Connector do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
 
-      config
-      |> s3_get_prefix_contents(path, connector_state, :key)
-      |> case do
-        [content | _] ->
-          {:ok, content}
+      contents = s3_get_prefix_contents(config, path, connector_state, :key)
 
-        _ ->
-          {:error, "Could not get content info"}
+      empty? = Enum.empty?(contents)
+
+      if empty? do
+        {:error, "Could not get content info"}
+      else
+        {:ok, contents |> Enum.take(1) |> hd()}
       end
     end
   end
@@ -427,15 +425,12 @@ defmodule ExFTP.Storage.S3Connector do
 
     prefix = if type == :key, do: Path.join(prefix, ""), else: prefix
 
-    objects =
+    objects_stream =
       if bucket do
-        # yes I know I'm forcing evaluation
-        # figure out how to append to a stream
-        # Its probably a stream.resource() wrapper
         bucket
         |> ExAws.S3.list_objects(prefix: prefix, delimiter: "/", stream_prefixes: true)
         |> ExAws.stream!()
-        |> Enum.map(fn thing ->
+        |> Stream.map(fn thing ->
           to_content_info(thing, prefix)
         end)
       else
@@ -455,7 +450,7 @@ defmodule ExFTP.Storage.S3Connector do
         to_content_info(%{prefix: Path.basename(v_dir)}, nil)
       end)
 
-    objects ++ objects_to_append
+    Stream.concat(objects_stream, objects_to_append)
   end
 
   defp to_content_info(%{prefix: prefix}, _parent_prefix) do
