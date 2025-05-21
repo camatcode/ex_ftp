@@ -135,6 +135,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     end)
 
     # SIZE
+    :timer.sleep(100)
     test_size(state, tmp_dir)
 
     # RETR

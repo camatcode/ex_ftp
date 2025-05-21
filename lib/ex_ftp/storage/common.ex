@@ -255,19 +255,16 @@ defmodule ExFTP.Storage.Common do
       |> connector.get_directory_contents(connector_state)
       |> case do
         {:ok, contents} ->
-          if_result =
-            if include_hidden do
-              hidden_dirs ++ contents
-            else
-              Enum.reject(contents, &hidden?/1)
-            end
-
-          Enum.sort_by(if_result, & &1.file_name)
+          if include_hidden do
+            Stream.concat(contents, hidden_dirs)
+          else
+            Stream.reject(contents, &hidden?/1)
+          end
 
         _ ->
           if include_hidden, do: hidden_dirs, else: []
       end
-      |> Enum.map(&format_content(&1))
+      |> Stream.map(&format_content(&1))
 
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
@@ -335,19 +332,16 @@ defmodule ExFTP.Storage.Common do
       |> connector.get_directory_contents(connector_state)
       |> case do
         {:ok, contents} ->
-          if_result =
-            if include_hidden do
-              hidden_dirs ++ contents
-            else
-              Enum.reject(contents, &hidden?/1)
-            end
-
-          Enum.sort_by(if_result, & &1.file_name)
+          if include_hidden do
+            Stream.concat(contents, hidden_dirs)
+          else
+            Stream.reject(contents, &hidden?/1)
+          end
 
         _ ->
           if include_hidden, do: hidden_dirs, else: []
       end
-      |> Enum.map(&format_name(&1))
+      |> Stream.map(&format_name(&1))
 
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
