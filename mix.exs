@@ -106,7 +106,7 @@ defmodule ExFTP.MixProject do
       {:junit_formatter, "~> 3.1", only: [:test]},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
-      {:poison, "~> 5.0"},
+      {:poison, "~> 6.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.7"},
       {:configparser_ex, "~> 4.0"},
