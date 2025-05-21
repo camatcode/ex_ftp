@@ -48,6 +48,21 @@ defmodule ExFTP.Auth.WebhookAuthTest do
   end
 
   describe "authenticated/1" do
+    test "no inputs" do
+      Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
+
+      Application.put_env(:ex_ftp, :authenticator_config, %{
+        login_url: "",
+        login_method: :get
+      })
+
+      refute WebhookAuth.authenticated?(%{})
+
+      Application.put_env(:ex_ftp, :authenticator_config, %{})
+
+      refute WebhookAuth.authenticated?(%{})
+    end
+
     test "with custom authenticated route" do
       Application.put_env(:ex_ftp, :authenticator, WebhookAuth)
 

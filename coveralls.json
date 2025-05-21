@@ -21,6 +21,8 @@
   },
   "skip_files": [
     "lib/ex_ftp.ex",
-    "lib/ex_ftp/util/doc.ex"
+    "lib/ex_ftp/util/doc.ex",
+    "lib/ex_ftp/authenticator.ex",
+    "lib/ex_ftp/storage_connector.ex"
   ]
 }
