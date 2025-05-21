@@ -55,7 +55,7 @@
   - [Custom Storage Connector](#custom-storage-connector)
 - [Technical Details](#technical-details)
   - [Supported Commands](#supported-commands)
-  - [Notes about Fly.io](#notes-about-fly.io)
+  - [Notes about Fly.io](#notes-about-flyio)
 - [Special Thanks](#special-thanks)
 
 ## Installation
@@ -153,7 +153,7 @@ config :ex_ftp,
   # optional, reports "Hello from {server_name}" on login
   server_name: :ExFTP,
   # the address this server binds to (default: 127.0.0.1)
-   ftp_addr: System.get_env("FTP_ADDR", "127.0.0.1"),
+  ftp_addr: System.get_env("FTP_ADDR", "127.0.0.1"),
   # FTP uses temporary, negotiated ports for certain commands called passive ports
   # Choose the min and max range for these ports
   # This range would represent how many of these certain commands can run at the same time.
