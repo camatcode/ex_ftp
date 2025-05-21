@@ -5,7 +5,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
 
   alias ExFTP.Auth.DigestAuth
 
-  doctest ExFTP.Auth.DigestAuth
+  doctest DigestAuth
 
   test "valid_user?/1" do
     assert DigestAuth.valid_user?(Faker.Internet.slug())
@@ -17,7 +17,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
@@ -26,7 +26,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
 
       assert {:ok, _} = DigestAuth.login(password, %{username: username})
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/status/404",
@@ -37,7 +37,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
     end
 
     test "without config defined" do
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
       Application.put_env(:ex_ftp, :authenticator_config, nil)
 
       assert {:error, _} =
@@ -50,7 +50,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
@@ -63,7 +63,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
 
       assert DigestAuth.authenticated?(state)
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",
@@ -79,7 +79,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
-      Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.DigestAuth)
+      Application.put_env(:ex_ftp, :authenticator, DigestAuth)
 
       Application.put_env(:ex_ftp, :authenticator_config, %{
         login_url: "https://httpbin.dev/digest-auth/auth/#{username}/#{password}/MD5",

@@ -10,7 +10,9 @@ defmodule ExFTP.Worker do
   import ExFTP.Common
   import ExFTP.Storage.Common
 
+  alias ExFTP.Auth.PassthroughAuth
   alias ExFTP.PassiveSocket
+  alias ExFTP.Storage.FileConnector
 
   require Logger
 
@@ -29,10 +31,10 @@ defmodule ExFTP.Worker do
     end
 
     connector =
-      Application.get_env(:ex_ftp, :storage_connector, ExFTP.Storage.FileConnector)
+      Application.get_env(:ex_ftp, :storage_connector, FileConnector)
 
     authenticator =
-      Application.get_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
+      Application.get_env(:ex_ftp, :authenticator, PassthroughAuth)
 
     server_name = Application.get_env(:ex_ftp, :server_name, :ExFTP)
 

@@ -445,7 +445,9 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def size(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
+  def size(
+        %{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state
+      ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     w_path
@@ -533,7 +535,9 @@ defmodule ExFTP.Storage.Common do
 
   <!-- tabs-close -->
   """
-  def dele(%{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state) do
+  def dele(
+        %{storage_connector: connector, path: path, socket: socket, connector_state: connector_state} = _server_state
+      ) do
     w_path = change_prefix(connector.get_working_directory(connector_state), path)
 
     w_path

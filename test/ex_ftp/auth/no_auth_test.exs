@@ -5,7 +5,7 @@ defmodule ExFTP.Auth.NoAuthTest do
 
   alias ExFTP.Auth.NoAuth
 
-  doctest ExFTP.Auth.NoAuth
+  doctest NoAuth
 
   test "valid_user?/1" do
     assert NoAuth.valid_user?(Faker.Internet.slug())

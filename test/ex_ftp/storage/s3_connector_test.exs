@@ -6,13 +6,14 @@ defmodule ExFTP.Storage.S3ConnectorTest do
   import ExFTP.StorageTester
   import ExFTP.TestHelper
 
+  alias ExFTP.Auth.PassthroughAuth
   alias ExFTP.Storage.S3Connector
 
-  doctest ExFTP.Storage.S3Connector
+  doctest S3Connector
 
   setup do
-    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
-    Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.S3Connector)
+    Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
+    Application.put_env(:ex_ftp, :storage_connector, S3Connector)
     Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: "ex-ftp-test"})
 
     socket = get_socket()
@@ -26,7 +27,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
     %{
       socket: socket,
       password: password,
-      storage_connector: ExFTP.Storage.S3Connector,
+      storage_connector: S3Connector,
       connector_state: %{current_working_directory: "/"}
     }
   end

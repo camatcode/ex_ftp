@@ -1,6 +1,21 @@
 defmodule ExFTP.MixProject do
   use Mix.Project
 
+  alias ExFTP.Auth.BasicAuth
+  alias ExFTP.Auth.BasicAuthConfig
+  alias ExFTP.Auth.BearerAuth
+  alias ExFTP.Auth.BearerAuthConfig
+  alias ExFTP.Auth.Common
+  alias ExFTP.Auth.DigestAuth
+  alias ExFTP.Auth.DigestAuthConfig
+  alias ExFTP.Auth.NoAuth
+  alias ExFTP.Auth.PassthroughAuth
+  alias ExFTP.Auth.WebhookAuth
+  alias ExFTP.Auth.WebhookAuthConfig
+  alias ExFTP.Storage.FileConnector
+  alias ExFTP.Storage.S3Connector
+  alias ExFTP.Storage.S3ConnectorConfig
+
   @source_url "https://github.com/camatcode/ex_ftp"
   @version "0.9.2"
 
@@ -39,27 +54,27 @@ defmodule ExFTP.MixProject do
     [
       Authenticator: [
         ExFTP.Authenticator,
-        ExFTP.Auth.PassthroughAuth,
-        ExFTP.Auth.NoAuth,
-        ExFTP.Auth.WebhookAuth,
-        ExFTP.Auth.BearerAuth,
-        ExFTP.Auth.BasicAuth,
-        ExFTP.Auth.DigestAuth
+        PassthroughAuth,
+        NoAuth,
+        WebhookAuth,
+        BearerAuth,
+        BasicAuth,
+        DigestAuth
       ],
       "Authenticator Config": [
-        ExFTP.Auth.Common,
-        ExFTP.Auth.WebhookAuthConfig,
-        ExFTP.Auth.BearerAuthConfig,
-        ExFTP.Auth.BasicAuthConfig,
-        ExFTP.Auth.DigestAuthConfig
+        Common,
+        WebhookAuthConfig,
+        BearerAuthConfig,
+        BasicAuthConfig,
+        DigestAuthConfig
       ],
       "Storage Connector": [
         ExFTP.StorageConnector,
-        ExFTP.Storage.FileConnector,
-        ExFTP.Storage.S3Connector
+        FileConnector,
+        S3Connector
       ],
       "Storage Connector Config": [
-        ExFTP.Storage.S3ConnectorConfig
+        S3ConnectorConfig
       ],
       Server: [ExFTP.Worker, ExFTP.Storage.Common, ExFTP.Common]
     ]

@@ -14,6 +14,7 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   import ExFTP.Auth.Common
 
   alias ExFTP.Auth.BasicAuthConfig
+  alias ExFTP.Auth.BearerAuthConfig
   alias ExFTP.Auth.Common
 
   @typedoc """
@@ -63,6 +64,6 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   def build(m) do
     fields = prepare(m)
 
-    struct(ExFTP.Auth.BearerAuthConfig, fields)
+    struct(BearerAuthConfig, fields)
   end
 end
