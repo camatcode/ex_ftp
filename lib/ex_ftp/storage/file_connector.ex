@@ -396,17 +396,12 @@ defmodule ExFTP.Storage.FileConnector do
     fn stream ->
       fs = File.stream!(path)
 
-      try do
-        _ =
-          stream
-          |> chunk_stream(opts)
-          |> Enum.into(fs)
+      _ =
+        stream
+        |> chunk_stream(opts)
+        |> Enum.into(fs)
 
-        {:ok, connector_state}
-      rescue
-        _ ->
-          {:error, "Failed to transfer"}
-      end
+      {:ok, connector_state}
     end
   end
 

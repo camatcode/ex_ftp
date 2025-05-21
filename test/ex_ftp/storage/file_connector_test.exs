@@ -92,6 +92,9 @@ defmodule ExFTP.Storage.FileConnectorTest do
     Enum.each(files_to_find, fn file_to_find ->
       assert [_found] = Enum.filter(parts, fn part -> String.ends_with?(part, file_to_find) end)
     end)
+
+    listing = test_list(state, "/")
+    assert String.trim(listing) != ""
   end
 
   test "DELE", state do

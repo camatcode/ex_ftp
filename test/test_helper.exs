@@ -94,6 +94,7 @@ defmodule ExFTP.StorageTester do
     send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
 
     socket
+    |> send_and_expect("CWD", ["~"], 250, "Directory changed successfully.")
     |> send_and_expect("MKD", [tmp_dir], 257, "\"#{tmp_dir}\" directory created.")
     |> send_and_expect("CWD", [tmp_dir], 250, "Directory changed successfully.")
     |> send_and_expect("PWD", [], 257, "\"#{tmp_dir}\" is the current directory")
