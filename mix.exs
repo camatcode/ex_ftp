@@ -11,7 +11,7 @@ defmodule ExFTP.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-
+      test_coverage: [tool: ExCoveralls],
       # Hex
       package: package(),
       description: """
@@ -99,6 +99,7 @@ defmodule ExFTP.MixProject do
       {:ex_license, "~> 0.1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: [:test]},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:faker, "~> 0.18.0", only: :test},
       {:req, "~> 0.5.10"},
