@@ -10,7 +10,7 @@ defmodule ExFTP.Storage.FileConnector do
   >
   > Currently, there is no file access management per user.
   >
-  > Authenticated users perform file system actions as the same file system user as the FTP server
+  > Authenticated users perform file system actions as if they were the FTP user
 
   <!-- tabs-open -->
 
@@ -206,16 +206,11 @@ defmodule ExFTP.Storage.FileConnector do
           connector_state :: ExFTP.StorageConnector.connector_state()
         ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def delete_file(path, connector_state) do
-    if_result =
-      if File.regular?(path) do
-        File.rm(path)
-      else
-        {:error, "Not a file"}
-      end
-
-    case if_result do
-      :ok -> {:ok, connector_state}
-      err -> err
+    if File.regular?(path) do
+      File.rm(path)
+      {:ok, connector_state}
+    else
+      {:error, "Not a file"}
     end
   end
 
@@ -249,20 +244,14 @@ defmodule ExFTP.Storage.FileConnector do
         ) ::
           {:ok, [ExFTP.StorageConnector.content_info()]} | {:error, term()}
   def get_directory_contents(path, connector_state) do
-    path
-    |> File.ls()
-    |> case do
-      {:ok, files} ->
-        contents =
-          Enum.map(files, fn file_name ->
-            {:ok, content_info} = get_content_info(Path.join(path, file_name), connector_state)
-            content_info
-          end)
+    with {:ok, files} <- File.ls(path) do
+      contents =
+        Enum.map(files, fn file_name ->
+          {:ok, content_info} = get_content_info(Path.join(path, file_name), connector_state)
+          content_info
+        end)
 
-        {:ok, contents}
-
-      err ->
-        err
+      {:ok, contents}
     end
   end
 
@@ -297,37 +286,32 @@ defmodule ExFTP.Storage.FileConnector do
         ) ::
           {:ok, ExFTP.StorageConnector.content_info()} | {:error, term()}
   def get_content_info(path, _connector_state) do
-    path
-    |> File.lstat()
-    |> case do
+    with {:ok, l_stat} <- File.lstat(path) do
+      %{
+        size: size,
+        mtime: {{year, month, day}, {hour, minute, second}},
+        access: access,
+        type: type
+      } = l_stat
+
+      file_name =
+        if type == :symlink do
+          {:ok, target} = :file.read_link(path)
+          "#{Path.basename(path)} -> #{target}"
+        else
+          Path.basename(path)
+        end
+
+      date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
+
       {:ok,
        %{
+         file_name: file_name,
+         modified_datetime: date,
          size: size,
-         mtime: {{year, month, day}, {hour, minute, second}},
          access: access,
          type: type
-       }} ->
-        file_name =
-          if type == :symlink do
-            {:ok, target} = :file.read_link(path)
-            "#{Path.basename(path)} -> #{target}"
-          else
-            Path.basename(path)
-          end
-
-        date = DateTime.new!(Date.new!(year, month, day), Time.new!(hour, minute, second))
-
-        {:ok,
-         %{
-           file_name: file_name,
-           modified_datetime: date,
-           size: size,
-           access: access,
-           type: type
-         }}
-
-      err ->
-        err
+       }}
     end
   end
 

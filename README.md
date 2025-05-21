@@ -45,7 +45,6 @@
   - [File](#storage-connector-file)
   - [S3](#storage-connector-s3)
     - [Using Minio or LocalStack](#using-minio-or-localstack)
-  - [Supabase Storage](#storage-connector-supabase)
   - [Others through S3Proxy](#storage-connector-others-through-s3proxy)
   - [Custom Storage Connector](#custom-storage-connector)
 - [Technical Details](#technical-details)
@@ -514,13 +513,6 @@ config :ex_ftp,
 
 [^ top](#top)
 
--------
-
-### Storage Connector: Supabase
-
-🚧 TODO
-
-[^ top](#top)
 
 -------
 
