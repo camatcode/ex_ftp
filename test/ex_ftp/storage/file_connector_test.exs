@@ -6,14 +6,16 @@ defmodule ExFTP.Storage.FileConnectorTest do
   import ExFTP.StorageTester
   import ExFTP.TestHelper
 
+  alias ExFTP.Auth.PassthroughAuth
+  alias ExFTP.Storage.Common
   alias ExFTP.Storage.FileConnector
 
-  doctest ExFTP.Storage.Common
+  doctest Common
   doctest FileConnector
 
   setup do
-    Application.put_env(:ex_ftp, :authenticator, ExFTP.Auth.PassthroughAuth)
-    Application.put_env(:ex_ftp, :storage_connector, ExFTP.Storage.FileConnector)
+    Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
+    Application.put_env(:ex_ftp, :storage_connector, FileConnector)
     Application.put_env(:ex_ftp, :storage_config, %{})
 
     socket = get_socket()

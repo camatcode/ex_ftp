@@ -499,7 +499,8 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   # / == s3://storage_bucket/
-  defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path) when not is_nil(storage_bucket), do: storage_bucket
+  defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path) when not is_nil(storage_bucket),
+    do: storage_bucket
 
   # / == list buckets
   defp get_bucket(%{storage_bucket: nil} = _config, "/" = _path), do: nil
@@ -526,13 +527,13 @@ defmodule ExFTP.Storage.S3Connector do
       |> String.replace("/#{bucket}", "")
       |> String.replace(~r/^\//, "")
 
-    if "" == prefix, do: nil, else: prefix
+    if "" != prefix, do: prefix
   end
 
   defp get_prefix(_config, _bucket, path) do
     prefix = String.replace(path, ~r/^\//, "")
 
-    if "" == prefix, do: nil, else: prefix
+    if "" != prefix, do: prefix
   end
 
   defp bucket_exists?(nil), do: false

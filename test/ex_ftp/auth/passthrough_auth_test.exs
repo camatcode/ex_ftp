@@ -5,7 +5,7 @@ defmodule ExFTP.Auth.PassthroughAuthTest do
 
   alias ExFTP.Auth.PassthroughAuth
 
-  doctest ExFTP.Auth.PassthroughAuth
+  doctest PassthroughAuth
   doctest ExFTP.Authenticator
 
   test "valid_user?/1" do
