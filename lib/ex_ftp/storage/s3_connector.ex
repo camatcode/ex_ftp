@@ -493,51 +493,20 @@ defmodule ExFTP.Storage.S3Connector do
     |> ExAws.request()
   end
 
-  defp s3_prefix_exists?(%{storage_bucket: nil}, "/" = _path) do
-    true
-  end
-
   defp s3_prefix_exists?(config, path) do
     bucket = get_bucket(config, path)
     prefix = get_prefix(config, bucket, path)
 
-    if bucket do
-      bucket_exists?(bucket) && prefix_exists?(bucket, prefix)
-    else
-      prefix_exists?(bucket, prefix)
-    end
+    bucket_exists?(bucket) && prefix_exists?(bucket, prefix)
   end
 
   # / == s3://storage_bucket/
   defp get_bucket(%{storage_bucket: storage_bucket} = _config, _path) when not is_nil(storage_bucket),
     do: storage_bucket
 
-  # / == list buckets
-  defp get_bucket(%{storage_bucket: nil} = _config, "/" = _path), do: nil
-
-  # /path == s3://path/
-  defp get_bucket(%{storage_bucket: nil} = _config, path) do
-    path
-    |> Path.split()
-    |> case do
-      ["/", bucket | _] -> bucket
-      _ -> nil
-    end
-  end
-
   # / == s3://storage_bucket/
   defp get_prefix(%{storage_bucket: storage_bucket} = _config, _bucket, "/" = _path) when not is_nil(storage_bucket) do
     nil
-  end
-
-  # /path == s3://path
-  defp get_prefix(%{storage_bucket: nil} = _config, bucket, path) do
-    prefix =
-      path
-      |> String.replace("/#{bucket}", "")
-      |> String.replace(~r/^\//, "")
-
-    if "" != prefix, do: prefix
   end
 
   defp get_prefix(_config, _bucket, path) do
@@ -570,8 +539,6 @@ defmodule ExFTP.Storage.S3Connector do
 
     !empty?
   end
-
-  defp prefix_exists?(_bucket, _prefix), do: true
 
   defp get_virtual_directories(_config, %{virtual_directories: dirs}) do
     dirs
