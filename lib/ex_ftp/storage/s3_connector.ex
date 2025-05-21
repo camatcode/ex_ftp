@@ -342,16 +342,12 @@ defmodule ExFTP.Storage.S3Connector do
       prefix = get_prefix(config, bucket, path)
 
       fn stream ->
-        try do
-          stream
-          |> chunk_stream(opts)
-          |> ExAws.S3.upload(bucket, prefix)
-          |> ExAws.request!()
+        stream
+        |> chunk_stream(opts)
+        |> ExAws.S3.upload(bucket, prefix, timeout: :infinity)
+        |> ExAws.request!()
 
-          {:ok, connector_state}
-        rescue
-          _ -> {:error, "Failed to transfer"}
-        end
+        {:ok, connector_state}
       end
     end
   end
@@ -381,12 +377,11 @@ defmodule ExFTP.Storage.S3Connector do
   def get_content_info(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
-      IO.inspect(path, label: :get_info_path)
+
       contents =
         s3_get_prefix_contents(config, path, connector_state, :key)
-        |> Enum.into([])
+        |> Enum.to_list()
 
-      IO.inspect(contents, label: :get_info_contents)
       if Enum.empty?(contents) do
         if virtual_directory?(config, path, connector_state) do
           {:ok, to_content_info(%{prefix: Path.basename(path)}, nil)}
@@ -471,13 +466,11 @@ defmodule ExFTP.Storage.S3Connector do
     }
   end
 
-  defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, parent_prefix) do
+  defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, _parent_prefix) do
     {:ok, modified_datetime, _} = DateTime.from_iso8601(last_mod_str)
 
-    IO.inspect(filename, label: :original_filename)
-    IO.inspect(parent_prefix, label: :parent_prefix)
     %{
-      file_name: String.replace(filename, parent_prefix, ""),
+      file_name: Path.basename(filename),
       modified_datetime: modified_datetime,
       size: size,
       access: :read_write,
