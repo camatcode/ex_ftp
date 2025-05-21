@@ -34,6 +34,8 @@ defmodule ExFTP.Storage.S3ConnectorConfig do
           storage_bucket: storage_bucket()
         }
 
+  @enforce_keys [:storage_bucket]
+
   defstruct [
     :storage_bucket
   ]
