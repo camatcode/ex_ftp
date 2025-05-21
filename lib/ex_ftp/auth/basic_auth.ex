@@ -172,9 +172,7 @@ defmodule ExFTP.Auth.BasicAuth do
     end
   end
 
-  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = _authenticator_state) do
-    true
-  end
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = _authenticator_state) , do: true
 
   defp check_authentication(
          %{authenticated_url: url, authenticated_method: http_method} = _config,
@@ -192,7 +190,5 @@ defmodule ExFTP.Auth.BasicAuth do
     end
   end
 
-  defp check_authentication(_config, _authenticator_state) do
-    false
-  end
+  defp check_authentication(_config, _authenticator_state), do: false
 end
