@@ -360,7 +360,13 @@ defmodule ExFTP.Storage.FileConnector do
           path :: ExFTP.StorageConnector.path(),
           connector_state :: ExFTP.StorageConnector.connector_state()
         ) :: {:ok, any()} | {:error, term()}
-  def get_content(path, _connector_state), do: File.read(path)
+  def get_content(path, _connector_state) do
+    if File.exists?(path) && File.regular?(path) do
+      {:ok, File.stream!(path)}
+    else
+      {:error, "Cannot read"}
+    end
+  end
 
   @doc """
   Create a function/1 that writes a **stream** to storage

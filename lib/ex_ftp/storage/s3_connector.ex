@@ -312,7 +312,6 @@ defmodule ExFTP.Storage.S3Connector do
         bucket
         |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
         |> ExAws.stream!()
-        |> Enum.into(<<>>)
 
       {:ok, stream}
     end

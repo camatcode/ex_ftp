@@ -337,7 +337,7 @@ defmodule ExFTP.Worker do
     end
   end
 
-  defp run(_, %{socket: socket} = state) do
+  defp run(_args, %{socket: socket} = state) do
     send_resp(502, "Command not implemented.", socket)
     {:noreply, state}
   end

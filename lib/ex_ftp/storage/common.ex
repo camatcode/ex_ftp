@@ -457,8 +457,11 @@ defmodule ExFTP.Storage.Common do
     w_path
     |> connector.get_content_info(connector_state)
     |> case do
-      {:ok, %{size: size}} -> send_resp(@file_status_ok, "#{size}", socket)
-      _ -> send_resp(@file_action_not_taken, "Could not get file size.", socket)
+      {:ok, %{size: size}} ->
+        send_resp(@file_status_ok, "#{size}", socket)
+
+      _ ->
+        send_resp(@file_action_not_taken, "Could not get file size.", socket)
     end
 
     connector_state
