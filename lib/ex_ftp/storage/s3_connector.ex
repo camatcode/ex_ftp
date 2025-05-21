@@ -374,10 +374,15 @@ defmodule ExFTP.Storage.S3Connector do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
 
-      contents = s3_get_prefix_contents(config, path, connector_state, :key)
+      contents =
+        s3_get_prefix_contents(config, path, connector_state, :key)
 
       if Enum.empty?(contents) do
-        {:error, "Could not get content info"}
+        if virtual_directory?(config, path, connector_state) do
+          {:ok, to_content_info(%{prefix: Path.basename(path)}, nil)}
+        else
+          {:error, "Cant get info"}
+        end
       else
         {:ok, contents |> Enum.take(1) |> hd()}
       end

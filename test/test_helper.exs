@@ -111,13 +111,24 @@ defmodule ExFTP.StorageTester do
     |> send_and_expect("PWD", [], 257, "\"/\" is the current directory")
   end
 
-  def test_mkd_rmd(%{socket: socket}, dir_to_make) do
+  def test_mkd_rmd(%{socket: socket} = state, dir_to_make) do
     # PWD
     send_and_expect(socket, "PWD", [], 257, "\"/\" is the current directory")
 
     # CWD tmp_dir
     # MKD dir_to_make
     send_and_expect(socket, "MKD", [dir_to_make], 257, "\"#{dir_to_make}\" directory created.")
+
+    # LIST -a an empty dir
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("LIST", ["-a"], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) != ""
 
     # call it twice
     send_and_expect(socket, "MKD", [dir_to_make], 521, "\"#{dir_to_make}\" directory already exists")
