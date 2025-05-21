@@ -162,7 +162,7 @@ defmodule ExFTP.Auth.BearerAuth do
 
   defp check_authentication(
          %{authenticated_url: url, authenticated_method: http_method} = _config,
-         %{bearer_token: bearer_token} = authenticator_state
+         %{bearer_token: bearer_token} = _authenticator_state
        )
        when not is_nil(url) and not is_nil(bearer_token) do
     headers = [{"authorization", "Bearer #{bearer_token}"}]
