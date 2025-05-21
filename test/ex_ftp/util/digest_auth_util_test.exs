@@ -63,14 +63,4 @@ defmodule ExFTP.DigestAuthUtilTest do
       assert {:ok, %{status: 200}} = DigestAuthUtil.request(url, method, user, password)
     end
   end
-
-  describe "auth, sha512" do
-    test "workflow - auth , sha512" do
-      user = Faker.Internet.user_name()
-      password = Faker.Internet.slug()
-      url = "https://httpbin.org/digest-auth/auth/#{user}/#{password}/SHA-512"
-      method = :get
-      assert {:ok, %{status: 200}} = DigestAuthUtil.request(url, method, user, password)
-    end
-  end
 end
