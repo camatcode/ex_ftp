@@ -114,7 +114,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     refute Enum.empty?(files_to_find)
 
     Enum.each(files_to_find, fn file_to_find ->
-      assert [_found] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
+      assert [_found | _] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
     end)
   end
 

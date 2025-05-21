@@ -150,14 +150,8 @@ defmodule ExFTP.Auth.BasicAuth do
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
-    with_result =
-      with {:ok, config} <- validate_config(BasicAuthConfig) do
-        check_authentication(config, authenticator_state)
-      end
-
-    case with_result do
-      {:ok, _} -> true
-      _ -> false
+    with {:ok, config} <- validate_config(BasicAuthConfig) do
+      check_authentication(config, authenticator_state)
     end
   end
 
@@ -178,27 +172,27 @@ defmodule ExFTP.Auth.BasicAuth do
     end
   end
 
-  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = authenticator_state) do
-    {:ok, authenticator_state}
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = _authenticator_state) do
+    true
   end
 
   defp check_authentication(
          %{authenticated_url: url, authenticated_method: http_method} = _config,
-         %{username: username, password: password} = authenticator_state
+         %{username: username, password: password} = _authenticator_state
        )
        when not is_nil(url) do
     [url: url, method: http_method, redirect: true, auth: {:basic, "#{username}:#{password}"}]
     |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
-        {:ok, authenticator_state}
+        true
 
       _ ->
-        {:error, "Did not get a 200 response"}
+        false
     end
   end
 
   defp check_authentication(_config, _authenticator_state) do
-    {:error, "Not Authenticated"}
+    false
   end
 end
