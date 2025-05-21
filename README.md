@@ -20,7 +20,10 @@
   <a href="https://opensource.org/licenses/Apache-2.0">
     <img alt="Apache 2 License" src="https://img.shields.io/hexpm/l/oban">
   </a>
-<a href="https://mastodon.social/@scrum_log" target="_blank" rel="noopener noreferrer">
+  <a href="https://github.com/camatcode/ex_ftp/actions?query=branch%3Amain++">
+    <img alt="ci status" src="https://github.com/camatcode/ex_ftp/workflows/ci/badge.svg">
+  </a>
+  <a href="https://mastodon.social/@scrum_log" target="_blank" rel="noopener noreferrer">
     <img alt="Mastodon Follow" src="https://img.shields.io/badge/mastodon-%40scrum__log%40mastodon.social-purple?color=6364ff">
   </a>
 </p>
