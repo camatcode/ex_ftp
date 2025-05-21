@@ -140,6 +140,8 @@ defmodule ExFTP.Storage.S3Connector do
         ) :: {:ok, ExFTP.StorageConnector.connector_state()} | {:error, term()}
   def make_directory(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
+      current_v_dirs = get_virtual_directories(config, connector_state)
+
       path = clean_path(path)
 
       parent_dirs =
@@ -149,12 +151,8 @@ defmodule ExFTP.Storage.S3Connector do
         |> Enum.drop(-1)
         |> Enum.map(fn p -> clean_path(p) end)
 
-      dirs = parent_dirs ++ [path]
-
-      current_v_dirs = get_virtual_directories(config, connector_state)
-
-      new_v_dirs = Enum.uniq(current_v_dirs ++ dirs)
-
+      new_v_dirs = current_v_dirs ++ parent_dirs ++ [path]
+      connector_state = set_virtual_directories(connector_state, new_v_dirs)
       connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
       {:ok, connector_state}
     end
@@ -200,11 +198,8 @@ defmodule ExFTP.Storage.S3Connector do
         delete_s3_prefix(config, path)
       end
 
-      current_v_dirs = get_virtual_directories(config, connector_state)
-
-      new_v_dirs = Enum.uniq((current_v_dirs -- [path]) ++ ["/"])
-
-      connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
+      new_v_dirs = get_virtual_directories(config, connector_state) -- ([path] ++ ["/"])
+      connector_state = set_virtual_directories(connector_state, new_v_dirs)
       {:ok, connector_state}
     end
   end
@@ -381,9 +376,7 @@ defmodule ExFTP.Storage.S3Connector do
 
       contents = s3_get_prefix_contents(config, path, connector_state, :key)
 
-      empty? = Enum.empty?(contents)
-
-      if empty? do
+      if Enum.empty?(contents) do
         {:error, "Could not get content info"}
       else
         {:ok, contents |> Enum.take(1) |> hd()}
@@ -575,5 +568,9 @@ defmodule ExFTP.Storage.S3Connector do
 
   defp get_virtual_directories(%{storage_bucket: _bucket} = _config, connector_state) do
     Map.get(connector_state, :virtual_directories, ["/"])
+  end
+
+  defp set_virtual_directories(connector_state, new_v_dirs) do
+    Map.put(connector_state, :virtual_directories, Enum.uniq(new_v_dirs))
   end
 end
