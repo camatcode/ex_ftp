@@ -230,11 +230,15 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       key = get_prefix(config, bucket, path)
 
-      bucket
-      |> ExAws.S3.delete_object(key)
-      |> ExAws.request!()
+      if prefix_exists?(bucket, key) do
+        bucket
+        |> ExAws.S3.delete_object(key)
+        |> ExAws.request!()
 
-      {:ok, connector_state}
+        {:ok, connector_state}
+      else
+        {:error, "does not exist"}
+      end
     end
   end
 
@@ -302,12 +306,16 @@ defmodule ExFTP.Storage.S3Connector do
       bucket = get_bucket(config, path)
       prefix = get_prefix(config, bucket, path)
 
-      stream =
-        bucket
-        |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
-        |> ExAws.stream!()
+      if prefix_exists?(bucket, prefix) do
+        stream =
+          bucket
+          |> ExAws.S3.download_file(prefix, :memory, chunk_size: 5 * 1024 * 1024)
+          |> ExAws.stream!()
 
-      {:ok, stream}
+        {:ok, stream}
+      else
+        {:error, "no such file"}
+      end
     end
   end
 
@@ -373,10 +381,12 @@ defmodule ExFTP.Storage.S3Connector do
   def get_content_info(path, connector_state) do
     with {:ok, config} <- validate_config(S3ConnectorConfig) do
       path = Path.join(path, "")
-
+      IO.inspect(path, label: :get_info_path)
       contents =
         s3_get_prefix_contents(config, path, connector_state, :key)
+        |> Enum.into([])
 
+      IO.inspect(contents, label: :get_info_contents)
       if Enum.empty?(contents) do
         if virtual_directory?(config, path, connector_state) do
           {:ok, to_content_info(%{prefix: Path.basename(path)}, nil)}
@@ -464,6 +474,8 @@ defmodule ExFTP.Storage.S3Connector do
   defp to_content_info(%{key: filename, last_modified: last_mod_str, size: size}, parent_prefix) do
     {:ok, modified_datetime, _} = DateTime.from_iso8601(last_mod_str)
 
+    IO.inspect(filename, label: :original_filename)
+    IO.inspect(parent_prefix, label: :parent_prefix)
     %{
       file_name: String.replace(filename, parent_prefix, ""),
       modified_datetime: modified_datetime,

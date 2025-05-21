@@ -80,6 +80,48 @@ defmodule ExFTP.TestHelper do
   end
 end
 
+defmodule Randomizer do
+  @moduledoc """
+  Random string generator module.
+  """
+
+  @doc """
+  Generate random string based on the given legth. It is also possible to generate certain type of randomise string using the options below:
+  * :all - generate alphanumeric random string
+  * :alpha - generate nom-numeric random string
+  * :numeric - generate numeric random string
+  * :upcase - generate upper case non-numeric random string
+  * :downcase - generate lower case non-numeric random string
+  """
+  def randomizer(length, type \\ :all) do
+    alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    numbers = "0123456789"
+
+    lists =
+      cond do
+        type == :alpha -> alphabets <> String.downcase(alphabets)
+        type == :numeric -> numbers
+        type == :upcase -> alphabets
+        type == :downcase -> String.downcase(alphabets)
+        true -> alphabets <> String.downcase(alphabets) <> numbers
+      end
+      |> String.split("", trim: true)
+
+    do_randomizer(length, lists)
+  end
+
+  @doc false
+  defp get_range(length) when length > 1, do: (1..length)
+  defp get_range(_length), do: [1]
+
+  @doc false
+  defp do_randomizer(length, lists) do
+    get_range(length)
+    |> Enum.reduce([], fn(_, acc) -> [Enum.random(lists) | acc] end)
+    |> Enum.join("")
+  end
+end
+
 defmodule ExFTP.StorageTester do
   @moduledoc false
   use ExUnit.Case
@@ -129,6 +171,29 @@ defmodule ExFTP.StorageTester do
     assert {:ok, listing} = read_fully(pasv_socket)
     expect_recv(socket, 226, "Directory send OK.")
     assert String.trim(listing) != ""
+
+    # List an empty dir
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("LIST", [], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) == ""
+
+    # NLST an empty dir
+
+    %{socket: socket, pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
+    socket
+    |> send_and_expect("CWD", [dir_to_make], 250, "Directory changed successfully.")
+    |> send_and_expect("NLST", [], 150)
+
+    assert {:ok, listing} = read_fully(pasv_socket)
+    expect_recv(socket, 226, "Directory send OK.")
+    assert String.trim(listing) == ""
 
     # call it twice
     send_and_expect(socket, "MKD", [dir_to_make], 521, "\"#{dir_to_make}\" directory already exists")
@@ -205,6 +270,14 @@ defmodule ExFTP.StorageTester do
       refute byte_size(bytes) == 0
       expect_recv(socket, 226, "Transfer complete.")
     end)
+
+    # try to retrieve something that doesn't exist
+    file = "/does-not-exist"
+    %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+    send_and_expect(socket, "RETR", [file], 150)
+    assert {:ok, bytes} = read_fully(pasv_socket)
+    assert byte_size(bytes) == 0
+    expect_recv(socket, 451, "File not found.")
   end
 
   def test_size(state, w_dir) do
@@ -224,16 +297,27 @@ defmodule ExFTP.StorageTester do
   end
 
   def test_stor(%{socket: socket} = state, w_dir, files_to_store) do
+    tmp_dir = System.tmp_dir!()
+    big_file_name = Randomizer.randomizer(10, :alphabet)
+    big_file_path = Path.join(tmp_dir, big_file_name)
+    larger_than_5_mb = Randomizer.randomizer(6*1024*1024)
+    on_exit(fn -> File.rm!(big_file_path) end)
+    :ok = File.write!(big_file_path, larger_than_5_mb)
+
+    files_to_store = files_to_store ++ [big_file_name]
+
     socket
     |> send_and_expect("MKD", [w_dir], 257, "\"#{w_dir}\" directory created.")
     |> send_and_expect("CWD", [w_dir], 250, "Directory changed successfully.")
 
     Enum.each(files_to_store, fn file ->
       %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
+
       send_and_expect(socket, "STOR", [file], 150)
 
-      File.cwd!()
-      |> Path.join(file)
+      path = if file == big_file_name, do: big_file_path, else: Path.join(File.cwd!(), file)
+
+      path
       |> File.stream!(5 * 1024 * 1024, [])
       |> Enum.each(fn data ->
         :ok = :gen_tcp.send(pasv_socket, data)
@@ -246,6 +330,7 @@ defmodule ExFTP.StorageTester do
 
       send_and_expect(socket, "SIZE", [file], 213)
     end)
+
   end
 
   def test_dele(%{socket: socket} = state, w_dir, files_to_store) do
@@ -256,5 +341,11 @@ defmodule ExFTP.StorageTester do
       |> send_and_expect("DELE", [file], 250)
       |> send_and_expect("SIZE", [file], 550)
     end)
+
+    # test delete a file that doesn't exist
+    file = "/does-not-exist"
+
+    socket
+    |> send_and_expect("DELE", [file], 550, "Failed to remove file.")
   end
 end
