@@ -119,6 +119,9 @@ defmodule ExFTP.StorageTester do
     # MKD dir_to_make
     send_and_expect(socket, "MKD", [dir_to_make], 257, "\"#{dir_to_make}\" directory created.")
 
+    # call it twice
+    send_and_expect(socket, "MKD", [dir_to_make], 521, "\"#{dir_to_make}\" directory already exists")
+
     # CWD dir_to_make
     # RMD dir_to_make
     socket

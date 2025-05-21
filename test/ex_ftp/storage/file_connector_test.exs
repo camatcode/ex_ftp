@@ -50,10 +50,18 @@ defmodule ExFTP.Storage.FileConnectorTest do
     test_cwd_cdup(state, tmp_dir)
   end
 
-  test "MKD / RMD", state do
+  test "MKD / RMD", %{socket: socket} = state do
     tmp_dir = Path.join(System.tmp_dir!(), Faker.Internet.slug())
     on_exit(fn -> File.rm_rf(tmp_dir) end)
     test_mkd_rmd(state, tmp_dir)
+
+    # try to make a directory that you shouldnt be able to
+    dir_to_make = "/cant_make"
+    send_and_expect(socket, "MKD", [dir_to_make], 521, "Failed to make directory.")
+
+    # try to rm directory that you shouldnt be able to
+    dir_to_remove = "/dev/tty"
+    send_and_expect(socket, "RMD", [dir_to_remove], 550, "Failed to remove directory.")
   end
 
   test "LIST -a", state do
@@ -114,7 +122,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
     refute Enum.empty?(files_to_find)
 
     Enum.each(files_to_find, fn file_to_find ->
-      assert [_found] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
+      assert [_found | _] = Enum.filter(parts, fn part -> String.starts_with?(part, file_to_find) end)
     end)
   end
 

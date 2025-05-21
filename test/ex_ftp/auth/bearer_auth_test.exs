@@ -48,6 +48,23 @@ defmodule ExFTP.Auth.BearerAuthTest do
   end
 
   describe "authenticated/1" do
+    test "no inputs" do
+      Application.put_env(:ex_ftp, :authenticator, BearerAuth)
+
+      Application.put_env(:ex_ftp, :authenticator_config, %{
+        login_url: "",
+        login_method: :get,
+        authenticated_url: "",
+        authenticated_method: :get
+      })
+
+      refute BearerAuth.authenticated?(%{})
+
+      Application.put_env(:ex_ftp, :authenticator_config, %{})
+
+      refute BearerAuth.authenticated?(%{})
+    end
+
     test "with custom authenticated route" do
       Application.put_env(:ex_ftp, :authenticator, BearerAuth)
 

@@ -125,8 +125,8 @@ defmodule ExFTP.Storage.Common do
     new_d = change_prefix(wd, path)
 
     if connector.directory_exists?(new_d, connector_state) do
-      :ok =
-        send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
+      send_resp(@directory_action_not_taken, "\"#{new_d}\" directory already exists", socket)
+      connector_state
     else
       new_d
       |> connector.make_directory(connector_state)

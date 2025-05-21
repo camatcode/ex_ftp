@@ -138,14 +138,8 @@ defmodule ExFTP.Auth.BearerAuth do
   @impl Authenticator
   @spec authenticated?(authenticator_state :: Authenticator.authenticator_state()) :: boolean()
   def authenticated?(authenticator_state) do
-    with_result =
-      with {:ok, config} <- validate_config(BearerAuthConfig) do
-        check_authentication(config, authenticator_state)
-      end
-
-    case with_result do
-      {:ok, _} -> true
-      _ -> false
+    with {:ok, config} <- validate_config(BearerAuthConfig) do
+      check_authentication(config, authenticator_state)
     end
   end
 
@@ -163,13 +157,12 @@ defmodule ExFTP.Auth.BearerAuth do
     end
   end
 
-  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = authenticator_state) do
-    {:ok, authenticator_state}
-  end
+  defp check_authentication(%{authenticated_url: nil} = _config, %{authenticated: true} = _authenticator_state),
+    do: true
 
   defp check_authentication(
          %{authenticated_url: url, authenticated_method: http_method} = _config,
-         %{bearer_token: bearer_token} = authenticator_state
+         %{bearer_token: bearer_token} = _authenticator_state
        )
        when not is_nil(url) and not is_nil(bearer_token) do
     headers = [{"authorization", "Bearer #{bearer_token}"}]
@@ -178,14 +171,12 @@ defmodule ExFTP.Auth.BearerAuth do
     |> Req.request()
     |> case do
       {:ok, %{status: 200}} ->
-        {:ok, authenticator_state}
+        true
 
       _ ->
-        {:error, "Did not get a 200 response"}
+        false
     end
   end
 
-  defp check_authentication(_config, _authenticator_state) do
-    {:error, "Not Authenticated"}
-  end
+  defp check_authentication(_config, _authenticator_state), do: false
 end
