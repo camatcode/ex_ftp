@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
 defmodule ExFTP.PassiveSocket do
   @moduledoc false
 
@@ -6,7 +5,7 @@ defmodule ExFTP.PassiveSocket do
 
   require Logger
 
-  # Client
+  # Client API
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -30,7 +29,7 @@ defmodule ExFTP.PassiveSocket do
     end
   end
 
-  # Server
+  # Server API
 
   @impl GenServer
   def init(_opts) do
@@ -69,29 +68,39 @@ defmodule ExFTP.PassiveSocket do
 
   @impl GenServer
   def handle_call({:write, data, opts}, _from, %{socket: socket} = state) do
-    write_socket =
-      if write_socket = Map.get(state, :write_socket) do
-        write_socket
-      else
-        {:ok, write_socket} = accept(socket)
-        write_socket
-      end
+    write_socket = get_or_create_write_socket(state, socket)
 
+    send_data(write_socket, data)
+    :ok = :gen_tcp.send(write_socket, "\r\n")
+
+    if Keyword.get(opts, :close_after_write, true) do
+      close_sockets(write_socket, socket)
+      {:reply, :ok, state}
+    else
+      {:reply, :ok, %{state | write_socket: write_socket}}
+    end
+  end
+
+  defp get_or_create_write_socket(state, socket) do
+    if write_socket = Map.get(state, :write_socket) do
+      write_socket
+    else
+      {:ok, write_socket} = accept(socket)
+      write_socket
+    end
+  end
+
+  defp send_data(write_socket, data) do
     if is_bitstring(data) do
       :gen_tcp.send(write_socket, data)
     else
       :ok = Enum.each(data, fn chunk -> :gen_tcp.send(write_socket, chunk) end)
     end
+  end
 
-    :ok = :gen_tcp.send(write_socket, "\r\n")
-
-    if Keyword.get(opts, :close_after_write, true) do
-      :gen_tcp.close(write_socket)
-      :gen_tcp.close(socket)
-      {:reply, :ok, state}
-    else
-      {:reply, :ok, %{state | write_socket: write_socket}}
-    end
+  defp close_sockets(write_socket, socket) do
+    :gen_tcp.close(write_socket)
+    :gen_tcp.close(socket)
   end
 
   @impl GenServer
@@ -105,11 +114,8 @@ defmodule ExFTP.PassiveSocket do
   @impl GenServer
   def handle_cast({:read, worker, consume_fun, consume_opts}, %{socket: socket} = state) do
     :ok = consume_read(socket, consume_fun, consume_opts)
-
     :gen_tcp.close(socket)
-
     send(worker, :read_complete)
-
     {:noreply, state}
   end
 
