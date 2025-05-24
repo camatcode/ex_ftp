@@ -7,6 +7,8 @@ defmodule ExFTP.Auth.BearerAuthTest do
 
   alias ExFTP.Auth.BearerAuth
 
+  @moduletag :capture_log
+
   doctest BearerAuth
 
   test "valid_user?/1" do

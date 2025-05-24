@@ -7,7 +7,7 @@ defmodule ExFTP.WorkerTest do
   alias ExFTP.Storage.FileConnector
 
   doctest ExFTP.Worker
-
+  @moduletag :capture_log
   setup do
     Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
     Application.put_env(:ex_ftp, :storage_connector, FileConnector)

@@ -61,10 +61,9 @@ defmodule ExFTP.Worker do
   @impl GenServer
   def handle_info({:tcp, _socket, data}, state) do
     sanitized =
-      if String.starts_with?(inspect(data), "\"PASS") do
-        "PASS *******\r\n"
-      else
-        inspect(data)
+      case String.split(String.trim(data), " ", parts: 2) do
+        ["PASS", _] -> "PASS *******"
+        _ -> String.trim(data)
       end
 
     Logger.info("Received FTP message:\t#{inspect(sanitized)}")

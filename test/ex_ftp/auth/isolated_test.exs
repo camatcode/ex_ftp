@@ -7,6 +7,7 @@ defmodule ExFTP.Auth.IsolatedTest do
 
   alias ExFTP.Auth.DigestAuth
 
+  @moduletag :capture_log
   # I don't understand why, but putting this with all the other digest tests causes a failure when in suite
   test "enforcing ttl" do
     socket = get_socket()

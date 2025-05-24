@@ -153,7 +153,6 @@ defmodule ExFTP.Storage.S3Connector do
 
       new_v_dirs = current_v_dirs ++ parent_dirs ++ [path]
       connector_state = set_virtual_directories(connector_state, new_v_dirs)
-      connector_state = Map.put(connector_state, :virtual_directories, new_v_dirs)
       {:ok, connector_state}
     end
   end
@@ -380,7 +379,6 @@ defmodule ExFTP.Storage.S3Connector do
 
       contents =
         s3_get_prefix_contents(config, path, connector_state, :key)
-        |> Enum.to_list()
 
       if Enum.empty?(contents) do
         if virtual_directory?(config, path, connector_state) do
@@ -395,14 +393,11 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   defp clean_path(path) do
-    path =
-      path
-      |> String.replace("//", "/")
-      |> Path.join("")
-
-    path = "#{path}/"
-    p = if String.starts_with?(path, "/"), do: path, else: "/#{path}"
-    String.replace(p, "//", "/")
+    path
+    |> Path.join("")
+    |> then(&"#{&1}/")
+    |> then(&if String.starts_with?(&1, "/"), do: &1, else: "/#{&1}")
+    |> String.replace(~r/\/+/, "/")
   end
 
   defp virtual_directory?(config, path, connector_state) do

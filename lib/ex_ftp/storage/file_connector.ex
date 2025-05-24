@@ -210,7 +210,7 @@ defmodule ExFTP.Storage.FileConnector do
       File.rm(path)
       {:ok, connector_state}
     else
-      {:error, "Not a file"}
+      {:error, :not_a_file}
     end
   end
 

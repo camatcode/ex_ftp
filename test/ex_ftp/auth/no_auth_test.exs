@@ -7,6 +7,7 @@ defmodule ExFTP.Auth.NoAuthTest do
 
   doctest NoAuth
 
+  @moduletag :capture_log
   test "valid_user?/1" do
     assert NoAuth.valid_user?(Faker.Internet.slug())
     assert NoAuth.valid_user?("rOoT")
