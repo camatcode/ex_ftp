@@ -59,7 +59,7 @@ defmodule ExFTP.Auth.BearerAuthConfig do
 
   <!-- tabs-close -->
   """
-  @spec build(m :: map) :: BasicAuthConfig.t()
+  @spec build(m :: map) :: BearerAuthConfig.t()
   def build(m) do
     fields = prepare(m)
 

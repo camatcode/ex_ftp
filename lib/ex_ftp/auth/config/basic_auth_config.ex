@@ -64,6 +64,6 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   def build(m) do
     fields = prepare(m)
 
-    struct(BearerAuthConfig, fields)
+    struct(BasicAuthConfig, fields)
   end
 end
