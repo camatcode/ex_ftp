@@ -14,7 +14,6 @@ defmodule ExFTP.Auth.BasicAuthConfig do
   import ExFTP.Auth.Common
 
   alias ExFTP.Auth.BasicAuthConfig
-  alias ExFTP.Auth.BearerAuthConfig
   alias ExFTP.Auth.Common
 
   @typedoc """

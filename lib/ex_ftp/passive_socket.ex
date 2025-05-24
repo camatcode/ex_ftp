@@ -81,28 +81,6 @@ defmodule ExFTP.PassiveSocket do
     end
   end
 
-  defp get_or_create_write_socket(state, socket) do
-    if write_socket = Map.get(state, :write_socket) do
-      write_socket
-    else
-      {:ok, write_socket} = accept(socket)
-      write_socket
-    end
-  end
-
-  defp send_data(write_socket, data) do
-    if is_bitstring(data) do
-      :gen_tcp.send(write_socket, data)
-    else
-      :ok = Enum.each(data, fn chunk -> :gen_tcp.send(write_socket, chunk) end)
-    end
-  end
-
-  defp close_sockets(write_socket, socket) do
-    :gen_tcp.close(write_socket)
-    :gen_tcp.close(socket)
-  end
-
   @impl GenServer
   def handle_call({:close}, _from, %{socket: socket, write_socket: write_socket} = state) do
     Logger.info("Closing PASV connection.")
@@ -143,5 +121,27 @@ defmodule ExFTP.PassiveSocket do
 
   defp accept(socket) do
     :gen_tcp.accept(socket)
+  end
+
+  defp get_or_create_write_socket(state, socket) do
+    if write_socket = Map.get(state, :write_socket) do
+      write_socket
+    else
+      {:ok, write_socket} = accept(socket)
+      write_socket
+    end
+  end
+
+  defp send_data(write_socket, data) do
+    if is_bitstring(data) do
+      :gen_tcp.send(write_socket, data)
+    else
+      :ok = Enum.each(data, fn chunk -> :gen_tcp.send(write_socket, chunk) end)
+    end
+  end
+
+  defp close_sockets(write_socket, socket) do
+    :gen_tcp.close(write_socket)
+    :gen_tcp.close(socket)
   end
 end

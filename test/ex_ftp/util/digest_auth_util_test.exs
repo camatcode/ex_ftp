@@ -5,6 +5,7 @@ defmodule ExFTP.DigestAuthUtilTest do
 
   alias ExFTP.DigestAuthUtil
 
+  @moduletag :capture_log
   doctest ExFTP.DigestAuthUtil
 
   describe "auth, md5" do

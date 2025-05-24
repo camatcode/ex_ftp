@@ -10,6 +10,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
   alias ExFTP.Storage.Common
   alias ExFTP.Storage.FileConnector
 
+  @moduletag :capture_log
   doctest Common
   doctest FileConnector
 

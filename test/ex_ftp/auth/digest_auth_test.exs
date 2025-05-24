@@ -6,6 +6,7 @@ defmodule ExFTP.Auth.DigestAuthTest do
   alias ExFTP.Auth.DigestAuth
 
   doctest DigestAuth
+  @moduletag :capture_log
 
   test "valid_user?/1" do
     assert DigestAuth.valid_user?(Faker.Internet.slug())

@@ -9,6 +9,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
   alias ExFTP.Auth.PassthroughAuth
   alias ExFTP.Storage.S3Connector
 
+  @moduletag :capture_log
   doctest S3Connector
 
   setup do

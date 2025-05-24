@@ -9,6 +9,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
 
   doctest BasicAuth
 
+  @moduletag :capture_log
+
   test "valid_user?/1" do
     assert BasicAuth.valid_user?(Faker.Internet.slug())
     assert BasicAuth.valid_user?("rOoT")

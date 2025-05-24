@@ -7,7 +7,7 @@ defmodule ExFTP.Auth.PassthroughAuthTest do
 
   doctest PassthroughAuth
   doctest ExFTP.Authenticator
-
+  @moduletag :capture_log
   test "valid_user?/1" do
     assert PassthroughAuth.valid_user?(Faker.Internet.slug())
     refute PassthroughAuth.valid_user?("rOoT")

@@ -7,6 +7,7 @@ defmodule ExFTP.Auth.WebhookAuthTest do
 
   alias ExFTP.Auth.WebhookAuth
 
+  @moduletag :capture_log
   doctest WebhookAuth
 
   test "valid_user?/1" do

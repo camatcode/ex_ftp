@@ -393,13 +393,11 @@ defmodule ExFTP.Storage.S3Connector do
   end
 
   defp clean_path(path) do
-    defp clean_path(path) do
-      path
-      |> Path.join("")
-      |> then(&"#{&1}/")
-      |> then(&if String.starts_with?(&1, "/"), do: &1, else: "/#{&1}")
-      |> String.replace(~r/\/+/, "/")
-    end
+    path
+    |> Path.join("")
+    |> then(&"#{&1}/")
+    |> then(&if String.starts_with?(&1, "/"), do: &1, else: "/#{&1}")
+    |> String.replace(~r/\/+/, "/")
   end
 
   defp virtual_directory?(config, path, connector_state) do

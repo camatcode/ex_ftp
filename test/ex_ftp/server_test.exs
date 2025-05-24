@@ -2,7 +2,7 @@ defmodule ExFTP.ServerTest do
   use ExUnit.Case
 
   doctest ExFTP.Server
-
+  @moduletag :capture_log
   test "accepts tcp connections" do
     %{active: active_children} = DynamicSupervisor.count_children(ExFTP.WorkerSupervisor)
     port = Application.get_env(:ex_ftp, :ftp_port)
