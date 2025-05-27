@@ -129,7 +129,7 @@ defmodule ExFTP.MixProject do
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:poison, "~> 6.0"},
-      {:hackney, "~> 1.9"},
+      {:hackney, "~> 1.24"},
       {:sweet_xml, "~> 0.7"},
       {:configparser_ex, "~> 4.0"},
       {:cachex, "~> 4.0"},
