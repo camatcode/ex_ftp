@@ -29,7 +29,7 @@ jobs:
           egress-policy: audit
 
       - name: Start LocalStack
-        uses: LocalStack/setup-localstack@a9b3e54ee0052a2f40a4eb4ca8b39dfd3bc2bc65 # v0.2.3
+        uses: LocalStack/setup-localstack@9392b05ddb345894c2e86305fc426566e738c1db # v0.2.4
         with:
           image-tag: 'latest'
           install-awslocal: 'true'
