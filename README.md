@@ -283,14 +283,14 @@ supplied credentials.
 
 ```elixir
 config :ex_ftp,
-  #....
+  # ... ,
   authenticator: ExFTP.Auth.DigestAuth,
   authenticator_config: %{
     # used to login
-    login_url: "https://httpbin.dev/basic-auth/",
+    login_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
     login_method: :get,
     # used to verify the user is still considered valid (optional)
-    authenticated_url: "https://httpbin.dev/hidden-basic-auth/",
+    authenticated_url: "https://httpbin.dev/digest-auth/auth/replace/me/MD5",
     authenticated_method: :get,
     authenticated_ttl_ms: 1000 * 60 * 60
   }
