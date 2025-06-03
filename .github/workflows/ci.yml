@@ -23,8 +23,13 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Start LocalStack
-        uses: LocalStack/setup-localstack@v0.2.3
+        uses: LocalStack/setup-localstack@a9b3e54ee0052a2f40a4eb4ca8b39dfd3bc2bc65 # v0.2.3
         with:
           image-tag: 'latest'
           install-awslocal: 'true'
@@ -34,14 +39,14 @@ jobs:
           awslocal s3 mb s3://ex-ftp-test
           awslocal s3 ls
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@8aa8a857c6be0daae6e97272bb299d5b942675a4 # v1.19.0
         with:
           otp-version: ${{matrix.pair.otp}}
           elixir-version: ${{matrix.pair.elixir}}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: |
             deps
