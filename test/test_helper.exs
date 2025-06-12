@@ -264,6 +264,7 @@ defmodule ExFTP.StorageTester do
       %{pasv_socket: pasv_socket} = setup_pasv_connection(state)
 
       send_and_expect(socket, "STOR", [file], 150)
+      :timer.sleep(100)
 
       path = Path.join(File.cwd!(), file)
 
@@ -278,7 +279,6 @@ defmodule ExFTP.StorageTester do
       expect_recv(socket, 226, "Transfer Complete.")
       :timer.sleep(400)
       :timer.sleep(100)
-
       send_and_expect(socket, "SIZE", [file], 213)
     end)
   end
