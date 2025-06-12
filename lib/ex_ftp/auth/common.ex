@@ -99,7 +99,7 @@ defmodule ExFTP.Auth.Common do
 
   <!-- tabs-close -->
   """
-  @spec prepare(m :: map()) :: map()
+  @spec prepare(m :: map()) :: list()
   def prepare(m) do
     prepare_keys(m)
   end
