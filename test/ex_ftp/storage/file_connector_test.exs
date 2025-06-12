@@ -16,6 +16,7 @@ defmodule ExFTP.Storage.FileConnectorTest do
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
+    Application.put_env(:ex_ftp, :authenticator_config, %{})
     Application.put_env(:ex_ftp, :storage_connector, FileConnector)
     Application.put_env(:ex_ftp, :storage_config, %{})
 

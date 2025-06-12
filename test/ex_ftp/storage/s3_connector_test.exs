@@ -51,7 +51,7 @@ defmodule ExFTP.Storage.S3ConnectorTest do
 
   test "LIST -a, LIST, NLST, NLST -a, STOR, SIZE, RETR, DELE", state do
     tmp_dir = Path.join("/", Faker.Internet.slug())
-    on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
+    # on_exit(fn -> S3Connector.delete_directory(tmp_dir, %{current_working_directory: "/"}) end)
 
     files_to_store =
       File.cwd!()

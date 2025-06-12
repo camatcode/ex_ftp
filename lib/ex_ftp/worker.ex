@@ -18,25 +18,23 @@ defmodule ExFTP.Worker do
 
   @impl GenServer
   def init(socket) do
+    env = Application.get_all_env(:ex_ftp)
+    ftp_addr = env[:ftp_addr] || "127.0.0.1"
+    mix_env = env[:mix_env]
+    connector = env[:storage_connector] || FileConnector
+    authenticator = env[:authenticator] || PassthroughAuth
+    server_name = env[:server_name] || :ExFTP
+
     {:ok, host} =
-      :ex_ftp
-      |> Application.get_env(:ftp_addr, "127.0.0.1")
+      ftp_addr
       |> to_charlist()
       |> :inet.parse_address()
 
-    if Application.get_env(:ex_ftp, :mix_env) != :test do
+    if mix_env != :test do
       {:ok, {ip_address, _port}} = :inet.peername(socket)
       ip_address_str = ip_address |> Tuple.to_list() |> Enum.join(".")
       Logger.info("Received FTP connection from #{ip_address_str}")
     end
-
-    connector =
-      Application.get_env(:ex_ftp, :storage_connector, FileConnector)
-
-    authenticator =
-      Application.get_env(:ex_ftp, :authenticator, PassthroughAuth)
-
-    server_name = Application.get_env(:ex_ftp, :server_name, :ExFTP)
 
     send_resp(220, "Hello from #{server_name}.", socket)
 
@@ -61,7 +59,9 @@ defmodule ExFTP.Worker do
   @impl GenServer
   def handle_info({:tcp, _socket, data}, state) do
     sanitized =
-      case String.split(String.trim(data), " ", parts: 2) do
+      String.trim(data)
+      |> String.split(" ", parts: 2)
+      |> case do
         ["PASS", _] -> "PASS *******"
         _ -> String.trim(data)
       end
@@ -90,7 +90,7 @@ defmodule ExFTP.Worker do
   end
 
   def start_link(socket) do
-    GenServer.start_link(__MODULE__, socket)
+    GenServer.start_link(__MODULE__, socket, name: __MODULE__)
   end
 
   defp parse(data) do
@@ -125,9 +125,7 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["PASV"], %{socket: socket} = server_state) do
-    server_state
-    |> check_auth()
-    |> case do
+    case check_auth(server_state) do
       :ok ->
         {:ok, pasv} = PassiveSocket.start_link()
 
@@ -144,9 +142,7 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["EPSV"], %{socket: socket} = server_state) do
-    server_state
-    |> check_auth()
-    |> case do
+    case check_auth(server_state) do
       :ok ->
         {:ok, pasv} = PassiveSocket.start_link()
         {:ok, port} = PassiveSocket.get_port(pasv)
@@ -160,11 +156,8 @@ defmodule ExFTP.Worker do
   end
 
   defp run(["EPRT", _eport_info], %{socket: socket} = server_state) do
-    server_state
-    |> check_auth()
-    |> case do
-      :ok -> send_resp(200, "EPRT command successful.", socket)
-      _ -> nil
+    with :ok <- check_auth(server_state) do
+      send_resp(200, "EPRT command successful.", socket)
     end
 
     {:noreply, server_state}
@@ -173,28 +166,27 @@ defmodule ExFTP.Worker do
   # Auth Commands
 
   defp run(["USER", username], %{socket: socket, authenticator: authenticator} = server_state) do
-    if authenticator.valid_user?(username) do
-      send_resp(331, "User name okay, need password.", socket)
+    valid? = authenticator.valid_user?(username)
 
-      server_state
-      |> Map.put(:authenticator_state, %{username: username})
-      |> noreply()
-    else
-      # Yes I know, its strange - but I don't want to leak that this isn't a valid user to the client
-      send_resp(331, "User name okay, need password.", socket)
+    server_state =
+      if valid?,
+        do:
+          server_state
+          |> Map.put(:authenticator_state, %{username: username}),
+        else:
+          server_state
+          |> Map.put(:authenticator_state, %{authenticated: false})
 
-      server_state
-      |> Map.put(:authenticator_state, %{})
-      |> noreply()
-    end
+    send_resp(331, "User name okay, need password.", socket)
+
+    noreply(server_state)
   end
 
   defp run(
          ["PASS", password],
          %{socket: socket, authenticator: authenticator, authenticator_state: auth_state} = server_state
        ) do
-    password
-    |> authenticator.login(auth_state)
+    authenticator.login(password, auth_state)
     |> case do
       {:ok, auth_state} ->
         auth_state = Map.put(auth_state, :authenticated, true)
@@ -394,7 +386,7 @@ defmodule ExFTP.Worker do
     |> case do
       {_, nil} ->
         send_resp(530, "Not logged in.", socket)
-        :err
+        :error
 
       {_, _} ->
         :ok
@@ -406,7 +398,7 @@ defmodule ExFTP.Worker do
       :ok
     else
       send_resp(530, "Not logged in.", socket)
-      :err
+      :error
     end
   end
 

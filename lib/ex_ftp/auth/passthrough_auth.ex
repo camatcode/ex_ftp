@@ -66,7 +66,7 @@ defmodule ExFTP.Auth.PassthroughAuth do
   """
   @impl Authenticator
   @spec valid_user?(username :: ExFTP.Authenticator.username()) :: boolean
-  def valid_user?(username), do: not_root?(username)
+  def valid_user?(username), do: username && not_root?(username)
 
   @doc """
   Login will respond `{:ok, unmodified_auth_state}` to anyone but `username: "root"`
