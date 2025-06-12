@@ -155,7 +155,7 @@ defmodule ExFTP.DigestAuthUtil do
 
   defp serialize({k, v}), do: {k, v}
 
-  @spec random_string(Integer.t()) :: String.t()
+  @spec random_string(non_neg_integer) :: String.t()
   defp random_string(length) do
     length
     |> :crypto.strong_rand_bytes()

@@ -4,9 +4,6 @@ on:
   push:
     paths-ignore:
       - 'guides/**'
-  pull_request:
-    paths-ignore:
-      - 'guides/**'
 
 jobs:
   ci:
@@ -61,10 +58,6 @@ jobs:
       - name: Run mix format
         run: mix format --check-formatted
 
-      #- name: Run mix deps.unlock
-      #  run: mix deps.unlock --check-unused
-      #  if: ${{ matrix.lint }}
-
       - name: Run mix deps.compile
         run: mix deps.compile
 
@@ -81,5 +74,4 @@ jobs:
 
       - name: Run dialyzer
         run: mix dialyzer
-        if: ${{ matrix.lint }}
 

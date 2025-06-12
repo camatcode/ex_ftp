@@ -64,7 +64,7 @@ defmodule ExFTP.Storage.S3Connector do
   @impl StorageConnector
   @spec get_working_directory(connector_state :: ExFTP.StorageConnector.connector_state()) ::
           String.t()
-  def get_working_directory(%{current_working_directory: cwd} = _connector_state), do: cwd
+  def get_working_directory(connector_state), do: connector_state[:current_working_directory]
 
   @doc """
   Whether a given path is an existing directory

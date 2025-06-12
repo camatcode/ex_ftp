@@ -52,7 +52,7 @@ defmodule ExFTP.Auth.WebhookAuthConfig do
 
   <!-- tabs-close -->
   """
-  @type password_hash_type :: :crypto.hash_algorithm()
+  @type password_hash_type :: atom
 
   @enforce_keys [:login_url]
 
