@@ -59,6 +59,10 @@ defmodule ExFTP.Doc do
   "
   end
 
+  def readme do
+    "README.md" |> File.read!() |> String.replace("(#", "(#module-")
+  end
+
   def see_rfc_959(nil) do
     see_link(
       "RFC 959",

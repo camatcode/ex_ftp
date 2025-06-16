@@ -420,9 +420,8 @@ defmodule MyCustomAuth do
         ) :: boolean()
   def authenticated?(authenticator_state), do
         # re-check that a user is authenticated
-        # return {:ok, current_authenticator_state} if successful
-        #   authenticator_state is passed around during the session
-        # return {:error, anything} if unsuccessful
+        # return true if successful
+        # return false if unsuccessful
   end
 end
 ```
