@@ -26,3 +26,4 @@ ex_ftp-*.tar
 .idea/
 
 *.iml
+.zed/
