@@ -133,7 +133,7 @@ defmodule ExFTP.MixProject do
       {:hackney, "~> 1.24"},
       {:sweet_xml, "~> 0.7"},
       {:configparser_ex, "~> 4.0"},
-      {:cachex, "~> 4.0"},
+      {:cachex, "~> 4.1"},
       {:proper_case, "~> 1.3"}
     ]
   end
