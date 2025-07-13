@@ -42,10 +42,18 @@ defmodule ExFTP.Server do
   defp accept(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
 
-    {:ok, pid} =
+    :ok =
       DynamicSupervisor.start_child(ExFTP.WorkerSupervisor, {ExFTP.Worker, client})
+      |> case do
+        {:ok, pid} ->
+          :gen_tcp.controlling_process(client, pid)
 
-    :ok = :gen_tcp.controlling_process(client, pid)
+        {:error, {:already_started, pid}} ->
+          :gen_tcp.controlling_process(client, pid)
+
+        other ->
+          other
+      end
 
     send(self(), :accept)
   end
