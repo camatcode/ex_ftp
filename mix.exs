@@ -17,7 +17,7 @@ defmodule ExFTP.MixProject do
   alias ExFTP.Storage.S3ConnectorConfig
 
   @source_url "https://github.com/camatcode/ex_ftp"
-  @version "1.0.3"
+  @version "1.0.4"
 
   def project do
     [
@@ -121,7 +121,7 @@ defmodule ExFTP.MixProject do
       {:ex_license, "~> 0.1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:quokka, "~> 2.8", only: [:dev, :test], runtime: false},
+      {:quokka, "~> 2.9", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: [:test]},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:faker, "~> 0.18.0", only: :test},
