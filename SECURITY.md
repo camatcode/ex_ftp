@@ -8,4 +8,4 @@
 
 ## Reporting a Vulnerability
 
-Please report any vulernability to cam.cook.codes AT gmail.com
+Please report any vulnerability to cam.cook.codes AT gmail.com
