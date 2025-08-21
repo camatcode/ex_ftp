@@ -264,7 +264,7 @@ defmodule ExFTP.Storage.Common do
         _ ->
           if include_hidden, do: hidden_dirs, else: []
       end
-      |> Stream.map(&format_content(&1))
+      |> Stream.map(&format_content/1)
 
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
@@ -341,7 +341,7 @@ defmodule ExFTP.Storage.Common do
         _ ->
           if include_hidden, do: hidden_dirs, else: []
       end
-      |> Stream.map(&format_name(&1))
+      |> Stream.map(&format_name/1)
 
     if Enum.empty?(items) do
       PassiveSocket.write(pasv, "", close_after_write: true)
