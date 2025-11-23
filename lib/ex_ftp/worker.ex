@@ -190,11 +190,13 @@ defmodule ExFTP.Worker do
     |> case do
       {:ok, auth_state} ->
         auth_state = Map.put(auth_state, :authenticated, true)
+        connector_state = Map.put(server_state.connector_state, :authenticator_state, auth_state)
 
         send_resp(230, "Welcome.", socket)
 
         server_state
         |> Map.put(:authenticator_state, auth_state)
+        |> Map.put(:connector_state, connector_state)
         |> noreply()
 
       {_, %{} = auth_state} ->

@@ -51,4 +51,82 @@ defmodule ExFTP.WorkerTest do
   test "not implemented", %{socket: socket} do
     send_and_expect(socket, "CUSTOM", [], 502)
   end
+
+  test "authenticator_state is injected into connector_state after successful authentication", %{
+    socket: existing_socket
+  } do
+    # Define a test connector that captures the connector_state
+    defmodule TestAuthStateConnector do
+      @behaviour ExFTP.StorageConnector
+
+      @impl true
+      def get_working_directory(%{authenticator_state: _auth_state} = connector_state) do
+        # Send the connector_state to the test process if it exists
+        case Process.whereis(:test_process) do
+          nil -> :ok
+          pid -> Kernel.send(pid, {:connector_state, connector_state})
+        end
+
+        connector_state.current_working_directory
+      end
+
+      @impl true
+      def directory_exists?(_path, _connector_state), do: true
+
+      @impl true
+      def make_directory(_path, connector_state), do: {:ok, connector_state}
+
+      @impl true
+      def delete_directory(_path, connector_state), do: {:ok, connector_state}
+
+      @impl true
+      def delete_file(_path, connector_state), do: {:ok, connector_state}
+
+      @impl true
+      def get_directory_contents(_path, _connector_state), do: {:ok, []}
+
+      @impl true
+      def get_content_info(_path, _connector_state), do: {:error, :not_found}
+
+      @impl true
+      def get_content(_path, _connector_state), do: {:error, :not_found}
+
+      @impl true
+      def create_write_func(_path, connector_state, _opts) do
+        fn _stream -> {:ok, connector_state} end
+      end
+    end
+
+    # Register the test process
+    Process.register(self(), :test_process)
+
+    # Close the existing socket from setup
+    :gen_tcp.close(existing_socket)
+    :timer.sleep(100)
+
+    # Configure the test connector
+    Application.put_env(:ex_ftp, :storage_connector, TestAuthStateConnector)
+    Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
+
+    # Connect and authenticate
+    socket = get_socket()
+    username = "test_user"
+    password = "test_pass"
+
+    socket
+    |> send_and_expect("USER", [username], 331, "User name okay, need password")
+    |> send_and_expect("PASS", [password], 230, "Welcome.")
+    |> send_and_expect("PWD", [], 257)
+
+    # Verify that the connector received the authenticator_state
+    assert_receive {:connector_state, connector_state}, 1000
+
+    # Verify authenticator_state is present and contains correct data
+    assert Map.has_key?(connector_state, :authenticator_state)
+    assert connector_state.authenticator_state.username == username
+    assert connector_state.authenticator_state.authenticated == true
+
+    # Clean up
+    :gen_tcp.close(socket)
+  end
 end
