@@ -53,6 +53,7 @@
     - [Using Minio or LocalStack](#using-minio-or-localstack)
   - [Others through S3Proxy](#storage-connector-others-through-s3proxy)
   - [Custom Storage Connector](#custom-storage-connector)
+    - [User-Aware Storage Connectors](#user-aware-storage-connectors)
 - [Technical Details](#technical-details)
   - [Supported Commands](#supported-commands)
   - [Notes about Fly.io](#notes-about-flyio)
@@ -653,6 +654,38 @@ defmodule MyStorageConnector do
   end
 end
 ```
+
+#### User-Aware Storage Connectors
+
+After successful authentication, the `connector_state` will contain an `authenticator_state` key with the authenticated user's information. This allows you to create storage connectors that scope access based on the logged-in user.
+
+**Example: User-Scoped File Access**
+
+```elixir
+defmodule MyApp.UserScopedConnector do
+  @behaviour ExFTP.StorageConnector
+
+  @impl StorageConnector
+  @spec get_content(
+          path :: StorageConnector.path(),
+          connector_state :: StorageConnector.connector_state()
+        ) :: {:ok, any()} | {:error, term()}
+  def get_content(path, %{authenticator_state: auth_state} = connector_state) do
+    # Access the authenticated user's username
+    # username = auth_state.username
+
+    # Scope all file access to the user's directory
+    # scoped_path = Path.join(["/users", username, path])
+  end
+
+  # All other callbacks receive authenticator_state in connector_state
+  # and can implement user-specific logic similarly
+end
+```
+
+The `authenticator_state` will always be present when your storage connector callbacks are invoked, containing:
+- `username` - The authenticated username
+- Any custom fields your authenticator added (e.g., permissions, user metadata)
 
 [^ top](#top)
 

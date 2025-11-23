@@ -60,9 +60,13 @@ defmodule ExFTP.WorkerTest do
       @behaviour ExFTP.StorageConnector
 
       @impl true
-      def get_working_directory(connector_state) do
-        # Send the connector_state to the test process
-        Kernel.send(:test_process, {:connector_state, connector_state})
+      def get_working_directory(%{authenticator_state: _auth_state} = connector_state) do
+        # Send the connector_state to the test process if it exists
+        case Process.whereis(:test_process) do
+          nil -> :ok
+          pid -> Kernel.send(pid, {:connector_state, connector_state})
+        end
+
         connector_state.current_working_directory
       end
 
