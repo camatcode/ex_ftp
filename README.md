@@ -655,7 +655,7 @@ defmodule MyStorageConnector do
 end
 ```
 
-#### User-Aware Storage Connectors
+### User-Aware Storage Connectors
 
 After successful authentication, the `connector_state` will contain an `authenticator_state` key with the authenticated user's information. This allows you to create storage connectors that scope access based on the logged-in user.
 
