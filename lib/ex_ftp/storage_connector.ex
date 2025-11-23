@@ -7,6 +7,35 @@ defmodule ExFTP.StorageConnector do
 
   <!-- tabs-open -->
 
+  ## User-Aware Storage Connectors
+
+  After successful authentication, the `connector_state` will contain an `:authenticator_state` key with the
+  authenticated user's information. This allows you to create user-specific storage connectors that
+  scope file access based on the authenticated user.
+
+  ### Example: User-Scoped Storage Connector
+
+      defmodule MyApp.UserScopedConnector do
+        @behaviour ExFTP.StorageConnector
+
+        @impl true
+        def get_content(path, connector_state) do
+          # Access the authenticated user's information
+          username = connector_state.authenticator_state.username
+
+          # Scope the path to the user's directory
+          scoped_path = Path.join(["/users", username, path])
+
+          # Read the file from the user's directory
+          case File.read(scoped_path) do
+            {:ok, content} -> {:ok, content}
+            {:error, reason} -> {:error, reason}
+          end
+        end
+
+        # ... implement other callbacks similarly
+      end
+
   #{ExFTP.Doc.related(["`ExFTP.Storage.FileConnector`"])}
 
   #{ExFTP.Doc.resources()}
@@ -42,7 +71,8 @@ defmodule ExFTP.StorageConnector do
   ### ⚠️ Reminders
   > #### Special Keys {: .tip}
   >
-  >   * `current_working_directory:` `t:String.t/0` should always exist. It represents the "directory" we're operating from
+  >   * `current_working_directory:` `t:String.t/0` always present. Represents the "directory" we're operating from.
+  >   * `authenticator_state:` `ExFTP.Authenticator.authenticator_state()` always present when callbacks are invoked. Contains the authenticated user's information including username and any custom data stored by the authenticator. Storage connector callbacks are only invoked after successful authentication, so this key will always be available.
 
   #{ExFTP.Doc.resources()}
 
