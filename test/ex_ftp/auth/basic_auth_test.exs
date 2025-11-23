@@ -110,7 +110,6 @@ defmodule ExFTP.Auth.BasicAuthTest do
     end
 
     test "enforcing ttl" do
-      socket = get_socket()
       username = Faker.Internet.slug()
       password = Faker.Internet.slug()
 
@@ -123,6 +122,8 @@ defmodule ExFTP.Auth.BasicAuthTest do
         authenticated_method: :get,
         authenticated_ttl_ms: 1
       })
+
+      socket = get_socket()
 
       socket
       |> send_and_expect("USER", [username], 331, "User name okay, need password")
