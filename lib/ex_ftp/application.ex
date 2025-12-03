@@ -10,8 +10,7 @@ defmodule ExFTP.Application do
 
     children = [
       {Cachex, [:auth_cache]},
-      {DynamicSupervisor, name: ExFTP.WorkerSupervisor, strategy: :one_for_one},
-      {ExFTP.Server, port: port}
+      {ThousandIsland, port: port, handler_module: ExFTP.Worker, transport_options: [packet: :line]}
     ]
 
     opts = [strategy: :one_for_one, name: ExFTP.Supervisor]
