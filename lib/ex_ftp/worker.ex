@@ -345,30 +345,27 @@ defmodule ExFTP.Worker do
 
   defp with_ok(result, fnc, socket, state, opts \\ [])
 
-  defp with_ok(:ok, fnc, socket, state, opts) do
-    fnc.(%{
-      socket: socket,
-      storage_connector: state.storage_connector,
-      connector_state: state.connector_state,
-      path: opts[:path],
-      pasv: opts[:pasv],
-      include_hidden: opts[:include_hidden]
-    })
-  end
+  defp with_ok(:ok, fnc, socket, state, opts),
+    do:
+      fnc.(%{
+        socket: socket,
+        storage_connector: state.storage_connector,
+        connector_state: state.connector_state,
+        path: opts[:path],
+        pasv: opts[:pasv],
+        include_hidden: opts[:include_hidden]
+      })
 
-  defp with_ok(_other, _fnc, _socket, state, _opts) do
-    state.connector_state
-  end
+  defp with_ok(_other, _fnc, _socket, state, _opts), do: state.connector_state
 
   defp authenticate(auth, auth_state) do
-    if auth.authenticated?(auth_state) do
-      :ok
-    end
+    if auth.authenticated?(auth_state),
+      do: :ok,
+      else: :not_authenticated
   end
 
-  defp get_auth_ttl do
-    Application.get_env(:ex_ftp, :authenticator_config, %{})[:authenticated_ttl_ms] || to_timeout(day: 1)
-  end
+  defp get_auth_ttl,
+    do: Application.get_env(:ex_ftp, :authenticator_config, %{})[:authenticated_ttl_ms] || to_timeout(day: 1)
 
   defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: %{username: username} = auth_state})
        when not is_nil(username) do
@@ -396,11 +393,14 @@ defmodule ExFTP.Worker do
   end
 
   defp check_auth(%{socket: socket, authenticator: auth, authenticator_state: auth_state}) do
-    if :ok == authenticate(auth, auth_state) do
-      :ok
-    else
-      send_resp(530, "Not logged in.", socket)
-      :error
+    authenticate(auth, auth_state)
+    |> case do
+      :ok ->
+        :ok
+
+      _ ->
+        send_resp(530, "Not logged in.", socket)
+        :error
     end
   end
 
