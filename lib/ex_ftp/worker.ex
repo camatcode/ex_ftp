@@ -9,6 +9,7 @@ defmodule ExFTP.Worker do
   import ExFTP.Common
   import ExFTP.Storage.Common
 
+  alias __MODULE__, as: Worker
   alias ExFTP.Auth.PassthroughAuth
   alias ExFTP.PassiveSocket
   alias ExFTP.Storage.FileConnector
@@ -48,17 +49,17 @@ defmodule ExFTP.Worker do
 
     send_resp(220, "Hello from #{server_name}.", socket)
 
-    {:continue,
-     %__MODULE__{
-       socket: socket,
-       host: host,
-       pasv_socket: nil,
-       type: :ascii,
-       storage_connector: connector,
-       connector_state: %{current_working_directory: "/"},
-       authenticator: authenticator,
-       authenticator_state: %{}
-     }}
+    %Worker{
+      socket: socket,
+      host: host,
+      pasv_socket: nil,
+      type: :ascii,
+      storage_connector: connector,
+      connector_state: %{current_working_directory: "/"},
+      authenticator: authenticator,
+      authenticator_state: %{}
+    }
+    |> continue()
   end
 
   @impl ThousandIsland.Handler
@@ -108,23 +109,25 @@ defmodule ExFTP.Worker do
 
   defp run(["SYST"], socket, state) do
     send_resp(215, "UNIX Type: L8", socket)
-    {:continue, state}
+    continue(state)
   end
 
   defp run(["TYPE", type], socket, state) do
-    case type do
+    type
+    |> case do
       "I" ->
         send_resp(200, "Switching to binary mode.", socket)
-        {:continue, %{state | type: :image}}
+        %{state | type: :image}
 
       "A" ->
         send_resp(200, "Switching to ASCII mode.", socket)
-        {:continue, %{state | type: :ascii}}
+        %{state | type: :ascii}
 
       _ ->
         send_resp(504, "Unsupported transfer type.", socket)
-        {:continue, state}
+        state
     end
+    |> continue()
   end
 
   defp run(["PASV"], socket, server_state) do
@@ -137,11 +140,12 @@ defmodule ExFTP.Worker do
         pasv_string = ip_port_to_pasv(host, port)
 
         send_resp(227, "Entering Passive Mode (#{pasv_string}).", socket)
-        {:continue, %{server_state | pasv_socket: pasv}}
+        %{server_state | pasv_socket: pasv}
 
       _ ->
-        {:continue, server_state}
+        server_state
     end
+    |> continue()
   end
 
   defp run(["EPSV"], socket, server_state) do
@@ -151,11 +155,12 @@ defmodule ExFTP.Worker do
         {:ok, port} = PassiveSocket.get_port(pasv)
 
         send_resp(229, "Entering Extended Passive Mode (|||#{port}|)", socket)
-        {:continue, %{server_state | pasv_socket: pasv}}
+        %{server_state | pasv_socket: pasv}
 
       _ ->
-        {:continue, server_state}
+        server_state
     end
+    |> continue()
   end
 
   defp run(["EPRT", _eport_info], socket, server_state) do
@@ -163,7 +168,7 @@ defmodule ExFTP.Worker do
       send_resp(200, "EPRT command successful.", socket)
     end
 
-    {:continue, server_state}
+    continue(server_state)
   end
 
   # Auth Commands
@@ -335,7 +340,7 @@ defmodule ExFTP.Worker do
 
   defp run(_args, socket, state) do
     send_resp(502, "Command not implemented.", socket)
-    {:continue, state}
+    continue(state)
   end
 
   defp with_ok(result, fnc, socket, state, opts \\ [])
