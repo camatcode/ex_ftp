@@ -1,17 +1,16 @@
 services:
-  minio:
-    image: minio/minio:RELEASE.2023-12-07T04-16-00Z
-    restart: unless-stopped
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    image: localstack/localstack
     ports:
-      - 9222:9222
-      - 9333:9333
-    volumes:
-      - minio-data:/data
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # external services port range
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123456
-    entrypoint: sh
-    command: "-c 'mkdir -p /data/ex-ftp-test && minio server --address :9222 --console-address :9333 /data'"
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+    volumes:
+      - localstack-data:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
 
 volumes:
-  minio-data: {}
+  localstack-data: {}
