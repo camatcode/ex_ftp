@@ -63,9 +63,8 @@ defmodule ExFTP.Worker do
 
   @impl ThousandIsland.Handler
   def handle_data(data, socket, state) do
-    data = String.trim(data)
-
     data
+    |> String.trim()
     |> String.split(" ", parts: 2)
     |> log_message(data)
     |> run(socket, state)
@@ -88,7 +87,7 @@ defmodule ExFTP.Worker do
 
   @impl GenServer
   def handle_info(:read_complete, {socket, state}) do
-    Logger.info("Read complete")
+    Logger.debug("Read complete")
     PassiveSocket.close(state.pasv_socket)
     {:noreply, {socket, %{state | pasv_socket: nil}}, socket.read_timeout}
   end
@@ -105,9 +104,7 @@ defmodule ExFTP.Worker do
     {:noreply, {socket, state}, socket.read_timeout}
   end
 
-  defp run(["QUIT"], socket, state) do
-    quit(socket, state)
-  end
+  defp run(["QUIT"], socket, state), do: quit(socket, state)
 
   defp run(["SYST"], socket, state) do
     send_resp(215, "UNIX Type: L8", socket)
@@ -171,47 +168,49 @@ defmodule ExFTP.Worker do
 
   # Auth Commands
 
-  defp run(["USER", username], socket, server_state) do
-    valid? = server_state.authenticator.valid_user?(username)
+  defp run(["USER", username], socket, %{authenticator: authenticator} = server_state) do
+    valid? = authenticator.valid_user?(username)
 
     server_state =
-      %{
-        server_state
-        | authenticator_state: if(valid?, do: %{username: username}, else: %{authenticated: false})
-      }
+      if valid?,
+        do: Map.put(server_state, :authenticator_state, %{username: username}),
+        else: Map.put(server_state, :authenticator_state, %{authenticated: false})
 
     send_resp(331, "User name okay, need password.", socket)
 
-    noreply(server_state)
+    continue(server_state)
   end
 
-  defp run(["PASS", password], socket, server_state) do
-    server_state.authenticator.login(password, server_state.authenticator_state)
+  defp run(
+         ["PASS", password],
+         socket,
+         %{authenticator: authenticator, authenticator_state: auth_state, connector_state: connector_state} =
+           server_state
+       ) do
+    authenticator.login(password, auth_state)
     |> case do
       {:ok, auth_state} ->
         auth_state = Map.put(auth_state, :authenticated, true)
-        connector_state = Map.put(server_state.connector_state, :authenticator_state, auth_state)
+        connector_state = Map.put(connector_state, :authenticator_state, auth_state)
 
         send_resp(230, "Welcome.", socket)
 
-        %{
-          server_state
-          | authenticator_state: auth_state,
-            connector_state: connector_state
-        }
-        |> noreply()
+        server_state
+        |> Map.put(:authenticator_state, auth_state)
+        |> Map.put(:connector_state, connector_state)
+        |> continue()
 
       {_, %{} = auth_state} ->
         send_resp(530, "Authentication failed.", socket)
 
         server_state
         |> Map.put(:authenticator_state, auth_state)
-        |> noreply()
+        |> continue()
 
       _ ->
         send_resp(530, "Authentication failed.", socket)
 
-        noreply(server_state)
+        continue(server_state)
     end
   end
 
@@ -221,7 +220,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&pwd/1, socket, server_state)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["CDUP"], socket, state), do: run(["CWD", ".."], socket, state)
@@ -231,7 +230,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&cwd/1, socket, server_state, path: path)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["MKD", path], socket, server_state) do
@@ -239,7 +238,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&mkd/1, socket, server_state, path: path)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["RMD", path], socket, server_state) do
@@ -247,7 +246,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&rmd/1, socket, server_state, path: path)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["DELE", path], socket, server_state) do
@@ -255,7 +254,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&dele/1, socket, server_state, path: path)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["LIST", "-a"], socket, server_state), do: run(["LIST", "-a", "."], socket, server_state)
@@ -266,7 +265,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&list/1, socket, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -278,7 +277,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&list/1, socket, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -290,7 +289,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&nlst/1, socket, server_state, pasv: pasv, path: path, include_hidden: true)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -302,7 +301,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&nlst/1, socket, server_state, pasv: pasv, path: path, include_hidden: false)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -312,7 +311,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&retr/1, socket, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -321,7 +320,7 @@ defmodule ExFTP.Worker do
     |> check_auth()
     |> with_ok(&size/1, socket, server_state, path: path)
     |> update_connector_state(server_state)
-    |> noreply()
+    |> continue()
   end
 
   defp run(["STOR", path], socket, server_state) do
@@ -330,7 +329,7 @@ defmodule ExFTP.Worker do
       |> check_auth()
       |> with_ok(&stor/1, socket, server_state, pasv: pasv, path: path)
       |> update_connector_state(server_state)
-      |> noreply()
+      |> continue()
     end
   end
 
@@ -404,7 +403,7 @@ defmodule ExFTP.Worker do
     %{server_state | connector_state: connector_state}
   end
 
-  defp noreply(state), do: {:continue, state}
+  defp continue(state), do: {:continue, state}
 
   defp ip_port_to_pasv(ip, port) do
     upper_port = port >>> 8
@@ -419,7 +418,7 @@ defmodule ExFTP.Worker do
       {:ok, pasv}
     else
       send_resp(550, "CMD failed. PASV mode required.", Map.get(state, :socket))
-      noreply(state)
+      continue(state)
     end
   end
 

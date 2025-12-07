@@ -4,6 +4,8 @@ defmodule ExFTP.Application do
 
   use Application
 
+  require Logger
+
   @impl true
   def start(_type, _args) do
     port = Application.get_env(:ex_ftp, :ftp_port, 4041)
@@ -14,7 +16,7 @@ defmodule ExFTP.Application do
     ]
 
     opts = [strategy: :one_for_one, name: ExFTP.Supervisor]
-
+    Logger.info("Accepting connections on port #{port}")
     Supervisor.start_link(children, opts)
   end
 end

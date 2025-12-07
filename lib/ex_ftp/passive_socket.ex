@@ -26,9 +26,9 @@ defmodule ExFTP.PassiveSocket do
   def close(nil), do: :ok
 
   def close(pid) do
-    if Process.alive?(pid) do
-      GenServer.call(pid, {:close}, :infinity)
-    end
+    if Process.alive?(pid),
+      do: GenServer.call(pid, {:close}, :infinity),
+      else: :ok
   end
 
   # Server API

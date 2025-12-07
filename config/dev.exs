@@ -1,7 +1,7 @@
 import Config
 
 alias ExFTP.Auth.PassthroughAuth
-alias ExFTP.Storage.S3Connector
+alias ExFTP.Storage.FileConnector
 
 config :ex_aws,
   s3: [
@@ -11,3 +11,18 @@ config :ex_aws,
     access_key_id: "",
     secret_access_key: ""
   ]
+
+config :ex_ftp,
+  ftp_port: "FTP_PORT" |> System.get_env("4041") |> String.to_integer(),
+  ftp_addr: System.get_env("FTP_ADDR", "127.0.0.1"),
+  min_passive_port: "MIN_PASSIVE_PORT" |> System.get_env("40002") |> String.to_integer(),
+  max_passive_port: "MAX_PASSIVE_PORT" |> System.get_env("40007") |> String.to_integer(),
+  authenticator: PassthroughAuth,
+  authenticator_config: %{
+    authenticated_url: nil,
+    authenticated_method: :get,
+    authenticated_ttl_ms: to_timeout(day: 1),
+    login_url: nil,
+    login_method: :get
+  },
+  storage_connector: FileConnector
