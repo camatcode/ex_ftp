@@ -21,7 +21,7 @@ config :ex_ftp,
   authenticator_config: %{
     authenticated_url: nil,
     authenticated_method: :get,
-    authenticated_ttl_ms: 24 * 60 * 60 * 60 * 1000,
+    authenticated_ttl_ms: to_timeout(day: 1),
     login_url: nil,
     login_method: :get
   },

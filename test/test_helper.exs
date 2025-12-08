@@ -22,7 +22,7 @@ defmodule ExFTP.TestHelper do
 
   def expect_recv(socket, code, msg_start \\ "") do
     match = "#{code} #{msg_start}"
-    {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 20_000)
+    assert {:ok, ^match <> _} = :gen_tcp.recv(socket, 0, 20_000)
     socket
   end
 
@@ -98,6 +98,10 @@ defmodule ExFTP.StorageTester do
     |> send_and_expect("MKD", [tmp_dir], 257, "\"#{tmp_dir}\" directory created.")
     |> send_and_expect("CWD", [tmp_dir], 250, "Directory changed successfully.")
     |> send_and_expect("PWD", [], 257, "\"#{tmp_dir}\" is the current directory")
+    |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
+    |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
+    |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
+    |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
     |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
     |> send_and_expect("CDUP", [], 250, "Directory changed successfully.")
     |> send_and_expect("PWD", [], 257, "\"/\" is the current directory")
@@ -273,12 +277,9 @@ defmodule ExFTP.StorageTester do
         |> File.read!()
 
       :ok = :gen_tcp.send(pasv_socket, data)
-
       close_pasv(pasv_socket)
-
       expect_recv(socket, 226, "Transfer Complete.")
-      :timer.sleep(400)
-      :timer.sleep(100)
+      :timer.sleep(600)
       send_and_expect(socket, "SIZE", [file], 213)
     end)
   end
