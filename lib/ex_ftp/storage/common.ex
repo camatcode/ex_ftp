@@ -398,6 +398,7 @@ defmodule ExFTP.Storage.Common do
       {:ok, stream} ->
         PassiveSocket.write(pasv, stream, close_after_write: true)
         send_resp(@closing_connection_success, "Transfer complete.", socket)
+        connector.transfer_complete(w_path, connector_state)
 
       _ ->
         send_resp(@action_aborted, "File not found.", socket)

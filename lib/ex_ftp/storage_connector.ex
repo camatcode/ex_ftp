@@ -464,4 +464,27 @@ defmodule ExFTP.StorageConnector do
   <!-- tabs-close -->
   """
   @callback create_write_func(path, connector_state, opts :: list()) :: function()
+
+  @doc """
+  Called when a transfer is complete
+
+  <!-- tabs-open -->
+  ### 🏷️ Params
+    * **path** :: `t:path/0`
+    * **connector_state** :: `t:connector_state/0`
+
+  #{ExFTP.Doc.returns(success: "data")}
+
+  ### 💻 Examples
+
+      iex> alias ExFTP.Storage.FileConnector
+      iex> connector_state = %{current_working_directory: "/"}
+      iex> dir = File.cwd!()
+      iex> FileConnector.transfer_complete(dir, connector_state)
+
+  #{ExFTP.Doc.resources("page-30")}
+
+  <!-- tabs-close -->
+  """
+  @callback transfer_complete(path, connector_state) :: any()
 end

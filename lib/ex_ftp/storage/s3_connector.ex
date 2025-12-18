@@ -287,7 +287,7 @@ defmodule ExFTP.Storage.S3Connector do
     * **path** :: `t:ExFTP.StorageConnector.path/0`
     * **connector_state** :: `t:ExFTP.StorageConnector.connector_state/0`
 
-  #{ExFTP.Doc.returns(success: "{:ok, data}", failure: "{:error, err}")}  
+  #{ExFTP.Doc.returns(success: "{:ok, data}", failure: "{:error, err}")}
 
   #{ExFTP.Doc.related(["`c:ExFTP.StorageConnector.get_content/2`"])}
 
@@ -391,6 +391,13 @@ defmodule ExFTP.Storage.S3Connector do
       end
     end
   end
+
+  @impl StorageConnector
+  @spec transfer_complete(
+          path :: ExFTP.StorageConnector.path(),
+          connector_state :: ExFTP.StorageConnector.connector_state()
+        ) :: any()
+  def transfer_complete(_path, _connector_state), do: :ok
 
   defp clean_path(path) do
     path
