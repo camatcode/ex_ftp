@@ -357,6 +357,20 @@ defmodule ExFTP.StorageConnector do
           type: :directory | :symlink | :file
         }
 
+  @typedoc """
+  The type of transfer being completed
+
+  <!-- tabs-open -->
+  ### 🏷️ Values
+    * **:retrieve** :: Retrieval of a file from storage
+    * **:store** :: Storage of a file to storage
+
+  #{ExFTP.Doc.resources()}
+
+  <!-- tabs-close -->
+  """
+  @type transfer_type :: :retrieve | :store
+
   @doc """
   Returns a list of `t:content_info/0` representing each object in a given directory
 
@@ -470,6 +484,7 @@ defmodule ExFTP.StorageConnector do
 
   <!-- tabs-open -->
   ### 🏷️ Params
+    * **type** :: `t:transfer_type/0`
     * **path** :: `t:path/0`
     * **connector_state** :: `t:connector_state/0`
 
@@ -480,11 +495,11 @@ defmodule ExFTP.StorageConnector do
       iex> alias ExFTP.Storage.FileConnector
       iex> connector_state = %{current_working_directory: "/"}
       iex> dir = File.cwd!()
-      iex> FileConnector.transfer_complete(dir, connector_state)
+      iex> FileConnector.transfer_complete(:retrieve, dir, connector_state)
 
   #{ExFTP.Doc.resources("page-30")}
 
   <!-- tabs-close -->
   """
-  @callback transfer_complete(path, connector_state) :: any()
+  @callback transfer_complete(type :: transfer_type(), path :: path(), connector_state :: connector_state()) :: any()
 end
