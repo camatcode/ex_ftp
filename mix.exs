@@ -17,7 +17,7 @@ defmodule ExFTP.MixProject do
   alias ExFTP.Storage.S3ConnectorConfig
 
   @source_url "https://github.com/camatcode/ex_ftp"
-  @version "1.2.0"
+  @version "1.3.0"
 
   def project do
     [
