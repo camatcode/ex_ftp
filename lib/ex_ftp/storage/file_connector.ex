@@ -404,14 +404,6 @@ defmodule ExFTP.Storage.FileConnector do
     end
   end
 
-  @impl StorageConnector
-  @spec transfer_complete(
-          type :: ExFTP.StorageConnector.transfer_type(),
-          path :: ExFTP.StorageConnector.path(),
-          connector_state :: ExFTP.StorageConnector.connector_state()
-        ) :: any()
-  def transfer_complete(_type, _path, _connector_state), do: :ok
-
   defp rmrf_dir("/"), do: {:error, "Not something to delete"}
 
   defp rmrf_dir(dir) do

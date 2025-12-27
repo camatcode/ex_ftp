@@ -125,7 +125,6 @@ defmodule ExFTP.MixProject do
       {:excoveralls, "~> 0.18", only: [:test]},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:faker, "~> 0.18.0", only: :test},
-      {:mimic, "~> 2.0", only: :test},
       {:req, "~> 0.5"},
       {:junit_formatter, "~> 3.1", only: [:test]},
       {:ex_aws, "~> 2.0"},

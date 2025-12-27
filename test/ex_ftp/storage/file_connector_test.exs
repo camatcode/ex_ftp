@@ -2,7 +2,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
   @moduledoc false
 
   use ExUnit.Case
-  use Mimic
 
   import ExFTP.StorageTester
   import ExFTP.TestHelper
@@ -14,8 +13,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
   @moduletag :capture_log
   doctest Common
   doctest FileConnector
-
-  setup :set_mimic_global
 
   setup do
     Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
@@ -157,15 +154,10 @@ defmodule ExFTP.Storage.FileConnectorTest do
     # CWD w_dir
     w_dir = File.cwd!()
 
-    FileConnector
-    |> stub(:transfer_complete, fn _type, _path, _connector_state -> :stub end)
-
     paths_to_download =
       w_dir |> File.ls!() |> Enum.filter(fn file -> w_dir |> Path.join(file) |> File.regular?() end)
 
     test_retr(state, w_dir, paths_to_download)
-
-    assert length(calls(&FileConnector.transfer_complete/3)) > 1
   end
 
   test "SIZE", state do
@@ -179,9 +171,6 @@ defmodule ExFTP.Storage.FileConnectorTest do
     w_dir = Path.join(System.tmp_dir!(), Faker.Internet.slug())
     on_exit(fn -> File.rm_rf!(w_dir) end)
 
-    FileConnector
-    |> stub(:transfer_complete, fn _type, _path, _connector_state -> :stub end)
-
     files_to_store =
       File.cwd!()
       |> File.ls!()
@@ -190,6 +179,5 @@ defmodule ExFTP.Storage.FileConnectorTest do
     refute Enum.empty?(files_to_store)
 
     test_stor(state, w_dir, files_to_store)
-    assert length(calls(&FileConnector.transfer_complete/3)) > 1
   end
 end

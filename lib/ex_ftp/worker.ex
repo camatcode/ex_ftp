@@ -35,6 +35,8 @@ defmodule ExFTP.Worker do
     connector = env[:storage_connector] || FileConnector
     authenticator = env[:authenticator] || PassthroughAuth
     server_name = env[:server_name] || :ExFTP
+    storage_config = env[:storage_config] || %{}
+    on_transfer_complete = storage_config[:on_transfer_complete]
 
     {:ok, host} =
       ftp_addr
@@ -49,13 +51,22 @@ defmodule ExFTP.Worker do
 
     send_resp(220, "Hello from #{server_name}.", socket)
 
+    connector_state = %{current_working_directory: "/"}
+
+    connector_state =
+      if on_transfer_complete do
+        Map.put(connector_state, :on_transfer_complete, on_transfer_complete)
+      else
+        connector_state
+      end
+
     %Worker{
       socket: socket,
       host: host,
       pasv_socket: nil,
       type: :ascii,
       storage_connector: connector,
-      connector_state: %{current_working_directory: "/"},
+      connector_state: connector_state,
       authenticator: authenticator,
       authenticator_state: %{}
     }

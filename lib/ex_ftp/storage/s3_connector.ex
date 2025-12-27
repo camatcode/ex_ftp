@@ -392,14 +392,6 @@ defmodule ExFTP.Storage.S3Connector do
     end
   end
 
-  @impl StorageConnector
-  @spec transfer_complete(
-          type :: ExFTP.StorageConnector.transfer_type(),
-          path :: ExFTP.StorageConnector.path(),
-          connector_state :: ExFTP.StorageConnector.connector_state()
-        ) :: any()
-  def transfer_complete(_type, _path, _connector_state), do: :ok
-
   defp clean_path(path) do
     path
     |> Path.join("")

@@ -1,6 +1,3 @@
-Mimic.copy(ExFTP.Storage.FileConnector)
-Mimic.copy(ExFTP.Storage.S3Connector)
-
 ExUnit.configure(formatters: [JUnitFormatter, ExUnit.CLIFormatter])
 ExUnit.start()
 
