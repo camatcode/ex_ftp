@@ -16,6 +16,8 @@ defmodule ExFTP.Storage.Common do
 
   alias ExFTP.PassiveSocket
 
+  require Logger
+
   @directory_action_ok 257
   @directory_action_not_taken 521
   @file_action_ok 250
@@ -398,6 +400,7 @@ defmodule ExFTP.Storage.Common do
       {:ok, stream} ->
         PassiveSocket.write(pasv, stream, close_after_write: true)
         send_resp(@closing_connection_success, "Transfer complete.", socket)
+        notify_transfer_complete(:retrieve, w_path, connector_state)
 
       _ ->
         send_resp(@action_aborted, "File not found.", socket)
@@ -508,6 +511,7 @@ defmodule ExFTP.Storage.Common do
     )
 
     ExFTP.Common.send_resp(@closing_connection_success, "Transfer Complete.", socket)
+    notify_transfer_complete(:store, w_path, connector_state)
 
     connector_state
   end
@@ -692,5 +696,15 @@ defmodule ExFTP.Storage.Common do
       key = String.to_atom(key)
       {key, val}
     end)
+  end
+
+  defp notify_transfer_complete(type, path, connector_state) do
+    case connector_state[:on_transfer_complete] do
+      {module, function} when is_atom(module) and is_atom(function) ->
+        apply(module, function, [type, path, connector_state])
+
+      _ ->
+        Logger.info("Transfer complete: #{type} #{path}")
+    end
   end
 end

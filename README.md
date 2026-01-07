@@ -174,7 +174,15 @@ config :ex_ftp,
   },
   # See "Choose a Storage Connector"
   storage_connector: ExFTP.Storage.FileConnector,
-  storage_config: %{}
+  storage_config: %{
+    # Optional: Handler for file transfer completion notifications
+    # If not configured, logs "Transfer complete: <type> <path>" by default
+    # Called as: module.function(type, path, connector_state)
+    # - type: :retrieve (download) or :store (upload)
+    # - path: the file path
+    # - connector_state: contains current_working_directory and authenticator_state
+    on_transfer_complete: {MyApp.TransferHandler, :handle_complete}
+  }
 
 ```
 
@@ -446,7 +454,33 @@ This is the out-of-the-box behavior you'd expect from any FTP server.
 config :ex_ftp,
   #....
   storage_connector: ExFTP.Storage.FileConnector,
-  storage_config: %{}
+  storage_config: %{
+    # Optional: Handler for transfer completion notifications
+    # Default: Logs "Transfer complete: <type> <path>"
+    on_transfer_complete: {MyApp.TransferHandler, :handle_complete}
+  }
+```
+
+**Example Handler:**
+
+```elixir
+defmodule MyApp.TransferHandler do
+  require Logger
+
+  def handle_complete(type, path, connector_state) do
+    # type is :retrieve or :store
+    # path is the file path
+    # connector_state contains authenticator_state with username and other metadata
+    username = connector_state.authenticator_state.username
+    Logger.info("User #{username} #{type}: #{path}")
+
+    # Trigger custom workflows
+    case type do
+      :store -> MyApp.notify_upload(username, path)
+      :retrieve -> MyApp.track_download(username, path)
+    end
+  end
+end
 ```
 
 [^ top](#top)
@@ -471,7 +505,9 @@ config :ex_ftp,
   storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
     # the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-    storage_bucket: "my-storage-bucket"
+    storage_bucket: "my-storage-bucket",
+    # Optional: Handler for transfer completion notifications
+    on_transfer_complete: {MyApp.TransferHandler, :handle_complete}
   }
 ```
 
@@ -513,7 +549,9 @@ config :ex_ftp,
   storage_connector: ExFTP.Storage.S3Connector,
   storage_config: %{
     # the `/` path of the FTP server will point to s3://{my-storage-bucket}/
-    storage_bucket: "my-storage-bucket"
+    storage_bucket: "my-storage-bucket",
+    # Optional: Handler for transfer completion notifications
+    on_transfer_complete: {MyApp.TransferHandler, :handle_complete}
   }
 ```
 
@@ -635,7 +673,7 @@ defmodule MyStorageConnector do
         ) :: function()
   def create_write_func(path, connector_state, opts \\ []) do
     # Return a function that will write `stream` to your storage at path
-    # e.g 
+    # e.g
     # fn stream ->
     #  fs = File.stream!(path)
     #
