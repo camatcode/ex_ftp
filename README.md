@@ -64,7 +64,7 @@
 Add `:ex_ftp` to your list of deps in `mix.exs`:
 
 ```elixir
-{:ex_ftp, "~> 1.1"}
+{:ex_ftp, "~> 1.3"}
 ```
 
 Then run `mix deps.get` to install ExFTP and its dependencies.
