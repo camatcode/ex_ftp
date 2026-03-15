@@ -17,23 +17,16 @@ defmodule ExFTP.MixProject do
   alias ExFTP.Storage.S3ConnectorConfig
 
   @source_url "https://github.com/camatcode/ex_ftp"
-  @version "1.3.0"
+  @version "1.3.2"
 
   def project do
     [
       app: :ex_ftp,
       version: @version,
-      elixir: "~> 1.18",
+      elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
-        "coveralls.cobertura": :test
-      ],
       # Hex
       package: package(),
       description: """
@@ -114,14 +107,26 @@ defmodule ExFTP.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.cobertura": :test
+      ]
+    ]
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:ex_license, "~> 0.1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:quokka, "~> 2.9", only: [:dev, :test], runtime: false},
+      {:quokka, "~> 2.12", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: [:test]},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:faker, "~> 0.18.0", only: :test},
