@@ -45,7 +45,7 @@ jobs:
             repo.hex.pm:443
 
       - name: Start LocalStack
-        uses: LocalStack/setup-localstack@9392b05ddb345894c2e86305fc426566e738c1db # v0.2.4
+        uses: LocalStack/setup-localstack@2e0e14048ddaf0db551b45fdaa39d3553f2c6399 # v0.3.0
         with:
           image-tag: 'latest'
           install-awslocal: 'true'
