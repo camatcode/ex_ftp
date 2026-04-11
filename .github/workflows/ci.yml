@@ -47,10 +47,10 @@ jobs:
       - name: Start Floci
         run: docker run -d -p 4566:4566 --name floci hectorvent/floci:latest
 
-      - name: Make bucket
-        run: |
-          AWS_ENDPOINT_URL=http://floci:4566 aws s3 mb s3://ex-ftp-test
-          AWS_ENDPOINT_URL=http://floci:4566 aws s3 ls
+#      - name: Make bucket
+#        run: |
+#          AWS_ENDPOINT_URL=http://floci:4566 aws s3 mb s3://ex-ftp-test
+#          AWS_ENDPOINT_URL=http://floci:4566 aws s3 ls
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
