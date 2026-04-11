@@ -1,16 +1,14 @@
 services:
-  localstack:
-    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
-    image: localstack/localstack
+  floci:
+    container_name: "${FLOCI_DOCKER_NAME:-floci-main}"
+    image: hectorvent/floci:latest
     ports:
       - "4566:4566"            # LocalStack Gateway
-      - "4510-4559:4510-4559"  # external services port range
-    environment:
-      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
-      - DEBUG=${DEBUG:-0}
     volumes:
-      - localstack-data:/var/lib/localstack
+      - floci-data:/app/data
       - "/var/run/docker.sock:/var/run/docker.sock"
 
+
+
 volumes:
-  localstack-data: {}
+  floci-data: {}
