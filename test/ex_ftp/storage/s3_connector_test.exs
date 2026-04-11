@@ -12,10 +12,28 @@ defmodule ExFTP.Storage.S3ConnectorTest do
   @moduletag :capture_log
   doctest S3Connector
 
+  defp ensure_bucket(test_bucket_name) do
+    %{
+      body: %{
+        buckets: buckets
+      },
+      status_code: 200
+    } = ExAws.S3.list_buckets() |> ExAws.request!()
+
+    bucket_exists = Enum.filter(buckets, fn bucket -> bucket.name == test_bucket_name end) |> Enum.empty?()
+
+    if bucket_exists do
+      ExAws.S3.put_bucket(test_bucket_name, "us-east-1") |> ExAws.request!()
+    end
+  end
+
   setup do
+    test_bucket = "ex-ftp-test"
     Application.put_env(:ex_ftp, :authenticator, PassthroughAuth)
     Application.put_env(:ex_ftp, :storage_connector, S3Connector)
-    Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: "ex-ftp-test"})
+    Application.put_env(:ex_ftp, :storage_config, %{storage_bucket: test_bucket})
+
+    ensure_bucket(test_bucket)
 
     socket = get_socket()
     username = Faker.Internet.user_name()
