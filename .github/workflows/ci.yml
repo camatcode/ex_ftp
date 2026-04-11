@@ -49,8 +49,8 @@ jobs:
 
       - name: Make bucket
         run: |
-          awslocal s3 mb s3://ex-ftp-test
-          awslocal s3 ls
+          aws s3 mb s3://ex-ftp-test
+          aws s3 ls
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
