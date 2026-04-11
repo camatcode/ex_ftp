@@ -44,11 +44,8 @@ jobs:
             registry-1.docker.io:443
             repo.hex.pm:443
 
-      - name: Start LocalStack
-        uses: LocalStack/setup-localstack@9392b05ddb345894c2e86305fc426566e738c1db # v0.2.4
-        with:
-          image-tag: 'latest'
-          install-awslocal: 'true'
+      - name: Start Floci
+        run: docker run -d -p 4566:4566 --name floci hectorvent/floci:latest
 
       - name: Make bucket
         run: |
